@@ -1,0 +1,83 @@
+/* Layout & Responsive Structure matching TailwindAdmin HTML Theme */
+.page-wrapper {
+    margin-left: 270px;
+    min-height: 100vh;
+    transition: margin-left .2s ease-in-out;
+}
+
+@media (max-width: 1279px) {
+    .page-wrapper {
+        margin-left: 0 !important;
+    }
+}
+
+.full-container {
+    max-width: 1536px;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+}
+
+/* Card styling & hover effects */
+.card {
+    background-color: var(--color-white, #ffffff);
+    border-radius: var(--radius-md, 7px);
+    box-shadow: 0 1px 4px rgba(133, 146, 173, 0.15);
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+html.dark .card {
+    background-color: var(--color-dark, #1c2536);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+
+.card-hover:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.08);
+}
+
+/* Active navigation item */
+.sidebar-link {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.625rem 1rem;
+    border-radius: var(--radius-md, 7px);
+    color: var(--color-link, #2a3547);
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: all 0.15s ease-in-out;
+}
+
+.sidebar-link:hover {
+    background-color: var(--color-lightprimary, rgba(93, 135, 255, 0.12));
+    color: var(--color-primary, #5d87ff);
+}
+
+.sidebar-link.active,
+a.active.sidebar-link {
+    background-color: var(--color-lightprimary, rgba(93, 135, 255, 0.12)) !important;
+    color: var(--color-primary, #5d87ff) !important;
+    font-weight: 600 !important;
+}
+
+.sidebar-link.active iconify-icon,
+a.active.sidebar-link iconify-icon {
+    color: var(--color-primary, #5d87ff) !important;
+}
+
+html.dark .sidebar-link {
+    color: var(--color-darklink, #7c8fac);
+}
+
+/* Badges */
+.badge-md {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.25rem 0.625rem;
+    border-radius: 9999px;
+}

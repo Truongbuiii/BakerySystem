@@ -1,0 +1,29 @@
+/* Scoped styles for NavMenu */
+.nav-scrollable {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(156, 163, 175, 0.4) transparent;
+}
+
+.nav-scrollable::-webkit-scrollbar {
+    width: 5px;
+}
+
+.nav-scrollable::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.nav-scrollable::-webkit-scrollbar-thumb {
+    background-color: rgba(156, 163, 175, 0.4);
+    border-radius: 9999px;
+}
+
+/* Blazor active NavLink styles matching TailwindAdmin theme */
+::deep a.active {
+    background-color: var(--lightprimary) !important;
+    color: var(--primary) !important;
+    font-weight: 600;
+}
+
+::deep a.active iconify-icon {
+    color: var(--primary) !important;
+}

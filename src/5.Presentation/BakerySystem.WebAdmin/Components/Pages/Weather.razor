@@ -1,0 +1,88 @@
+@page "/weather"
+@attribute [StreamRendering]
+
+<PageTitle>Dự Báo Thời Tiết & Giao Hàng | BakeryAdmin</PageTitle>
+
+<div class="bakery-card">
+    <div class="bakery-card-body">
+        <div class="flex items-center justify-between mb-4">
+            <div>
+                <h5 class="text-base font-bold text-dark dark:text-white mb-0.5">Dự Báo Thời Tiết Giao Hàng</h5>
+                <p class="text-xs text-bodytext mb-0">Theo dõi thời tiết để bảo quản bánh kem và điều phối đội ngũ shipper giao bánh</p>
+            </div>
+            <span class="bakery-badge bakery-badge-primary">StreamRendering</span>
+        </div>
+
+        @if (forecasts == null)
+        {
+            <div class="p-8 text-center text-bodytext">
+                <p class="text-sm">Đang tải dữ liệu thời tiết...</p>
+            </div>
+        }
+        else
+        {
+            <div class="bakery-table-responsive">
+                <table class="bakery-table">
+                    <thead>
+                        <tr>
+                            <th>Ngày</th>
+                            <th>Nhiệt độ (°C)</th>
+                            <th>Nhiệt độ (°F)</th>
+                            <th>Tình trạng thời tiết</th>
+                            <th>Khuyến nghị giao hàng</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var forecast in forecasts)
+                        {
+                            <tr>
+                                <td class="font-medium text-dark dark:text-white">@forecast.Date.ToShortDateString()</td>
+                                <td class="font-bold text-primary">@forecast.TemperatureC °C</td>
+                                <td class="text-bodytext">@forecast.TemperatureF °F</td>
+                                <td>
+                                    <span class="bakery-badge bakery-badge-secondary">@forecast.Summary</span>
+                                </td>
+                                <td>
+                                    @if (forecast.TemperatureC > 30)
+                                    {
+                                        <span class="bakery-badge bakery-badge-warning text-[10px]">Cần thùng giữ lạnh bánh kem</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="bakery-badge bakery-badge-success text-[10px]">Thời tiết lý tưởng</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private WeatherForecast[]? forecasts;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Task.Delay(300);
+
+        var startDate = DateOnly.FromDateTime(DateTime.Now);
+        var summaries = new[] { "Mát mẻ", "Nắng ấm", "Mưa nhẹ", "Nhiệt đới", "Nắng gắt", "Se lạnh" };
+        forecasts = Enumerable.Range(1, 6).Select(index => new WeatherForecast
+        {
+            Date = startDate.AddDays(index),
+            TemperatureC = Random.Shared.Next(22, 36),
+            Summary = summaries[Random.Shared.Next(summaries.Length)]
+        }).ToArray();
+    }
+
+    private class WeatherForecast
+    {
+        public DateOnly Date { get; set; }
+        public int TemperatureC { get; set; }
+        public string? Summary { get; set; }
+        public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
+    }
+}

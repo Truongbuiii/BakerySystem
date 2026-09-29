@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="vi" class="light" data-layout="vertical" data-card="shadow">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <base href="/" />
+    <ResourcePreloader />
+    <link rel="icon" type="image/svg+xml" href="/assets/images/logos/dark-logo.svg" />
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap" rel="stylesheet" />
+
+    <!-- Tabler Icons Webfont -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@@tabler/icons-webfont@@2.44.0/tabler-icons.min.css" />
+
+    <!-- Core Theme & Layout Styles -->
+    <link rel="stylesheet" href="/assets/css/theme.css" />
+    <link rel="stylesheet" href="/assets/css/layout.css" />
+    <link rel="stylesheet" href="/assets/css/bakery-admin.css?v=2.1" />
+    <link rel="stylesheet" href="/app.css" />
+    <link rel="stylesheet" href="@Assets["BakerySystem.WebAdmin.styles.css"]" />
+    <ImportMap />
+    <HeadOutlet />
+</head>
+
+<body class="DEFAULT_THEME bg-white dark:bg-dark text-bodytext antialiased font-sans">
+    <Routes />
+    <ReconnectModal />
+
+    <!-- Iconify Web Component -->
+    <script src="https://cdn.jsdelivr.net/npm/iconify-icon@2.3.0/dist/iconify-icon.min.js"></script>
+
+    <!-- ApexCharts Library -->
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+
+    <!-- Admin Helper & Dashboard Charts -->
+    <script src="/assets/js/admin.js?v=2.0"></script>
+    <script src="/assets/js/dashboard-charts.js?v=2.0"></script>
+
+    <script src="@Assets["_framework/blazor.web.js"]"></script>
+</body>
+
+</html>

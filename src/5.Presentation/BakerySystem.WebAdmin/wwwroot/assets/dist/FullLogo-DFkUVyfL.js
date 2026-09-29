@@ -1,0 +1,1 @@
+import{j as s}from"./index-COxh5E43.js";const o="/assets/dark-logo-CI_t418F.svg",l="/assets/light-logo-W531OIUA.svg",a=()=>s.jsxs(s.Fragment,{children:[s.jsx("img",{src:o,alt:"logo",className:"block dark:hidden rtl:scale-x-[-1]"}),s.jsx("img",{src:l,alt:"logo",className:"hidden dark:block rtl:scale-x-[-1]"})]});export{a as F};

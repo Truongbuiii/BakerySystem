@@ -1,0 +1,1 @@
+import{u as e,r,j as o,O as a}from"./index-COxh5E43.js";function n({children:t}){const{pathname:s}=e();return r.useEffect(()=>{window.scrollTo({top:0,left:0,behavior:"smooth"})},[s]),t||null}const c=()=>o.jsx(o.Fragment,{children:o.jsx(n,{children:o.jsx(a,{})})});export{c as default};

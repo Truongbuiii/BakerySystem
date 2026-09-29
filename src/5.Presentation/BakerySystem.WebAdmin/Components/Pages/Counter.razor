@@ -1,0 +1,30 @@
+@page "/counter"
+@rendermode InteractiveServer
+
+<PageTitle>Đếm Số Lượng Bánh | BakeryAdmin</PageTitle>
+
+<div class="bakery-card max-w-lg">
+    <div class="bakery-card-body">
+        <h5 class="text-base font-bold text-dark dark:text-white mb-2">Bộ Đếm Tiện Ích Blazor Interactivity</h5>
+        <p class="text-xs text-bodytext mb-4">Demo tính năng tương tác thời gian thực với Blazor Server Interactive Component.</p>
+
+        <div class="p-4 bg-lightprimary rounded-xl mb-4 text-center">
+            <span class="text-xs text-bodytext">Số lượng hiện tại:</span>
+            <div class="text-3xl font-bold text-primary mt-1">@currentCount</div>
+        </div>
+
+        <button class="btn-primary px-5 py-2 rounded-lg text-white font-medium text-sm hover:opacity-90 transition-opacity flex items-center gap-2" @onclick="IncrementCount">
+            <iconify-icon icon="solar:add-circle-linear" class="text-lg"></iconify-icon>
+            Tăng số lượng bánh (+1)
+        </button>
+    </div>
+</div>
+
+@code {
+    private int currentCount = 0;
+
+    private void IncrementCount()
+    {
+        currentCount++;
+    }
+}

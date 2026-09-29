@@ -1,0 +1,19 @@
+/* Scoped styles for MainLayout - Tailwind classes are handled in theme.css */
+#blazor-error-ui {
+    background: #fff3cd;
+    color: #664d03;
+    bottom: 1rem;
+    right: 1rem;
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    display: none;
+    padding: 0.75rem 1.25rem;
+    position: fixed;
+    z-index: 9999;
+}
+
+#blazor-error-ui .dismiss {
+    cursor: pointer;
+    margin-left: 1rem;
+    font-weight: bold;
+}

@@ -1,0 +1,562 @@
+/**
+ * BakeryAdmin Professional Responsive Stylesheet
+ * Custom engineered for BakerySystem WebAdmin (.NET 10 Blazor)
+ * Guarantees pixel-perfect responsive layouts on mobile, tablet, laptop, and ultra-wide screens.
+ */
+
+:root {
+    --bakery-primary: #5d87ff;
+    --bakery-primary-hover: #4570ea;
+    --bakery-primary-light: rgba(93, 135, 255, 0.1);
+    --bakery-secondary: #49beff;
+    --bakery-secondary-light: rgba(73, 190, 255, 0.1);
+    --bakery-success: #13deb9;
+    --bakery-success-light: rgba(19, 222, 185, 0.12);
+    --bakery-warning: #f6b51e;
+    --bakery-warning-light: rgba(246, 181, 30, 0.12);
+    --bakery-error: #fa896b;
+    --bakery-error-light: rgba(250, 137, 107, 0.12);
+    --bakery-body: #5a6a85;
+    --bakery-dark: #2a3547;
+    --bakery-bg-dark: #1c2536;
+    --bakery-border: #e2e8f0;
+    --bakery-border-dark: #2a3851;
+    --bakery-sidebar-w: 260px;
+}
+
+/* Base resets & overflow safety */
+html, body {
+    overflow-x: hidden;
+    max-width: 100%;
+}
+
+/* ========================================================
+   1. FIXED IMAGE & AVATAR SIZING (PREVENTS BLOWUPS)
+   ======================================================== */
+.bakery-avatar-lg {
+    width: 54px !important;
+    height: 54px !important;
+    min-width: 54px !important;
+    min-height: 54px !important;
+    max-width: 54px !important;
+    max-height: 54px !important;
+    border-radius: 9999px !important;
+    object-fit: cover !important;
+    display: inline-block !important;
+    flex-shrink: 0 !important;
+}
+
+.bakery-avatar-md {
+    width: 40px !important;
+    height: 40px !important;
+    min-width: 40px !important;
+    min-height: 40px !important;
+    max-width: 40px !important;
+    max-height: 40px !important;
+    border-radius: 9999px !important;
+    object-fit: cover !important;
+    display: inline-block !important;
+    flex-shrink: 0 !important;
+}
+
+.bakery-avatar-sm {
+    width: 32px !important;
+    height: 32px !important;
+    min-width: 32px !important;
+    min-height: 32px !important;
+    max-width: 32px !important;
+    max-height: 32px !important;
+    border-radius: 9999px !important;
+    object-fit: cover !important;
+    display: inline-block !important;
+    flex-shrink: 0 !important;
+}
+
+.bakery-support-img {
+    width: 140px !important;
+    height: 95px !important;
+    max-width: 140px !important;
+    max-height: 95px !important;
+    object-fit: contain !important;
+    pointer-events: none !important;
+}
+
+.bakery-icon-img {
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+    max-width: 44px !important;
+    max-height: 44px !important;
+    object-fit: contain !important;
+    display: inline-block !important;
+}
+
+/* ========================================================
+   2. MAIN RESPONSIVE SHELL (SIDEBAR & PAGE WRAPPER)
+   ======================================================== */
+.bakery-layout-root {
+    display: flex;
+    min-height: 100vh;
+    width: 100%;
+    background-color: #f4f7fb;
+    position: relative;
+}
+
+html.dark .bakery-layout-root {
+    background-color: #111827;
+}
+
+/* Sidebar Styling - STRICT OVERRIDE FOR ANY CONFLICTING TAILWIND CSS */
+.bakery-sidebar {
+    width: var(--bakery-sidebar-w) !important;
+    min-width: var(--bakery-sidebar-w) !important;
+    max-width: var(--bakery-sidebar-w) !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    bottom: 0 !important;
+    height: 100vh !important;
+    z-index: 50 !important;
+    background-color: #ffffff !important;
+    border-right: 1px solid var(--bakery-border) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.03) !important;
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    translate: 0 0 !important;
+    transform: none !important;
+}
+
+html.dark .bakery-sidebar {
+    background-color: var(--bakery-bg-dark) !important;
+    border-right-color: var(--bakery-border-dark) !important;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Sidebar Brand Header (Fixed 64px height with crisp bottom border) */
+.bakery-sidebar-brand {
+    height: 64px !important;
+    min-height: 64px !important;
+    max-height: 64px !important;
+    padding: 0 1.25rem !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    border-bottom: 1px solid var(--bakery-border) !important;
+    background-color: #ffffff !important;
+    flex-shrink: 0 !important;
+    box-sizing: border-box !important;
+}
+
+html.dark .bakery-sidebar-brand {
+    background-color: var(--bakery-bg-dark) !important;
+    border-bottom-color: var(--bakery-border-dark) !important;
+}
+
+/* Sidebar Section Dividers */
+.bakery-sidebar-divider {
+    height: 1px !important;
+    min-height: 1px !important;
+    max-height: 1px !important;
+    background-color: var(--bakery-border) !important;
+    border: none !important;
+    margin: 1rem 0.5rem !important;
+    display: block !important;
+    opacity: 1 !important;
+}
+
+html.dark .bakery-sidebar-divider {
+    background-color: var(--bakery-border-dark) !important;
+}
+
+/* Sidebar Section Captions */
+.bakery-sidebar-caption {
+    font-size: 0.6875rem !important; /* 11px */
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.08em !important;
+    color: #64748b !important;
+    padding: 0 0.75rem !important;
+    margin-bottom: 0.5rem !important;
+    display: block !important;
+}
+
+html.dark .bakery-sidebar-caption {
+    color: #94a3b8 !important;
+}
+
+/* Page Body Wrapper */
+.bakery-page-wrapper {
+    margin-left: var(--bakery-sidebar-w) !important;
+    width: calc(100% - var(--bakery-sidebar-w)) !important;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    transition: margin-left 0.25s cubic-bezier(0.4, 0, 0.2, 1), width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Sidebar Desktop Breakpoint at >= 1024px */
+@media (min-width: 1024px) {
+    .bakery-sidebar {
+        transform: translateX(0) !important;
+        translate: 0 0 !important;
+        left: 0 !important;
+        visibility: visible !important;
+        display: flex !important;
+        pointer-events: auto !important;
+    }
+    .bakery-page-wrapper {
+        margin-left: var(--bakery-sidebar-w) !important;
+        width: calc(100% - var(--bakery-sidebar-w)) !important;
+    }
+    .bakery-mobile-toggle {
+        display: none !important;
+    }
+    .bakery-sidebar-close {
+        display: none !important;
+    }
+    #sidebar-backdrop {
+        display: none !important;
+    }
+}
+
+/* Sidebar Mobile & Tablet Breakpoint at < 1024px */
+@media (max-width: 1023px) {
+    .bakery-sidebar {
+        transform: translateX(-100%) !important;
+        translate: -100% 0 !important;
+    }
+    .bakery-sidebar.sidebar-open {
+        transform: translateX(0) !important;
+        translate: 0 0 !important;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3) !important;
+    }
+    .bakery-page-wrapper {
+        margin-left: 0 !important;
+        width: 100% !important;
+    }
+    .bakery-mobile-toggle {
+        display: inline-flex !important;
+    }
+    .bakery-sidebar-close {
+        display: inline-flex !important;
+    }
+}
+
+/* Content Container */
+.bakery-container {
+    width: 100%;
+    max-width: 1440px;
+    margin-left: auto;
+    margin-right: auto;
+    padding: 1.5rem 1.25rem 3rem 1.25rem;
+}
+
+@media (min-width: 640px) {
+    .bakery-container {
+        padding: 1.75rem 1.75rem 3.5rem 1.75rem;
+    }
+}
+
+/* ========================================================
+   3. STICKY TOPBAR HEADER
+   ======================================================== */
+.bakery-topbar {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    height: 64px;
+    background-color: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--bakery-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 1.5rem;
+    transition: background-color 0.2s, border-color 0.2s;
+}
+
+html.dark .bakery-topbar {
+    background-color: rgba(28, 37, 54, 0.95);
+    border-bottom-color: var(--bakery-border-dark);
+}
+
+.bakery-nav-link {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.625rem 0.875rem;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #475569;
+    text-decoration: none;
+    transition: all 0.15s ease-in-out;
+}
+
+.bakery-nav-link:hover {
+    background-color: var(--bakery-primary-light);
+    color: var(--bakery-primary);
+}
+
+.bakery-nav-link.active,
+a.active.bakery-nav-link {
+    background-color: var(--bakery-primary-light) !important;
+    color: var(--bakery-primary) !important;
+    font-weight: 600 !important;
+}
+
+.bakery-nav-link.active iconify-icon,
+a.active.bakery-nav-link iconify-icon {
+    color: var(--bakery-primary) !important;
+}
+
+html.dark .bakery-nav-link {
+    color: #94a3b8;
+}
+
+html.dark .bakery-nav-link:hover {
+    color: #ffffff;
+    background-color: rgba(93, 135, 255, 0.2);
+}
+
+/* ========================================================
+   4. WELCOME BANNER
+   ======================================================== */
+.bakery-welcome-banner {
+    background: linear-gradient(135deg, rgba(93, 135, 255, 0.12) 0%, rgba(73, 190, 255, 0.08) 100%);
+    border: 1px solid rgba(93, 135, 255, 0.18);
+    border-radius: 14px;
+    padding: 1.5rem 1.75rem;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+}
+
+html.dark .bakery-welcome-banner {
+    background: linear-gradient(135deg, rgba(93, 135, 255, 0.15) 0%, rgba(28, 37, 54, 0.8) 100%);
+    border-color: rgba(93, 135, 255, 0.25);
+}
+
+.bakery-welcome-content {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    z-index: 2;
+}
+
+@media (max-width: 639px) {
+    .bakery-welcome-banner {
+        padding: 1.25rem;
+    }
+    .bakery-support-img {
+        display: none !important;
+    }
+}
+
+/* ========================================================
+   5. RESPONSIVE METRICS GRID (4 PRIMARY KPI CARDS)
+   ======================================================== */
+.bakery-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+    gap: 1.25rem;
+    margin-bottom: 1.5rem;
+}
+
+@media (min-width: 640px) {
+    .bakery-kpi-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (min-width: 1024px) {
+    .bakery-kpi-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+}
+
+.bakery-kpi-card {
+    background-color: #ffffff;
+    border: 1px solid var(--bakery-border);
+    border-radius: 12px;
+    padding: 1.25rem 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+html.dark .bakery-kpi-card {
+    background-color: var(--bakery-bg-dark);
+    border-color: var(--bakery-border-dark);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.bakery-kpi-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
+}
+
+.bakery-kpi-iconbox {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+/* ========================================================
+   6. 2-COLUMN DASHBOARD GRIDS (RESPONSIVE)
+   ======================================================== */
+.bakery-grid-main {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+@media (min-width: 1024px) {
+    .bakery-grid-main {
+        grid-template-columns: 1.8fr 1.2fr;
+    }
+}
+
+@media (min-width: 1280px) {
+    .bakery-grid-main {
+        grid-template-columns: 2fr 1fr;
+    }
+}
+
+.bakery-grid-ops {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+}
+
+@media (min-width: 1024px) {
+    .bakery-grid-ops {
+        grid-template-columns: 1.2fr 1.8fr;
+    }
+}
+
+@media (min-width: 1280px) {
+    .bakery-grid-ops {
+        grid-template-columns: 1fr 2fr;
+    }
+}
+
+/* ========================================================
+   7. CARDS & WIDGETS
+   ======================================================== */
+.bakery-card {
+    background-color: #ffffff;
+    border: 1px solid var(--bakery-border);
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+html.dark .bakery-card {
+    background-color: var(--bakery-bg-dark);
+    border-color: var(--bakery-border-dark);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.bakery-card-body {
+    padding: 1.5rem;
+}
+
+/* Table Responsive Container */
+.bakery-table-responsive {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.bakery-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+}
+
+.bakery-table th {
+    padding: 0.75rem 1rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #64748b;
+    border-bottom: 1px solid var(--bakery-border);
+}
+
+html.dark .bakery-table th {
+    color: #94a3b8;
+    border-bottom-color: var(--bakery-border-dark);
+}
+
+.bakery-table td {
+    padding: 0.875rem 1rem;
+    font-size: 0.8125rem;
+    border-bottom: 1px solid var(--bakery-border);
+    vertical-align: middle;
+}
+
+html.dark .bakery-table td {
+    border-bottom-color: var(--bakery-border-dark);
+}
+
+.bakery-table tbody tr:hover {
+    background-color: rgba(93, 135, 255, 0.04);
+}
+
+html.dark .bakery-table tbody tr:hover {
+    background-color: rgba(93, 135, 255, 0.08);
+}
+
+/* Badges */
+.bakery-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.25rem 0.625rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.bakery-badge-success {
+    background-color: var(--bakery-success-light);
+    color: #059669;
+}
+
+.bakery-badge-primary {
+    background-color: var(--bakery-primary-light);
+    color: var(--bakery-primary);
+}
+
+.bakery-badge-secondary {
+    background-color: var(--bakery-secondary-light);
+    color: #0284c7;
+}
+
+.bakery-badge-warning {
+    background-color: var(--bakery-warning-light);
+    color: #d97706;
+}
+
+.bakery-badge-error {
+    background-color: var(--bakery-error-light);
+    color: #e11d48;
+}

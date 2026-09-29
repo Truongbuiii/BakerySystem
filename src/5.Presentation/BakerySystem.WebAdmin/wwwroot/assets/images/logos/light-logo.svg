@@ -1,0 +1,17 @@
+<svg width="200" height="36" viewBox="0 0 200 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <g transform="translate(0, 2)">
+    <rect x="2" y="2" width="28" height="28" rx="8" fill="url(#bakery_grad_light)" />
+    <!-- Cake / cupcake outline -->
+    <path d="M10 22C10 22 10.5 24 16 24C21.5 24 22 22 22 22" stroke="white" stroke-width="2" stroke-linecap="round"/>
+    <path d="M11 17H21C21.5 17 22 17.5 21.8 18L21 21C20.8 21.5 20.3 22 19.8 22H12.2C11.7 22 11.2 21.5 11 21L10.2 18C10 17.5 10.5 17 11 17Z" fill="white" fill-opacity="0.25" stroke="white" stroke-width="1.5"/>
+    <circle cx="16" cy="10.5" r="2.5" fill="#FFE58F"/>
+    <path d="M12 16.5C12.5 14 14 13 16 13C18 13 19.5 14 20 16.5" stroke="white" stroke-width="1.8" stroke-linecap="round"/>
+  </g>
+  <text x="38" y="24" font-family="'Plus Jakarta Sans', 'DM Sans', sans-serif" font-size="19" font-weight="800" fill="#FFFFFF" letter-spacing="-0.5">Bakery<tspan fill="#49BEFF">Admin</tspan></text>
+  <defs>
+    <linearGradient id="bakery_grad_light" x1="2" y1="2" x2="30" y2="30" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#5D87FF"/>
+      <stop offset="1" stop-color="#49BEFF"/>
+    </linearGradient>
+  </defs>
+</svg>

@@ -1,0 +1,21 @@
+<Solution>
+  <Folder Name="/src/" />
+  <Folder Name="/src/1.Core/">
+    <Project Path="src/1.Core/BakerySystem.Domain/BakerySystem.Domain.csproj" />
+    <Project Path="src/1.Core/BakerySystem.Shared/BakerySystem.Shared.csproj" />
+  </Folder>
+  <Folder Name="/src/2.Application/">
+    <Project Path="src/2.Application/BakerySystem.Application/BakerySystem.Application.csproj" />
+  </Folder>
+  <Folder Name="/src/3.Infrastructure/">
+    <Project Path="src/3.Infrastructure/BakerySystem.Infrastructure/BakerySystem.Infrastructure.csproj" />
+    <Project Path="src/3.Infrastructure/BakerySystem.Integration/BakerySystem.Integration.csproj" />
+  </Folder>
+  <Folder Name="/src/4.API/">
+    <Project Path="src/4.API/BakerySystem.API/BakerySystem.API.csproj" />
+  </Folder>
+  <Folder Name="/src/5.Presentation/">
+    <Project Path="src/5.Presentation/BakerySystem.MobileApp/BakerySystem.MobileApp.csproj" />
+    <Project Path="src/5.Presentation/BakerySystem.WebAdmin/BakerySystem.WebAdmin.csproj" />
+  </Folder>
+</Solution>
