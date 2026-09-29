@@ -1,30 +1,43 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-    <title>BakerySystem.MobileApp</title>
+    <title>Bakery Mobile | Tiệm Bánh Thủ Công</title>
     <base href="/" />
+    
+    <!-- Google Font: Plus Jakarta Sans -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Bootstrap 5 & App CSS -->
     <link rel="stylesheet" href="lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="app.css" />
-    <link rel="stylesheet" href="BakerySystem.MobileApp.styles.css" />
+    <link rel="stylesheet" href="bakery-mobile.css" />
     <link rel="icon" href="data:,">
 </head>
 
 <body>
-
     <div class="status-bar-safe-area"></div>
 
-    <div id="app">Loading...</div>
+    <div id="app">
+        <div style="height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; background: #FAF7F2; font-family: 'Plus Jakarta Sans', sans-serif;">
+            <div style="width: 40px; height: 40px; border: 4px solid #E76F51; border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+            <p style="font-weight: 700; color: #2B2118; font-size: 14px; margin: 0;">Đang tải Bakery Mobile...</p>
+        </div>
+        <style>
+            @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        </style>
+    </div>
 
     <div id="blazor-error-ui" data-nosnippet>
-        An unhandled error has occurred.
-        <a href="." class="reload">Reload</a>
+        Đã xảy ra lỗi không mong muốn.
+        <a href="." class="reload">Tải lại</a>
         <span class="dismiss">🗙</span>
     </div>
 
+    <!-- Iconify Icon library -->
+    <script src="https://cdn.jsdelivr.net/npm/iconify-icon@2.3.0/dist/iconify-icon.min.js"></script>
     <script src="_framework/blazor.webview.js" autostart="false"></script>
-
 </body>
-
 </html>

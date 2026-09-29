@@ -1,6 +1,6 @@
-﻿namespace BakerySystem.MobileApp;
+namespace BakerySystem.MobileApp;
 
-public partial class App : Application
+public partial class App : Microsoft.Maui.Controls.Application
 {
 	public App()
 	{
@@ -9,6 +9,21 @@ public partial class App : Application
 
 	protected override Window CreateWindow(IActivationState? activationState)
 	{
-		return new Window(new MainPage()) { Title = "BakerySystem.MobileApp" };
+		var window = new Window(new MainPage()) 
+		{ 
+			Title = "Bakery Mobile - Tiệm Bánh Thủ Công" 
+		};
+
+		window.Created += (s, e) =>
+		{
+			try
+			{
+				window.Width = 430;
+				window.Height = 860;
+			}
+			catch { }
+		};
+
+		return window;
 	}
 }

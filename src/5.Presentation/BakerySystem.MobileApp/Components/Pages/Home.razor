@@ -1,5 +1,925 @@
-﻿@page "/"
+@page "/"
+@inject IBakeryDbContext DbContext
+@inject CartService CartService
+@inject IJSRuntime JS
+@implements IDisposable
 
-<h1>Hello, world!</h1>
+<!-- 1. Mobile Top Header -->
+<header class="mobile-header">
+    <div class="header-top">
+        <div class="location-box">
+            <span class="location-label">
+                <iconify-icon icon="solar:map-point-wave-bold" style="color: #E76F51; font-size: 14px;"></iconify-icon> Giao đến
+            </span>
+            <div class="location-value">
+                <span>123 Lê Lợi, Bến Thành, Q.1</span>
+                <iconify-icon icon="solar:alt-arrow-down-linear" style="font-size: 14px; color: #6E6259;"></iconify-icon>
+            </div>
+        </div>
 
-Welcome to your new app.
+        <div class="header-actions">
+            <!-- Order / Search icon -->
+            <button class="header-icon-btn" @onclick='() => SwitchTab("orders")' title="Đơn hàng">
+                <iconify-icon icon="solar:bag-heart-linear"></iconify-icon>
+            </button>
+
+            <!-- Cart icon with dynamic badge -->
+            <button class="header-icon-btn" @onclick="OpenCart" title="Giỏ hàng">
+                <iconify-icon icon="solar:cart-large-2-linear"></iconify-icon>
+                @if (CartService.TotalItemsCount > 0)
+                {
+                    <span class="badge-counter">@CartService.TotalItemsCount</span>
+                }
+            </button>
+        </div>
+    </div>
+</header>
+
+<!-- 2. Main Mobile Scrollable Content Area -->
+<div class="mobile-content-area no-scrollbar">
+
+    @if (currentTab == "home")
+    {
+        <!-- Greeting & Subtitle -->
+        <div style="padding: 14px 18px 4px;">
+            <p style="margin: 0; font-size: 12px; color: #9C8E84; font-weight: 600;">Chào mừng bạn trở lại! 👋</p>
+            <h4 style="margin: 2px 0 0; font-size: 19px; font-weight: 800; color: #2B2118;">Hôm nay bạn muốn thưởng thức món bánh nào? 🧁</h4>
+        </div>
+
+        <!-- Search Input Bar -->
+        <div class="search-container">
+            <div class="mobile-search-box">
+                <iconify-icon icon="solar:magnifer-linear" style="font-size: 18px; color: #9C8E84;"></iconify-icon>
+                <input type="text" class="mobile-search-input" placeholder="Tìm bánh kem sinh nhật, bánh mì bơ, tiramisu..."
+                       @bind="searchQuery" @bind:event="oninput" />
+                @if (!string.IsNullOrEmpty(searchQuery))
+                {
+                    <iconify-icon icon="solar:close-circle-bold" style="font-size: 16px; color: #9C8E84; cursor: pointer;" @onclick="() => searchQuery = string.Empty"></iconify-icon>
+                }
+            </div>
+        </div>
+
+        <!-- Promo Banner Carousel / Card -->
+        <div class="promo-banner">
+            <span class="promo-badge">Ưu Đãi Đặc Biệt 2026 🎉</span>
+            <h3 class="promo-title">Giảm 10% Cho Đơn Bánh Mới</h3>
+            <p class="promo-subtitle">Nhập mã ưu đãi <strong style="text-decoration: underline;">BAKERY2026</strong> khi thanh toán giỏ hàng.</p>
+            <button class="promo-btn" @onclick="ApplyPromoDirectly">
+                <span>Dùng mã ngay</span>
+                <iconify-icon icon="solar:arrow-right-linear" style="font-size: 12px;"></iconify-icon>
+            </button>
+            <iconify-icon icon="solar:cake-bold" class="promo-decor-icon"></iconify-icon>
+        </div>
+
+        <!-- Categories Horizontal Pills -->
+        <div class="category-section">
+            <div class="section-header">
+                <h5 class="section-title">Danh Mục Bánh</h5>
+                <span class="section-link" @onclick='() => SwitchTab("menu")'>Xem tất cả</span>
+            </div>
+
+            <div class="category-scroll-container no-scrollbar">
+                <button class="category-pill @(selectedCategoryId == 0 ? "active" : "")" @onclick="() => SelectCategory(0)">
+                    <iconify-icon icon="solar:star-fall-bold"></iconify-icon>
+                    <span>Tất cả</span>
+                </button>
+                @foreach (var cat in categories)
+                {
+                    <button class="category-pill @(selectedCategoryId == cat.CategoryID ? "active" : "")" @onclick="() => SelectCategory(cat.CategoryID)">
+                        <iconify-icon icon="@GetCategoryIcon(cat.CategoryName)"></iconify-icon>
+                        <span>@cat.CategoryName</span>
+                    </button>
+                }
+            </div>
+        </div>
+
+        <!-- Products 2-Column Grid -->
+        <div class="products-grid-section">
+            <div class="section-header">
+                <h5 class="section-title">
+                    @(selectedCategoryId == 0 ? "Bánh Tươi Trong Ngày" : categories.FirstOrDefault(c => c.CategoryID == selectedCategoryId)?.CategoryName ?? "Sản phẩm")
+                </h5>
+                <span style="font-size: 11px; color: #9C8E84; font-weight: 600;">@FilteredProducts.Count() món</span>
+            </div>
+
+            @if (!FilteredProducts.Any())
+            {
+                <div style="text-align: center; padding: 30px 10px; color: #9C8E84;">
+                    <iconify-icon icon="solar:cup-paper-linear" style="font-size: 40px; margin-bottom: 6px;"></iconify-icon>
+                    <p style="font-size: 13px; margin: 0;">Không tìm thấy món bánh phù hợp với từ khóa này.</p>
+                </div>
+            }
+            else
+            {
+                <div class="product-grid">
+                    @foreach (var prod in FilteredProducts)
+                    {
+                        <div class="mobile-product-card" @onclick="() => OpenProductModal(prod)">
+                            <div class="product-img-wrap">
+                                <img src="@GetProductImageUrl(prod)" alt="@prod.ProductName" class="product-img" onerror="this.src='/assets/images/products/tiramisu.jpg';" />
+                                <span class="product-tag">@prod.Category?.CategoryName</span>
+                            </div>
+                            <div class="product-info">
+                                <span class="product-category">Thủ công</span>
+                                <h6 class="product-name">@prod.ProductName</h6>
+                                <div class="product-price-row">
+                                    <span class="product-price">@($"{prod.Price:N0}đ")</span>
+                                    <button class="btn-quick-add" @onclick:stopPropagation="true" @onclick="() => QuickAddToCart(prod)" title="Thêm nhanh">
+                                        <iconify-icon icon="solar:add-linear"></iconify-icon>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    }
+    else if (currentTab == "menu")
+    {
+        <!-- Full Menu Tab -->
+        <div style="padding: 14px 18px;">
+            <h4 style="margin: 0 0 4px; font-size: 19px; font-weight: 800; color: #2B2118;">Thực Đơn Tiệm Bánh 📜</h4>
+            <p style="margin: 0 0 12px; font-size: 12px; color: #9C8E84;">Khám phá toàn bộ hương vị bánh thơm ngon được nướng mới mỗi ngày</p>
+
+            <!-- Search in Menu -->
+            <div class="mobile-search-box" style="margin-bottom: 14px;">
+                <iconify-icon icon="solar:magnifer-linear" style="font-size: 18px; color: #9C8E84;"></iconify-icon>
+                <input type="text" class="mobile-search-input" placeholder="Lọc theo tên món bánh..."
+                       @bind="searchQuery" @bind:event="oninput" />
+            </div>
+
+            <!-- Categories Horizontal Pills -->
+            <div class="category-scroll-container no-scrollbar" style="margin-bottom: 14px;">
+                <button class="category-pill @(selectedCategoryId == 0 ? "active" : "")" @onclick="() => SelectCategory(0)">
+                    <span>Tất cả</span>
+                </button>
+                @foreach (var cat in categories)
+                {
+                    <button class="category-pill @(selectedCategoryId == cat.CategoryID ? "active" : "")" @onclick="() => SelectCategory(cat.CategoryID)">
+                        <span>@cat.CategoryName</span>
+                    </button>
+                }
+            </div>
+
+            <!-- Products Grid in Menu -->
+            <div class="product-grid">
+                @foreach (var prod in FilteredProducts)
+                {
+                    <div class="mobile-product-card" @onclick="() => OpenProductModal(prod)">
+                        <div class="product-img-wrap">
+                            <img src="@GetProductImageUrl(prod)" alt="@prod.ProductName" class="product-img" onerror="this.src='/assets/images/products/tiramisu.jpg';" />
+                            <span class="product-tag">@prod.Category?.CategoryName</span>
+                        </div>
+                        <div class="product-info">
+                            <h6 class="product-name">@prod.ProductName</h6>
+                            <p style="font-size: 11px; color: #9C8E84; margin: 0 0 6px; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden;">@prod.Description</p>
+                            <div class="product-price-row">
+                                <span class="product-price">@($"{prod.Price:N0}đ")</span>
+                                <button class="btn-quick-add" @onclick:stopPropagation="true" @onclick="() => QuickAddToCart(prod)">
+                                    <iconify-icon icon="solar:add-linear"></iconify-icon>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+    else if (currentTab == "orders")
+    {
+        <!-- Customer Orders Tab (Real DB Data) -->
+        <div style="padding: 14px 18px;">
+            <h4 style="margin: 0 0 4px; font-size: 19px; font-weight: 800; color: #2B2118;">Đơn Hàng Của Tôi 📦</h4>
+            <p style="margin: 0 0 14px; font-size: 12px; color: #9C8E84;">Theo dõi tiến độ chuẩn bị và giao hàng trực tiếp từ bếp bánh</p>
+
+            @if (customerOrders == null || !customerOrders.Any())
+            {
+                <div style="text-align: center; padding: 40px 10px; background: white; border-radius: 16px; border: 1px solid var(--bk-border);">
+                    <iconify-icon icon="solar:box-minimalistic-linear" style="font-size: 48px; color: #C0B4A9; margin-bottom: 8px;"></iconify-icon>
+                    <h6 style="margin: 0 0 4px; font-weight: 700; color: #2B2118;">Bạn chưa có đơn hàng nào</h6>
+                    <p style="margin: 0 0 14px; font-size: 12px; color: #9C8E84;">Hãy chọn ngay những chiếc bánh thơm ngon và đặt hàng nhé!</p>
+                    <button class="btn-bk-primary" style="width: auto; padding: 8px 20px;" @onclick='() => SwitchTab("home")'>Khám phá bánh ngay</button>
+                </div>
+            }
+            else
+            {
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    @foreach (var order in customerOrders)
+                    {
+                        <div style="background: white; border-radius: 16px; border: 1px solid var(--bk-border); padding: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid #F4EFEA;">
+                                <div>
+                                    <span style="font-size: 13px; font-weight: 800; color: #2B2118;">Đơn #@order.OrderID</span>
+                                    <div style="font-size: 11px; color: #9C8E84;">@order.OrderDate.ToString("dd/MM/yyyy HH:mm")</div>
+                                </div>
+                                <div>
+                                    <span class="order-status-badge @GetStatusCssClass(order.Status)">
+                                        <iconify-icon icon="@GetStatusIcon(order.Status)"></iconify-icon>
+                                        @GetStatusText(order.Status)
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- List items summary -->
+                            <div style="margin-bottom: 10px;">
+                                @foreach (var detail in order.OrderDetails)
+                                {
+                                    <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px;">
+                                        <span style="color: #2B2118; font-weight: 600;">@detail.Quantity x @detail.Product?.ProductName</span>
+                                        <span style="color: #6E6259; font-weight: 700;">@($"{detail.SubTotal:N0}đ")</span>
+                                    </div>
+                                }
+                            </div>
+
+                            @if (!string.IsNullOrEmpty(order.Note))
+                            {
+                                <div style="font-size: 11px; color: #E76F51; background: #FFF5EE; padding: 6px 10px; border-radius: 8px; margin-bottom: 10px;">
+                                    📝 <strong>Ghi chú:</strong> @order.Note
+                                </div>
+                            }
+
+                            <!-- Footer with total and payment -->
+                            <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 8px; border-top: 1px dashed #EAE3D8;">
+                                <div style="font-size: 11px; color: #9C8E84;">
+                                    PTTT: <strong style="color: #2B2118;">@order.PaymentMethod</strong>
+                                    <span style="margin-left: 4px; color: @(order.PaymentStatus == PaymentStatus.Paid ? "#16A34A" : "#D97706") font-weight: 600;">
+                                        (@(order.PaymentStatus == PaymentStatus.Paid ? "Đã thanh toán" : "Chưa thanh toán"))
+                                    </span>
+                                </div>
+                                <div style="text-align: right;">
+                                    <span style="font-size: 11px; color: #9C8E84;">Tổng cộng: </span>
+                                    <span style="font-size: 14px; font-weight: 800; color: #E76F51;">@($"{order.FinalAmount:N0}đ")</span>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    }
+    else if (currentTab == "profile")
+    {
+        <!-- Customer Profile Tab -->
+        <div style="padding: 14px 18px;">
+            <!-- VIP Member Profile Card -->
+            <div style="background: linear-gradient(135deg, #2B2118 0%, #463428 100%); border-radius: 20px; padding: 20px; color: white; margin-bottom: 16px; box-shadow: 0 10px 25px rgba(43,33,24,0.25);">
+                <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 14px;">
+                    <img src="/assets/images/profile/user-1.jpg" alt="Avatar" style="width: 54px; height: 54px; border-radius: 50%; border: 2px solid #F4A261;" />
+                    <div>
+                        <div style="display: flex; align-items: center; gap: 6px;">
+                            <h5 style="margin: 0; font-size: 16px; font-weight: 800;">Nguyễn Hoàng Anh</h5>
+                            <span style="background: #F4A261; color: #2B2118; font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 10px;">VIP BẠC</span>
+                        </div>
+                        <p style="margin: 2px 0 0; font-size: 12px; color: #D5C8BD;">0912 345 678 • Khách hàng thân thiết</p>
+                    </div>
+                </div>
+
+                <div style="display: flex; justify-content: space-around; background: rgba(255,255,255,0.08); border-radius: 12px; padding: 10px;">
+                    <div style="text-align: center;">
+                        <span style="font-size: 11px; color: #C0B4A9;">Điểm tích lũy</span>
+                        <div style="font-size: 15px; font-weight: 800; color: #F4A261;">450 điểm</div>
+                    </div>
+                    <div style="width: 1px; background: rgba(255,255,255,0.15);"></div>
+                    <div style="text-align: center;">
+                        <span style="font-size: 11px; color: #C0B4A9;">Voucher có sẵn</span>
+                        <div style="font-size: 15px; font-weight: 800; color: #E76F51;">02 mã</div>
+                    </div>
+                    <div style="width: 1px; background: rgba(255,255,255,0.15);"></div>
+                    <div style="text-align: center;">
+                        <span style="font-size: 11px; color: #C0B4A9;">Đơn đã mua</span>
+                        <div style="font-size: 15px; font-weight: 800; color: #2A9D8F;">@(customerOrders?.Count ?? 0) đơn</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Profile Menu Options -->
+            <div style="background: white; border-radius: 16px; border: 1px solid var(--bk-border); overflow: hidden; margin-bottom: 16px;">
+                <div style="display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid #F4EFEA; cursor: pointer;">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <div style="width: 32px; height: 32px; border-radius: 8px; background: #FFF5EE; color: #E76F51; display: flex; align-items: center; justify-content: center;">
+                            <iconify-icon icon="solar:ticket-sale-bold"></iconify-icon>
+                        </div>
+                        <span style="font-size: 13px; font-weight: 700; color: #2B2118;">Kho Voucher Của Tôi</span>
+                    </div>
+                    <span style="font-size: 11px; font-weight: 700; color: #E76F51;">Mã BAKERY2026</span>
+                </div>
+
+                <div style="display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid #F4EFEA; cursor: pointer;">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <div style="width: 32px; height: 32px; border-radius: 8px; background: #F0FDF4; color: #16A34A; display: flex; align-items: center; justify-content: center;">
+                            <iconify-icon icon="solar:map-point-wave-bold"></iconify-icon>
+                        </div>
+                        <div>
+                            <span style="font-size: 13px; font-weight: 700; color: #2B2118;">Sổ Địa Chỉ Giao Hàng</span>
+                            <div style="font-size: 11px; color: #9C8E84;">123 Lê Lợi, Bến Thành, Q.1, TP.HCM</div>
+                        </div>
+                    </div>
+                    <iconify-icon icon="solar:alt-arrow-right-linear" style="color: #9C8E84;"></iconify-icon>
+                </div>
+
+                <div style="display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; cursor: pointer;">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <div style="width: 32px; height: 32px; border-radius: 8px; background: #FEF3C7; color: #D97706; display: flex; align-items: center; justify-content: center;">
+                            <iconify-icon icon="solar:phone-calling-bold"></iconify-icon>
+                        </div>
+                        <div>
+                            <span style="font-size: 13px; font-weight: 700; color: #2B2118;">Hotline Hỗ Trợ Đặt Bánh</span>
+                            <div style="font-size: 11px; color: #9C8E84;">1900 8888 (07:00 - 22:00)</div>
+                        </div>
+                    </div>
+                    <iconify-icon icon="solar:alt-arrow-right-linear" style="color: #9C8E84;"></iconify-icon>
+                </div>
+            </div>
+
+            <!-- App info footer -->
+            <div style="text-align: center; padding: 10px; color: #9C8E84; font-size: 11px;">
+                Bakery Mobile Customer v1.0.0<br />
+                .NET 10 MAUI Blazor Hybrid
+            </div>
+        </div>
+    }
+
+</div>
+
+<!-- 3. Floating Cart Bar (khi có sản phẩm trong giỏ) -->
+@if (CartService.TotalItemsCount > 0 && !isCartOpen)
+{
+    <div class="floating-cart-bar" @onclick="OpenCart">
+        <div class="floating-cart-info">
+            <div class="floating-cart-badge">@CartService.TotalItemsCount</div>
+            <div class="floating-cart-text">
+                <h6>Giỏ hàng • @($"{CartService.FinalAmount:N0}đ")</h6>
+                <p>@GetCartSummaryText()</p>
+            </div>
+        </div>
+        <button class="floating-cart-btn">
+            <span>Xem giỏ hàng</span>
+            <iconify-icon icon="solar:alt-arrow-right-linear"></iconify-icon>
+        </button>
+    </div>
+}
+
+<!-- 4. Fixed Bottom Navigation Bar -->
+<nav class="mobile-bottom-nav">
+    <div class="nav-tab-item @(currentTab == "home" ? "active" : "")" @onclick='() => SwitchTab("home")'>
+        <iconify-icon icon="@(currentTab == "home" ? "solar:home-smile-bold" : "solar:home-smile-linear")"></iconify-icon>
+        <span>Trang chủ</span>
+    </div>
+
+    <div class="nav-tab-item @(currentTab == "menu" ? "active" : "")" @onclick='() => SwitchTab("menu")'>
+        <iconify-icon icon="@(currentTab == "menu" ? "solar:cup-bold" : "solar:cup-linear")"></iconify-icon>
+        <span>Thực đơn</span>
+    </div>
+
+    <div class="nav-tab-item" @onclick="OpenCart">
+        <div style="position: relative;">
+            <iconify-icon icon="solar:bag-2-linear"></iconify-icon>
+            @if (CartService.TotalItemsCount > 0)
+            {
+                <span class="badge-counter" style="top: -6px; right: -8px;">@CartService.TotalItemsCount</span>
+            }
+        </div>
+        <span>Giỏ hàng</span>
+    </div>
+
+    <div class="nav-tab-item @(currentTab == "orders" ? "active" : "")" @onclick='() => SwitchTab("orders")'>
+        <iconify-icon icon="@(currentTab == "orders" ? "solar:bill-list-bold" : "solar:bill-list-linear")"></iconify-icon>
+        <span>Đơn hàng</span>
+    </div>
+
+    <div class="nav-tab-item @(currentTab == "profile" ? "active" : "")" @onclick='() => SwitchTab("profile")'>
+        <iconify-icon icon="@(currentTab == "profile" ? "solar:user-bold" : "solar:user-linear")"></iconify-icon>
+        <span>Tài khoản</span>
+    </div>
+</nav>
+
+<!-- 5. Product Detail Modal (Bottom Sheet) -->
+@if (selectedProduct != null)
+{
+    <div class="bottom-sheet-backdrop" @onclick="CloseProductModal">
+        <div class="bottom-sheet-panel" @onclick:stopPropagation="true">
+            <div class="sheet-handle"></div>
+            <div class="sheet-header">
+                <h5>Chi Tiết Món Bánh</h5>
+                <button class="sheet-close-btn" @onclick="CloseProductModal">&times;</button>
+            </div>
+
+            <div class="sheet-body">
+                <div style="width: 100%; height: 210px; border-radius: 16px; overflow: hidden; background: #FFF5EE; margin-bottom: 14px;">
+                    <img src="@GetProductImageUrl(selectedProduct)" alt="@selectedProduct.ProductName" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.src='/assets/images/products/tiramisu.jpg';" />
+                </div>
+
+                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
+                    <div>
+                        <span style="font-size: 11px; font-weight: 700; color: #E76F51; text-transform: uppercase;">@selectedProduct.Category?.CategoryName</span>
+                        <h4 style="margin: 2px 0 0; font-size: 17px; font-weight: 800; color: #2B2118;">@selectedProduct.ProductName</h4>
+                    </div>
+                    <span style="font-size: 18px; font-weight: 800; color: #E76F51;">@($"{selectedProduct.Price:N0}đ")</span>
+                </div>
+
+                <p style="font-size: 13px; color: #6E6259; line-height: 1.5; margin-bottom: 16px;">
+                    @selectedProduct.Description
+                </p>
+
+                <!-- Size options -->
+                <div style="margin-bottom: 16px;">
+                    <label style="font-size: 12px; font-weight: 700; color: #2B2118; margin-bottom: 6px; display: block;">Chọn Kích Cỡ / Phần Ăn:</label>
+                    <div style="display: flex; gap: 8px;">
+                        @foreach (var size in new[] { "Tiêu chuẩn", "Size Vừa (20cm)", "Size Lớn (24cm)" })
+                        {
+                            <button style="flex: 1; padding: 8px 6px; border-radius: 12px; font-size: 11px; font-weight: 600; border: 1.5px solid @(selectedSize == size ? "#E76F51" : "#EFE8DE"); background: @(selectedSize == size ? "#FDF0ED" : "white"); color: @(selectedSize == size ? "#E76F51" : "#6E6259"); cursor: pointer;"
+                                    @onclick="() => selectedSize = size">
+                                @size
+                            </button>
+                        }
+                    </div>
+                </div>
+
+                <!-- Custom writing on cake -->
+                <div style="margin-bottom: 16px;">
+                    <label style="font-size: 12px; font-weight: 700; color: #2B2118; margin-bottom: 6px; display: block;">Lời Nhắn / Ghi Chữ Lên Bánh (nếu có):</label>
+                    <input type="text" class="form-control" placeholder="Ví dụ: Chúc mừng sinh nhật Hoàng Anh..."
+                           style="border-radius: 12px; font-size: 12px; border-color: var(--bk-border);"
+                           @bind="customWritingNote" />
+                </div>
+
+                <!-- Quantity selector -->
+                <div style="display: flex; align-items: center; justify-content: space-between; padding-top: 10px; border-top: 1px solid var(--bk-border);">
+                    <span style="font-size: 13px; font-weight: 700; color: #2B2118;">Số lượng:</span>
+                    <div class="quantity-stepper">
+                        <button class="stepper-btn" @onclick="() => modalQuantity = Math.Max(1, modalQuantity - 1)">-</button>
+                        <span class="stepper-value">@modalQuantity</span>
+                        <button class="stepper-btn" @onclick="() => modalQuantity++">+</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sheet-footer">
+                <button class="btn-bk-primary" @onclick="AddToCartFromModal">
+                    Thêm vào giỏ hàng • @($"{(selectedProduct.Price * modalQuantity):N0}đ")
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- 6. Cart & Checkout Bottom Sheet -->
+@if (isCartOpen)
+{
+    <div class="bottom-sheet-backdrop" @onclick="CloseCart">
+        <div class="bottom-sheet-panel" @onclick:stopPropagation="true">
+            <div class="sheet-handle"></div>
+            <div class="sheet-header">
+                <h5>Giỏ Hàng Của Bạn (@CartService.TotalItemsCount)</h5>
+                <button class="sheet-close-btn" @onclick="CloseCart">&times;</button>
+            </div>
+
+            <div class="sheet-body">
+                @if (!CartService.Items.Any())
+                {
+                    <div style="text-align: center; padding: 40px 10px; color: #9C8E84;">
+                        <iconify-icon icon="solar:cart-cross-linear" style="font-size: 48px; color: #C0B4A9; margin-bottom: 8px;"></iconify-icon>
+                        <h6 style="font-weight: 700; color: #2B2118; margin-bottom: 4px;">Giỏ hàng đang trống</h6>
+                        <p style="font-size: 12px; margin: 0 0 14px;">Hãy chọn những chiếc bánh tươi ngon để thêm vào giỏ nhé!</p>
+                        <button class="btn-bk-primary" style="width: auto; padding: 8px 20px;" @onclick="CloseCart">Tiếp tục xem bánh</button>
+                    </div>
+                }
+                else
+                {
+                    <!-- Items List -->
+                    <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px;">
+                        @foreach (var item in CartService.Items)
+                        {
+                            <div style="display: flex; align-items: center; justify-content: space-between; background: #FAF7F2; border-radius: 14px; padding: 10px 12px;">
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <img src="@item.ImageURL" alt="@item.ProductName" style="width: 44px; height: 44px; border-radius: 10px; object-fit: cover;" onerror="this.src='/assets/images/products/tiramisu.jpg';" />
+                                    <div>
+                                        <h6 style="margin: 0; font-size: 13px; font-weight: 700; color: #2B2118;">@item.ProductName</h6>
+                                        <span style="font-size: 11px; color: #9C8E84;">@item.SelectedSize @(string.IsNullOrEmpty(item.CustomNote) ? "" : $"• 📝 {item.CustomNote}")</span>
+                                        <div style="font-size: 12px; font-weight: 800; color: #E76F51; margin-top: 2px;">@($"{item.UnitPrice:N0}đ")</div>
+                                    </div>
+                                </div>
+
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <div class="quantity-stepper">
+                                        <button class="stepper-btn" @onclick="() => CartService.UpdateQuantity(item.ProductID, -1)">-</button>
+                                        <span class="stepper-value">@item.Quantity</span>
+                                        <button class="stepper-btn" @onclick="() => CartService.UpdateQuantity(item.ProductID, 1)">+</button>
+                                    </div>
+                                    <button style="border: none; background: transparent; color: #E63946; font-size: 16px; cursor: pointer;" @onclick="() => CartService.RemoveItem(item.ProductID)">
+                                        <iconify-icon icon="solar:trash-bin-trash-linear"></iconify-icon>
+                                    </button>
+                                </div>
+                            </div>
+                        }
+                    </div>
+
+                    <!-- Voucher Promo Code -->
+                    <div style="margin-bottom: 16px;">
+                        <label style="font-size: 12px; font-weight: 700; color: #2B2118; margin-bottom: 4px; display: block;">Mã Khuyến Mãi / Voucher:</label>
+                        <div style="display: flex; gap: 8px;">
+                            <input type="text" class="form-control" placeholder="Nhập mã voucher (VD: BAKERY2026)"
+                                   style="border-radius: 12px; font-size: 12px; border-color: var(--bk-border);"
+                                   @bind="voucherInput" />
+                            <button style="background: #2B2118; color: white; border: none; border-radius: 12px; padding: 0 16px; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap;"
+                                    @onclick="ApplyVoucher">
+                                Áp dụng
+                            </button>
+                        </div>
+                        @if (!string.IsNullOrEmpty(voucherMessage))
+                        {
+                            <span style="font-size: 11px; font-weight: 600; color: @(voucherMessage.Contains("thành công") ? "#16A34A" : "#E63946"); margin-top: 4px; display: block;">
+                                @voucherMessage
+                            </span>
+                        }
+                    </div>
+
+                    <!-- Delivery & Contact Information Form -->
+                    <div style="background: white; border: 1px solid var(--bk-border); border-radius: 14px; padding: 14px; margin-bottom: 16px;">
+                        <h6 style="margin: 0 0 10px; font-size: 13px; font-weight: 800; color: #2B2118;">Thông Tin Nhận Bánh</h6>
+                        <div style="display: flex; flex-direction: column; gap: 8px;">
+                            <div>
+                                <label style="font-size: 11px; color: #6E6259;">Họ và tên người nhận:</label>
+                                <input type="text" class="form-control form-control-sm" style="border-radius: 8px;" @bind="receiverName" />
+                            </div>
+                            <div>
+                                <label style="font-size: 11px; color: #6E6259;">Số điện thoại:</label>
+                                <input type="text" class="form-control form-control-sm" style="border-radius: 8px;" @bind="receiverPhone" />
+                            </div>
+                            <div>
+                                <label style="font-size: 11px; color: #6E6259;">Địa chỉ giao bánh:</label>
+                                <input type="text" class="form-control form-control-sm" style="border-radius: 8px;" @bind="receiverAddress" />
+                            </div>
+                            <div>
+                                <label style="font-size: 11px; color: #6E6259;">Ghi chú đơn hàng (ví dụ: giao trước 17h, kèm nến):</label>
+                                <input type="text" class="form-control form-control-sm" style="border-radius: 8px;" @bind="orderNote" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Payment Method Selector -->
+                    <div style="margin-bottom: 16px;">
+                        <label style="font-size: 12px; font-weight: 700; color: #2B2118; margin-bottom: 6px; display: block;">Phương Thức Thanh Toán:</label>
+                        <div style="display: flex; flex-direction: column; gap: 8px;">
+                            <label style="display: flex; align-items: center; justify-content: space-between; background: @(selectedPaymentMethod == PaymentMethod.COD ? "#FDF0ED" : "#FFFFFF"); border: 1.5px solid @(selectedPaymentMethod == PaymentMethod.COD ? "#E76F51" : "#EFE8DE"); border-radius: 12px; padding: 10px 14px; cursor: pointer;">
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <input type="radio" name="paymentMethod" checked="@(selectedPaymentMethod == PaymentMethod.COD)" @onchange="() => selectedPaymentMethod = PaymentMethod.COD" />
+                                    <span style="font-size: 12px; font-weight: 700; color: #2B2118;">Tiền mặt khi nhận bánh (COD)</span>
+                                </div>
+                                <iconify-icon icon="solar:wallet-money-bold" style="font-size: 18px; color: #E76F51;"></iconify-icon>
+                            </label>
+
+                            <label style="display: flex; align-items: center; justify-content: space-between; background: @(selectedPaymentMethod == PaymentMethod.BankTransfer ? "#FDF0ED" : "#FFFFFF"); border: 1.5px solid @(selectedPaymentMethod == PaymentMethod.BankTransfer ? "#E76F51" : "#EFE8DE"); border-radius: 12px; padding: 10px 14px; cursor: pointer;">
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <input type="radio" name="paymentMethod" checked="@(selectedPaymentMethod == PaymentMethod.BankTransfer)" @onchange="() => selectedPaymentMethod = PaymentMethod.BankTransfer" />
+                                    <span style="font-size: 12px; font-weight: 700; color: #2B2118;">Chuyển khoản VietQR</span>
+                                </div>
+                                <iconify-icon icon="solar:card-transfer-bold" style="font-size: 18px; color: #0284C7;"></iconify-icon>
+                            </label>
+
+                            <label style="display: flex; align-items: center; justify-content: space-between; background: @(selectedPaymentMethod == PaymentMethod.VNPAY ? "#FDF0ED" : "#FFFFFF"); border: 1.5px solid @(selectedPaymentMethod == PaymentMethod.VNPAY ? "#E76F51" : "#EFE8DE"); border-radius: 12px; padding: 10px 14px; cursor: pointer;">
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <input type="radio" name="paymentMethod" checked="@(selectedPaymentMethod == PaymentMethod.VNPAY)" @onchange="() => selectedPaymentMethod = PaymentMethod.VNPAY" />
+                                    <span style="font-size: 12px; font-weight: 700; color: #2B2118;">Ví điện tử VNPAY</span>
+                                </div>
+                                <iconify-icon icon="solar:smartphone-bold" style="font-size: 18px; color: #16A34A;"></iconify-icon>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Pricing Summary -->
+                    <div style="background: #FAF7F2; border-radius: 14px; padding: 12px 14px; margin-bottom: 12px;">
+                        <div style="display: flex; justify-content: space-between; font-size: 12px; color: #6E6259; margin-bottom: 4px;">
+                            <span>Tạm tính tiền bánh:</span>
+                            <span style="font-weight: 700;">@($"{CartService.SubTotalAmount:N0}đ")</span>
+                        </div>
+                        @if (CartService.DiscountAmount > 0)
+                        {
+                            <div style="display: flex; justify-content: space-between; font-size: 12px; color: #E76F51; margin-bottom: 4px;">
+                                <span>Giảm giá voucher (@CartService.AppliedVoucherCode):</span>
+                                <span style="font-weight: 700;">-@($"{CartService.DiscountAmount:N0}đ")</span>
+                            </div>
+                        }
+                        <div style="display: flex; justify-content: space-between; font-size: 12px; color: #6E6259; margin-bottom: 6px;">
+                            <span>Phí giao hàng:</span>
+                            <span style="color: #16A34A; font-weight: 700;">Miễn phí (Freeship)</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; font-size: 14px; color: #2B2118; font-weight: 800; padding-top: 6px; border-top: 1px dashed #E0D7CD;">
+                            <span>Tổng thanh toán:</span>
+                            <span style="color: #E76F51; font-size: 16px;">@($"{CartService.FinalAmount:N0}đ")</span>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            @if (CartService.Items.Any())
+            {
+                <div class="sheet-footer">
+                    <button class="btn-bk-primary" @onclick="PlaceOrder" disabled="@isSubmittingOrder">
+                        @if (isSubmittingOrder)
+                        {
+                            <span>Đang gửi đơn hàng vào hệ thống...</span>
+                        }
+                        else
+                        {
+                            <span>Xác Nhận Đặt Bánh Ngay • @($"{CartService.FinalAmount:N0}đ")</span>
+                        }
+                    </button>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+<!-- 7. Order Success Modal -->
+@if (justPlacedOrder != null)
+{
+    <div class="bottom-sheet-backdrop" @onclick="() => justPlacedOrder = null">
+        <div class="bottom-sheet-panel" @onclick:stopPropagation="true" style="text-align: center; padding: 24px 20px;">
+            <div style="width: 64px; height: 64px; background: #DCFCE7; color: #16A34A; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 32px; margin: 0 auto 12px;">
+                <iconify-icon icon="solar:check-circle-bold"></iconify-icon>
+            </div>
+            <h4 style="margin: 0 0 6px; font-size: 19px; font-weight: 800; color: #2B2118;">Đặt Bánh Thành Công! 🎉</h4>
+            <p style="font-size: 13px; color: #6E6259; margin: 0 0 16px;">
+                Mã đơn hàng: <strong style="color: #E76F51;">#@justPlacedOrder.OrderID</strong>. Đơn hàng của bạn đã được chuyển đến bếp làm bánh BakerySystem.
+            </p>
+            <div style="background: #FAF7F2; border-radius: 12px; padding: 12px; font-size: 12px; margin-bottom: 16px; text-align: left;">
+                <div style="margin-bottom: 4px;"><strong>Người nhận:</strong> @justPlacedOrder.ReceiverName (@justPlacedOrder.ReceiverPhone)</div>
+                <div style="margin-bottom: 4px;"><strong>Địa chỉ:</strong> @justPlacedOrder.ShippingAddress</div>
+                <div><strong>Tổng tiền:</strong> <span style="color: #E76F51; font-weight: 800;">@($"{justPlacedOrder.FinalAmount:N0}đ")</span></div>
+            </div>
+            <button class="btn-bk-primary" @onclick="ViewMyOrdersAfterPlacement">
+                Theo Dõi Đơn Hàng Của Tôi
+            </button>
+        </div>
+    </div>
+}
+
+@code {
+    private string currentTab = "home";
+    private string searchQuery = string.Empty;
+    private int selectedCategoryId = 0;
+
+    private List<Category> categories = new();
+    private List<Product> products = new();
+    private List<Order> customerOrders = new();
+
+    private Product? selectedProduct;
+    private string selectedSize = "Tiêu chuẩn";
+    private string customWritingNote = string.Empty;
+    private int modalQuantity = 1;
+
+    private bool isCartOpen = false;
+    private bool isSubmittingOrder = false;
+    private string voucherInput = string.Empty;
+    private string voucherMessage = string.Empty;
+
+    private string receiverName = "Nguyễn Hoàng Anh";
+    private string receiverPhone = "0912 345 678";
+    private string receiverAddress = "123 Lê Lợi, Phường Bến Thành, Quận 1, TP.HCM";
+    private string orderNote = "Giao lúc 16:30 chiều, kèm nến sinh nhật";
+    private string selectedPaymentMethod = PaymentMethod.COD;
+
+    private Order? justPlacedOrder;
+
+    protected override async Task OnInitializedAsync()
+    {
+        CartService.OnChange += StateHasChanged;
+        await LoadDataAsync();
+    }
+
+    private async Task LoadDataAsync()
+    {
+        try
+        {
+            // Tải danh mục và sản phẩm từ cơ sở dữ liệu thật BakerySystem
+            categories = await DbContext.Categories.ToListAsync();
+            products = await DbContext.Products
+                .Include(p => p.Category)
+                .Where(p => p.IsActive)
+                .ToListAsync();
+
+            await LoadOrdersAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("DB load error: " + ex.Message);
+            if (!categories.Any())
+            {
+                categories = new List<Category>
+                {
+                    new Category { CategoryID = 1, CategoryName = "Bánh kem sinh nhật" },
+                    new Category { CategoryID = 2, CategoryName = "Bánh ngọt & Mousse" },
+                    new Category { CategoryID = 3, CategoryName = "Bánh mì & Croissant" }
+                };
+            }
+            if (!products.Any())
+            {
+                products = new List<Product>
+                {
+                    new Product { ProductID = 1, CategoryID = 2, ProductName = "Bánh Tiramisu Ý Hoàng Gia", Description = "Lớp bánh cà phê Mascarpone Ý thơm ngậy, rắc bột cacao nguyên chất cao cấp.", Price = 350000m, ImageURL = "/assets/images/products/tiramisu.jpg", IsActive = true, Category = categories[1] },
+                    new Product { ProductID = 2, CategoryID = 3, ProductName = "Set Croissant Bơ Pháp (Hộp 6)", Description = "Bánh sừng bò nướng giòn xốp nhiều lớp với bơ sữa thượng hạng vùng Normandie.", Price = 180000m, ImageURL = "/assets/images/products/croissant.jpg", IsActive = true, Category = categories[2] },
+                    new Product { ProductID = 3, CategoryID = 1, ProductName = "Bánh Kem Bắp Phô Mai 24cm", Description = "Cốt bánh bông lan vani mềm mịn, kem sữa tươi ngọt thanh xen kẽ hạt bắp ngọt và phô mai nướng.", Price = 420000m, ImageURL = "/assets/images/products/corn-cake.jpg", IsActive = true, Category = categories[0] },
+                    new Product { ProductID = 4, CategoryID = 2, ProductName = "Bánh Mousse Dâu Tây Nhật Bản", Description = "Mousse dâu tây Đà Lạt tươi mát kết hợp thạch hoa hồng ngọt dịu và sốt dâu tươi.", Price = 290000m, ImageURL = "/assets/images/products/mousse.jpg", IsActive = true, Category = categories[1] },
+                    new Product { ProductID = 5, CategoryID = 3, ProductName = "Bánh Mì Hoa Cúc Brioche", Description = "Bánh mì bơ Brioche Pháp thơm hương hoa cúc tự nhiên, mềm dẻo từng thớ bánh.", Price = 120000m, ImageURL = "/assets/images/products/brioche.jpg", IsActive = true, Category = categories[2] },
+                    new Product { ProductID = 6, CategoryID = 1, ProductName = "Bánh Black Forest Cherry Rừng", Description = "Hương vị sô cô la đen Bỉ đậm đà hòa quyện cùng quả anh đào chua ngọt và rượu Kirsch.", Price = 480000m, ImageURL = "/assets/images/products/black-forest.jpg", IsActive = true, Category = categories[0] }
+                };
+            }
+        }
+    }
+
+    private async Task LoadOrdersAsync()
+    {
+        try
+        {
+            customerOrders = await DbContext.Orders
+                .Include(o => o.OrderDetails)
+                .ThenInclude(od => od.Product)
+                .OrderByDescending(o => o.OrderDate)
+                .ToListAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Orders load error: " + ex.Message);
+        }
+    }
+
+    private IEnumerable<Product> FilteredProducts
+    {
+        get
+        {
+            var query = products.AsEnumerable();
+            if (selectedCategoryId > 0)
+            {
+                query = query.Where(p => p.CategoryID == selectedCategoryId);
+            }
+            if (!string.IsNullOrWhiteSpace(searchQuery))
+            {
+                query = query.Where(p => p.ProductName.Contains(searchQuery, StringComparison.OrdinalIgnoreCase) ||
+                                         (p.Description != null && p.Description.Contains(searchQuery, StringComparison.OrdinalIgnoreCase)));
+            }
+            return query;
+        }
+    }
+
+    private void SwitchTab(string tab)
+    {
+        currentTab = tab;
+        if (tab == "orders")
+        {
+            _ = LoadOrdersAsync();
+        }
+    }
+
+    private void SelectCategory(int categoryId)
+    {
+        selectedCategoryId = categoryId;
+    }
+
+    private string GetCategoryIcon(string name)
+    {
+        if (name.Contains("kem", StringComparison.OrdinalIgnoreCase)) return "solar:cake-bold";
+        if (name.Contains("mì", StringComparison.OrdinalIgnoreCase)) return "solar:cup-paper-bold";
+        if (name.Contains("ngọt", StringComparison.OrdinalIgnoreCase)) return "solar:donut-bitten-bold";
+        return "solar:box-minimalistic-bold";
+    }
+
+    private string GetProductImageUrl(Product p)
+    {
+        if (p.ProductName.Contains("Tiramisu", StringComparison.OrdinalIgnoreCase)) return "/assets/images/products/tiramisu.jpg";
+        if (p.ProductName.Contains("Croissant", StringComparison.OrdinalIgnoreCase)) return "/assets/images/products/croissant.jpg";
+        if (p.ProductName.Contains("Bắp", StringComparison.OrdinalIgnoreCase)) return "/assets/images/products/corn-cake.jpg";
+        if (p.ProductName.Contains("Mousse", StringComparison.OrdinalIgnoreCase)) return "/assets/images/products/mousse.jpg";
+        if (p.ProductName.Contains("Brioche", StringComparison.OrdinalIgnoreCase) || p.ProductName.Contains("Cúc", StringComparison.OrdinalIgnoreCase)) return "/assets/images/products/brioche.jpg";
+        if (p.ProductName.Contains("Forest", StringComparison.OrdinalIgnoreCase)) return "/assets/images/products/black-forest.jpg";
+        return !string.IsNullOrEmpty(p.ImageURL) ? p.ImageURL : "/assets/images/products/tiramisu.jpg";
+    }
+
+    private void QuickAddToCart(Product product)
+    {
+        CartService.AddItem(product, 1, "Tiêu chuẩn", "");
+    }
+
+    private void OpenProductModal(Product product)
+    {
+        selectedProduct = product;
+        selectedSize = "Tiêu chuẩn";
+        customWritingNote = string.Empty;
+        modalQuantity = 1;
+    }
+
+    private void CloseProductModal()
+    {
+        selectedProduct = null;
+    }
+
+    private void AddToCartFromModal()
+    {
+        if (selectedProduct != null)
+        {
+            CartService.AddItem(selectedProduct, modalQuantity, selectedSize, customWritingNote);
+            CloseProductModal();
+        }
+    }
+
+    private void OpenCart()
+    {
+        isCartOpen = true;
+    }
+
+    private void CloseCart()
+    {
+        isCartOpen = false;
+    }
+
+    private string GetCartSummaryText()
+    {
+        if (!CartService.Items.Any()) return string.Empty;
+        var first = CartService.Items.First();
+        return CartService.Items.Count > 1 ? $"{first.ProductName} và {CartService.Items.Count - 1} món khác" : first.ProductName;
+    }
+
+    private async Task ApplyPromoDirectly()
+    {
+        voucherInput = "BAKERY2026";
+        await ApplyVoucher();
+        OpenCart();
+    }
+
+    private async Task ApplyVoucher()
+    {
+        bool success = await CartService.ApplyVoucherAsync(voucherInput);
+        if (success)
+        {
+            voucherMessage = $"Áp dụng thành công mã {voucherInput}: Giảm {CartService.DiscountPercent}%!";
+        }
+        else
+        {
+            voucherMessage = "Mã voucher không hợp lệ hoặc đã hết hạn!";
+        }
+    }
+
+    private async Task PlaceOrder()
+    {
+        if (isSubmittingOrder) return;
+        isSubmittingOrder = true;
+
+        try
+        {
+            var order = await CartService.PlaceOrderAsync(receiverName, receiverPhone, receiverAddress, orderNote, selectedPaymentMethod);
+            if (order != null)
+            {
+                justPlacedOrder = order;
+                CloseCart();
+                await LoadOrdersAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            voucherMessage = "Lỗi khi lưu đơn: " + ex.Message;
+        }
+        finally
+        {
+            isSubmittingOrder = false;
+        }
+    }
+
+    private void ViewMyOrdersAfterPlacement()
+    {
+        justPlacedOrder = null;
+        SwitchTab("orders");
+    }
+
+    private string GetStatusText(string status) => status switch
+    {
+        OrderStatus.Pending => "Chờ duyệt",
+        OrderStatus.Confirmed => "Đang nướng bánh 👨‍🍳",
+        OrderStatus.Shipping => "Đang giao hàng 🛵",
+        OrderStatus.Completed => "Giao thành công ✅",
+        _ => "Đã hủy"
+    };
+
+    private string GetStatusCssClass(string status) => status switch
+    {
+        OrderStatus.Pending => "status-pending",
+        OrderStatus.Confirmed => "status-confirmed",
+        OrderStatus.Shipping => "status-shipping",
+        OrderStatus.Completed => "status-completed",
+        _ => "status-pending"
+    };
+
+    private string GetStatusIcon(string status) => status switch
+    {
+        OrderStatus.Pending => "solar:clock-circle-bold",
+        OrderStatus.Confirmed => "solar:fire-bold",
+        OrderStatus.Shipping => "solar:scooter-bold",
+        OrderStatus.Completed => "solar:check-circle-bold",
+        _ => "solar:close-circle-bold"
+    };
+
+    public void Dispose()
+    {
+        CartService.OnChange -= StateHasChanged;
+    }
+}

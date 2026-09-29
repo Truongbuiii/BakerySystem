@@ -1,4 +1,9 @@
-﻿using Microsoft.Extensions.Logging;
+using BakerySystem.Application;
+using BakerySystem.Application.Common.Interfaces;
+using BakerySystem.Infrastructure.Data;
+using BakerySystem.MobileApp.Services;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace BakerySystem.MobileApp;
 
@@ -15,6 +20,15 @@ public static class MauiProgram
 			});
 
 		builder.Services.AddMauiBlazorWebView();
+
+		// Kết nối trực tiếp cơ sở dữ liệu BakerySystem từ SQL Server
+		const string connectionString = "Server=(local);Database=BakerySystem;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True";
+		builder.Services.AddDbContext<BakeryDbContext>(options =>
+			options.UseSqlServer(connectionString));
+
+		builder.Services.AddScoped<IBakeryDbContext>(sp => sp.GetRequiredService<BakeryDbContext>());
+		builder.Services.AddScoped<CartService>();
+		builder.Services.AddApplicationServices();
 
 #if DEBUG
 		builder.Services.AddBlazorWebViewDeveloperTools();
