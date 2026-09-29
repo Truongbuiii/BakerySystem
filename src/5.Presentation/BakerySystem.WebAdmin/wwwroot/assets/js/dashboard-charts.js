@@ -2,7 +2,7 @@
  * BakerySystem Dashboard ApexCharts Integration
  */
 
-window.initBakeryDashboardCharts = function () {
+window.initBakeryDashboardCharts = function (categorySeries, categoryLabels) {
     // 1. Revenue Updates Stacked Bar Chart
     const revenueEl = document.querySelector("#revenue-updates");
     if (revenueEl && typeof ApexCharts !== 'undefined') {
@@ -77,16 +77,18 @@ window.initBakeryDashboardCharts = function () {
     const breakupEl = document.querySelector("#breakup");
     if (breakupEl && typeof ApexCharts !== 'undefined') {
         breakupEl.innerHTML = "";
+        const seriesData = (categorySeries && categorySeries.length > 0) ? categorySeries : [45, 35, 20];
+        const labelsData = (categoryLabels && categoryLabels.length > 0) ? categoryLabels : ["Bánh kem", "Bánh ngọt", "Bánh mì"];
         const breakupOptions = {
-            series: [45, 35, 20],
-            labels: ["Bánh kem", "Bánh ngọt", "Bánh mì"],
+            series: seriesData,
+            labels: labelsData,
             chart: {
                 height: 175,
                 type: "donut",
                 fontFamily: "inherit",
                 foreColor: "#adb0bb",
             },
-            colors: ["#5d87ff", "#49beff", "#13deb9"],
+            colors: ["#5d87ff", "#49beff", "#13deb9", "#ffae1f", "#fa896b"],
             plotOptions: {
                 pie: {
                     startAngle: 0,
