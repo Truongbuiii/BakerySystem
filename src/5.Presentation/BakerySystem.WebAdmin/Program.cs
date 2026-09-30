@@ -2,6 +2,7 @@ using BakerySystem.Application;
 using BakerySystem.Infrastructure;
 using BakerySystem.Infrastructure.Data;
 using BakerySystem.WebAdmin.Components;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,13 +16,14 @@ builder.Services.AddInfrastructureServices(builder.Configuration);
 
 var app = builder.Build();
 
-// Khởi tạo và tự động Seed dữ liệu mẫu nếu database đang trống
+// Tự động Migrate database và Seed dữ liệu mẫu nếu database chưa có hoặc đang trống
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
     try
     {
         var context = services.GetRequiredService<BakeryDbContext>();
+        await context.Database.MigrateAsync();
         await BakeryDataSeeder.SeedAsync(context);
     }
     catch (Exception ex)

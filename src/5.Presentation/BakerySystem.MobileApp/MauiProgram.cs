@@ -22,7 +22,7 @@ public static class MauiProgram
 		builder.Services.AddMauiBlazorWebView();
 
 		// Kết nối trực tiếp cơ sở dữ liệu BakerySystem từ SQL Server
-		const string connectionString = "Server=(local);Database=BakerySystem;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True";
+		const string connectionString = "Server=.\\SQLEXPRESS;Database=BakerySystem;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True";
 		builder.Services.AddDbContext<BakeryDbContext>(options =>
 			options.UseSqlServer(connectionString));
 
