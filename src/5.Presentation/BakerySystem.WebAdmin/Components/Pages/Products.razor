@@ -28,7 +28,7 @@
             </button>
             <button class="bakery-btn bakery-btn-outline bakery-btn-sm" @onclick="OpenCreateCategoryModal">
                 <iconify-icon icon="solar:folder-with-files-linear" class="text-base"></iconify-icon>
-                <span>+ Thêm Loại sản phẩm</span>
+                <span>+ Thêm danh mục</span>
             </button>
             <button class="bakery-btn bakery-btn-primary bakery-btn-sm shadow-sm" @onclick="OpenCreateProductModal">
                 <iconify-icon icon="solar:add-circle-linear" class="text-base"></iconify-icon>
@@ -37,83 +37,79 @@
         </div>
     </div>
 
-    <!-- 2. Top 4 KPI Metrics Cards -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <!-- 2. Top 4 KPI Metrics Cards (Native BakeryAdmin CSS Grid) -->
+    <div class="bakery-kpi-grid">
         <!-- KPI 1: Tổng số sản phẩm -->
-        <div class="bakery-card p-4 sm:p-5">
-            <div class="flex items-center justify-between">
-                <div>
-                    <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Tổng sản phẩm</span>
-                    <h3 class="text-2xl font-bold text-dark dark:text-white mt-1 mb-0">@(stats?.TotalProducts ?? 0)</h3>
-                    <span class="text-[11px] text-slate-500 mt-1 inline-block">Giá TB: @($"{stats?.AveragePrice ?? 0:N0}đ")</span>
-                </div>
-                <div class="w-12 h-12 rounded-xl bg-lightprimary text-primary flex items-center justify-center shrink-0">
-                    <iconify-icon icon="solar:bag-5-bold" class="text-2xl"></iconify-icon>
-                </div>
+        <div class="bakery-kpi-card">
+            <div>
+                <span class="text-xs font-semibold uppercase tracking-wider text-bodytext">Tổng sản phẩm</span>
+                <h4 class="text-xl font-bold text-dark dark:text-white mt-1 mb-1">@(stats?.TotalProducts ?? 0) Món</h4>
+                <span class="text-[11px] text-bodytext">Giá TB: @($"{stats?.AveragePrice ?? 0:N0}đ")</span>
+            </div>
+            <div class="bakery-kpi-iconbox bg-lightprimary">
+                <img src="/assets/images/svgs/icon-favorites.svg" class="bakery-icon-img" alt="Tổng SP" />
             </div>
         </div>
 
         <!-- KPI 2: Đang mở bán -->
-        <div class="bakery-card p-4 sm:p-5">
-            <div class="flex items-center justify-between">
-                <div>
-                    <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Đang mở bán</span>
-                    <h3 class="text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-1 mb-0">@(stats?.ActiveProducts ?? 0)</h3>
-                    <span class="text-[11px] text-slate-500 mt-1 inline-block">Tạm ngừng: @(stats?.InactiveProducts ?? 0) món</span>
+        <div class="bakery-kpi-card">
+            <div>
+                <span class="text-xs font-semibold uppercase tracking-wider text-bodytext">Đang mở bán</span>
+                <h4 class="text-xl font-bold text-emerald-600 dark:text-emerald-400 mt-1 mb-1">@(stats?.ActiveProducts ?? 0) Món</h4>
+                <div class="flex items-center gap-1.5">
+                    <span class="bakery-badge bakery-badge-success text-[10px] py-0.5 px-2">Đang phục vụ</span>
+                    <span class="text-[11px] text-bodytext">Ngừng: @(stats?.InactiveProducts ?? 0)</span>
                 </div>
-                <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400 flex items-center justify-center shrink-0">
-                    <iconify-icon icon="solar:check-circle-bold" class="text-2xl"></iconify-icon>
-                </div>
+            </div>
+            <div class="bakery-kpi-iconbox" style="background-color: rgba(19, 222, 185, 0.12);">
+                <img src="/assets/images/svgs/icon-briefcase.svg" class="bakery-icon-img" alt="Đang bán" />
             </div>
         </div>
 
-        <!-- KPI 3: Sắp hết hàng -->
-        <div class="bakery-card p-4 sm:p-5">
-            <div class="flex items-center justify-between">
-                <div>
-                    <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Sắp hết hàng</span>
-                    <h3 class="text-2xl font-bold text-amber-500 mt-1 mb-0">@(stats?.LowStockProducts ?? 0)</h3>
-                    <span class="text-[11px] text-amber-600 dark:text-amber-400 mt-1 inline-block">Tồn kho còn &le; 5 cái</span>
-                </div>
-                <div class="w-12 h-12 rounded-xl bg-amber-50 text-amber-500 dark:bg-amber-950/40 flex items-center justify-center shrink-0">
-                    <iconify-icon icon="solar:danger-triangle-bold" class="text-2xl"></iconify-icon>
-                </div>
+        <!-- KPI 3: Cảnh báo sắp hết hàng -->
+        <div class="bakery-kpi-card">
+            <div>
+                <span class="text-xs font-semibold uppercase tracking-wider text-bodytext">Sắp hết hàng</span>
+                <h4 class="text-xl font-bold text-amber-500 mt-1 mb-1">@(stats?.LowStockProducts ?? 0) Món</h4>
+                <span class="bakery-badge bakery-badge-warning text-[10px] py-0.5 px-2">Tồn kho &le; 5 cái</span>
+            </div>
+            <div class="bakery-kpi-iconbox bg-lightwarning">
+                <img src="/assets/images/svgs/icon-mailbox.svg" class="bakery-icon-img" alt="Sắp hết" />
             </div>
         </div>
 
         <!-- KPI 4: Hết hàng -->
-        <div class="bakery-card p-4 sm:p-5">
-            <div class="flex items-center justify-between">
-                <div>
-                    <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Hết hàng</span>
-                    <h3 class="text-2xl font-bold text-rose-500 mt-1 mb-0">@(stats?.OutOfStockProducts ?? 0)</h3>
-                    <span class="text-[11px] text-rose-500 mt-1 inline-block">Cần lập phiếu nhập kho</span>
-                </div>
-                <div class="w-12 h-12 rounded-xl bg-rose-50 text-rose-500 dark:bg-rose-950/40 flex items-center justify-center shrink-0">
-                    <iconify-icon icon="solar:box-minimalistic-bold" class="text-2xl"></iconify-icon>
-                </div>
+        <div class="bakery-kpi-card">
+            <div>
+                <span class="text-xs font-semibold uppercase tracking-wider text-bodytext">Hết hàng</span>
+                <h4 class="text-xl font-bold text-rose-500 mt-1 mb-1">@(stats?.OutOfStockProducts ?? 0) Món</h4>
+                <span class="bakery-badge bakery-badge-error text-[10px] py-0.5 px-2">Cần nhập kho</span>
+            </div>
+            <div class="bakery-kpi-iconbox bg-lighterror">
+                <img src="/assets/images/svgs/icon-speech-bubble.svg" class="bakery-icon-img" alt="Hết hàng" />
             </div>
         </div>
     </div>
 
-    <!-- 3. Search & Filter Bar -->
+    <!-- 3. Sleek Search & Filter Toolbar -->
     <div class="bakery-card p-4">
-        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+        <div class="bakery-filter-toolbar">
             <!-- Search Keyword -->
-            <div class="lg:col-span-2 relative">
-                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                    <iconify-icon icon="solar:magnifer-linear" class="text-lg"></iconify-icon>
-                </div>
+            <div class="bakery-filter-search">
                 <input type="text" 
-                       class="bakery-input pl-9" 
-                       placeholder="Tìm theo tên bánh hoặc mô tả..." 
+                       class="bakery-input" 
+                       style="padding-left: 2.25rem;"
+                       placeholder="Tìm kiếm theo tên món bánh, mã hoặc mô tả..." 
                        @bind="searchKeyword" 
                        @bind:event="oninput" 
                        @onkeyup="HandleSearchKeyUp" />
+                <div style="position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); pointer-events: none; color: #94a3b8; display: flex; align-items: center;">
+                    <iconify-icon icon="solar:magnifer-linear" style="font-size: 1.15rem;"></iconify-icon>
+                </div>
             </div>
 
             <!-- Category Filter -->
-            <div>
+            <div class="bakery-filter-select">
                 <select class="bakery-input" @bind="selectedCategoryId" @bind:after="ApplyFiltersAsync">
                     <option value="0">Tất cả danh mục (@categories.Count)</option>
                     @foreach (var cat in categories)
@@ -124,7 +120,7 @@
             </div>
 
             <!-- Stock Status Filter -->
-            <div>
+            <div class="bakery-filter-select">
                 <select class="bakery-input" @bind="selectedStockStatus" @bind:after="ApplyFiltersAsync">
                     <option value="All">Tất cả tồn kho</option>
                     <option value="InStock">Còn hàng (&gt; 5)</option>
@@ -134,17 +130,17 @@
             </div>
 
             <!-- Active Status Filter -->
-            <div>
+            <div class="bakery-filter-select">
                 <select class="bakery-input" @bind="selectedActiveFilter" @bind:after="ApplyFiltersAsync">
                     <option value="">Tất cả trạng thái</option>
-                    <option value="true">Đang bán</option>
+                    <option value="true">Đang kinh doanh</option>
                     <option value="false">Ngừng kinh doanh</option>
                 </select>
             </div>
 
             <!-- Reset Filter Button -->
-            <div>
-                <button class="bakery-btn bakery-btn-outline w-full" @onclick="ResetFiltersAsync">
+            <div class="bakery-filter-btn">
+                <button class="bakery-btn bakery-btn-outline w-full" @onclick="ResetFiltersAsync" title="Đặt lại toàn bộ bộ lọc">
                     <iconify-icon icon="solar:refresh-linear" class="text-base"></iconify-icon>
                     <span>Đặt lại</span>
                 </button>
@@ -163,7 +159,7 @@
 
             <div class="flex items-center gap-2 text-xs text-slate-500">
                 <span>Sắp xếp theo:</span>
-                <select class="bakery-input py-1 px-2.5 text-xs w-auto" @bind="sortBy" @bind:after="SortProducts">
+                <select class="bakery-input py-1 px-2.5 text-xs" style="width: auto;" @bind="sortBy" @bind:after="SortProducts">
                     <option value="newest">Mới nhất</option>
                     <option value="name_asc">Tên (A-Z)</option>
                     <option value="price_asc">Giá (Thấp &rarr; Cao)</option>
@@ -200,14 +196,14 @@
                 <table class="bakery-table">
                     <thead>
                         <tr>
-                            <th style="width: 60px;">Mã</th>
-                            <th>Món Ăn & Mô Tả</th>
-                            <th>Danh Mục</th>
-                            <th>Giá Bán</th>
-                            <th>Tồn Kho</th>
-                            <th>Đã Bán</th>
-                            <th>Kinh Doanh</th>
-                            <th class="text-right" style="width: 140px;">Thao Tác</th>
+                            <th style="width: 70px;">Mã</th>
+                            <th style="min-width: 280px;">Món Bánh & Mô Tả</th>
+                            <th style="width: 140px;">Danh Mục</th>
+                            <th style="width: 120px;">Giá Bán</th>
+                            <th style="width: 130px;">Tồn Kho</th>
+                            <th style="width: 90px;">Đã Bán</th>
+                            <th style="width: 130px;">Kinh Doanh</th>
+                            <th class="text-right" style="width: 110px;">Thao Tác</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -216,25 +212,25 @@
                             <tr>
                                 <!-- ID -->
                                 <td class="font-mono text-xs font-semibold text-slate-500">
-                                    #@item.ProductID
+                                    #SP-@item.ProductID.ToString("D3")
                                 </td>
 
-                                <!-- Product Info (Image + Name + Desc) -->
-                                <td>
-                                    <div class="flex items-center gap-3">
-                                        <div class="w-12 h-12 rounded-lg overflow-hidden border border-border dark:border-darkborder bg-slate-100 dark:bg-slate-800 shrink-0 relative">
-                                            <img src="@(string.IsNullOrWhiteSpace(item.ImageURL) ? "/assets/images/products/s1.jpg" : item.ImageURL)" 
+                                <!-- Product Info (Thumb + Name + Desc) -->
+                                <td class="bakery-col-product">
+                                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                        <div class="bakery-thumb-box">
+                                            <img src="@(string.IsNullOrWhiteSpace(item.ImageURL) ? "/assets/images/products/default-bakery.svg" : item.ImageURL)" 
                                                  alt="@item.ProductName" 
-                                                 class="w-full h-full object-cover"
-                                                 onerror="this.src='/assets/images/products/s1.jpg'" />
+                                                 class="bakery-thumb-img"
+                                                 onerror="this.src='/assets/images/products/default-bakery.svg'" />
                                         </div>
-                                        <div class="min-w-0">
-                                            <h6 class="text-sm font-bold text-dark dark:text-white hover:text-primary transition-colors mb-0 truncate">
+                                        <div style="min-width: 0; max-width: 280px;">
+                                            <div style="font-weight: 700; color: #1e293b; font-size: 0.875rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                                                 @item.ProductName
-                                            </h6>
-                                            <p class="text-xs text-slate-500 dark:text-slate-400 line-clamp-1 mb-0 max-w-xs">
+                                            </div>
+                                            <div style="font-size: 0.75rem; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                                                 @(string.IsNullOrWhiteSpace(item.Description) ? "Chưa có mô tả chi tiết." : item.Description)
-                                            </p>
+                                            </div>
                                         </div>
                                     </div>
                                 </td>
@@ -301,7 +297,7 @@
                                 <td class="text-right">
                                     <div class="inline-flex items-center gap-1">
                                         <button class="p-1.5 rounded-lg text-slate-600 hover:text-primary hover:bg-lightprimary transition-colors" 
-                                                title="Chỉnh sửa thông tin"
+                                                title="Chỉnh sửa thông tin món"
                                                 @onclick="() => OpenEditProductModal(item)">
                                             <iconify-icon icon="solar:pen-linear" class="text-base"></iconify-icon>
                                         </button>
@@ -407,27 +403,11 @@
                 <div>
                     <label class="bakery-label">Đường dẫn ảnh sản phẩm (URL)</label>
                     <div class="flex gap-2">
-                        <input type="text" class="bakery-input flex-1" placeholder="/assets/images/products/s1.jpg hoặc link web" @bind="newProduct.ImageURL" />
-                        <div class="w-10 h-10 rounded-lg overflow-hidden border border-border dark:border-darkborder bg-slate-100 shrink-0">
-                            <img src="@(string.IsNullOrWhiteSpace(newProduct.ImageURL) ? "/assets/images/products/s1.jpg" : newProduct.ImageURL)" 
-                                 class="w-full h-full object-cover" 
-                                 onerror="this.src='/assets/images/products/s1.jpg'" />
-                        </div>
-                    </div>
-
-                    <!-- Quick Preset Image Pickers -->
-                    <div class="mt-2.5">
-                        <span class="text-[11px] font-semibold text-slate-500 block mb-1.5">Hoặc chọn nhanh ảnh mẫu có sẵn:</span>
-                        <div class="flex items-center gap-2 overflow-x-auto pb-1">
-                            @for (int i = 1; i <= 10; i++)
-                            {
-                                var imgPath = $"/assets/images/products/s{i}.jpg";
-                                <button type="button" 
-                                        class="w-9 h-9 rounded-lg overflow-hidden border-2 transition-all shrink-0 @(newProduct.ImageURL == imgPath ? "border-primary scale-105 shadow-sm" : "border-transparent hover:border-slate-300")"
-                                        @onclick="() => newProduct.ImageURL = imgPath">
-                                    <img src="@imgPath" class="w-full h-full object-cover" alt="Preset @i" />
-                                </button>
-                            }
+                        <input type="text" class="bakery-input flex-1" placeholder="/assets/images/products/default-bakery.svg hoặc link web" @bind="newProduct.ImageURL" />
+                        <div class="bakery-thumb-box">
+                            <img src="@(string.IsNullOrWhiteSpace(newProduct.ImageURL) ? "/assets/images/products/default-bakery.svg" : newProduct.ImageURL)" 
+                                 class="bakery-thumb-img" 
+                                 onerror="this.src='/assets/images/products/default-bakery.svg'" />
                         </div>
                     </div>
                 </div>
@@ -521,26 +501,10 @@
                     <label class="bakery-label">Đường dẫn ảnh sản phẩm (URL)</label>
                     <div class="flex gap-2">
                         <input type="text" class="bakery-input flex-1" @bind="editProduct.ImageURL" />
-                        <div class="w-10 h-10 rounded-lg overflow-hidden border border-border dark:border-darkborder bg-slate-100 shrink-0">
-                            <img src="@(string.IsNullOrWhiteSpace(editProduct.ImageURL) ? "/assets/images/products/s1.jpg" : editProduct.ImageURL)" 
-                                 class="w-full h-full object-cover" 
-                                 onerror="this.src='/assets/images/products/s1.jpg'" />
-                        </div>
-                    </div>
-
-                    <!-- Quick Preset Image Pickers -->
-                    <div class="mt-2.5">
-                        <span class="text-[11px] font-semibold text-slate-500 block mb-1.5">Chọn ảnh mẫu có sẵn:</span>
-                        <div class="flex items-center gap-2 overflow-x-auto pb-1">
-                            @for (int i = 1; i <= 10; i++)
-                            {
-                                var imgPath = $"/assets/images/products/s{i}.jpg";
-                                <button type="button" 
-                                        class="w-9 h-9 rounded-lg overflow-hidden border-2 transition-all shrink-0 @(editProduct.ImageURL == imgPath ? "border-primary scale-105 shadow-sm" : "border-transparent hover:border-slate-300")"
-                                        @onclick="() => editProduct.ImageURL = imgPath">
-                                    <img src="@imgPath" class="w-full h-full object-cover" alt="Preset @i" />
-                                </button>
-                            }
+                        <div class="bakery-thumb-box">
+                            <img src="@(string.IsNullOrWhiteSpace(editProduct.ImageURL) ? "/assets/images/products/default-bakery.svg" : editProduct.ImageURL)" 
+                                 class="bakery-thumb-img" 
+                                 onerror="this.src='/assets/images/products/default-bakery.svg'" />
                         </div>
                     </div>
                 </div>
@@ -824,7 +788,7 @@
         {
             CategoryID = categories.FirstOrDefault()?.CategoryID ?? 1,
             InitialQuantity = 10,
-            ImageURL = "/assets/images/products/s1.jpg",
+            ImageURL = "/assets/images/products/default-bakery.svg",
             IsActive = true
         };
         isCreateModalOpen = true;

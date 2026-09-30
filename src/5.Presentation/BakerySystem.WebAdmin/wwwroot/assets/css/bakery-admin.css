@@ -743,3 +743,68 @@ html.dark .bakery-modal-footer {
     from { transform: scale(0.96); opacity: 0; }
     to { transform: scale(1); opacity: 1; }
 }
+
+/* ========================================================
+   9. PRODUCT MANAGEMENT SPECIFIC STYLES (PREVENT BLOWUPS)
+   ======================================================== */
+.bakery-thumb-box {
+    width: 48px !important;
+    height: 48px !important;
+    min-width: 48px !important;
+    max-width: 48px !important;
+    min-height: 48px !important;
+    max-height: 48px !important;
+    border-radius: 8px !important;
+    overflow: hidden !important;
+    flex-shrink: 0 !important;
+    border: 1px solid var(--bakery-border) !important;
+    background-color: #f1f5f9 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-sizing: border-box !important;
+}
+
+.bakery-thumb-img {
+    width: 48px !important;
+    height: 48px !important;
+    min-width: 48px !important;
+    max-width: 48px !important;
+    min-height: 48px !important;
+    max-height: 48px !important;
+    object-fit: cover !important;
+    display: block !important;
+    flex-shrink: 0 !important;
+    border-radius: 6px !important;
+}
+
+.bakery-filter-toolbar {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    align-items: center !important;
+    gap: 0.75rem !important;
+    width: 100% !important;
+}
+
+.bakery-filter-search {
+    flex: 2 1 240px !important;
+    position: relative !important;
+}
+
+.bakery-filter-select {
+    flex: 1 1 150px !important;
+    min-width: 140px !important;
+}
+
+.bakery-filter-btn {
+    flex: 0 0 auto !important;
+    min-width: 100px !important;
+}
+
+/* Table columns fixed sizing */
+.bakery-table th, .bakery-table td {
+    white-space: nowrap;
+}
+.bakery-table td.bakery-col-product {
+    white-space: normal;
+}
