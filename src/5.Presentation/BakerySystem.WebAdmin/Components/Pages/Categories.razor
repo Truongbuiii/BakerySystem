@@ -3,7 +3,7 @@
 @inject IProductService ProductService
 @inject NavigationManager Navigation
 
-<PageTitle>Danh Mục Bánh | BakeryAdmin</PageTitle>
+<PageTitle>Loại Sản Phẩm | BakeryAdmin</PageTitle>
 
 <div class="space-y-6">
     <!-- Breadcrumb & Header -->
@@ -15,10 +15,10 @@
                     Tổng quan
                 </a>
                 <span>/</span>
-                <span class="text-slate-800 dark:text-slate-200 font-semibold">Danh mục bánh</span>
+                <span class="text-slate-800 dark:text-slate-200 font-semibold">Loại sản phẩm</span>
             </div>
-            <h2 class="text-xl sm:text-2xl font-bold text-dark dark:text-white mb-1">Phân Loại Danh Mục Bánh</h2>
-            <p class="text-xs sm:text-sm text-bodytext mb-0">Quản lý các nhóm bánh, số lượng món thuộc từng danh mục và phân nhóm thực đơn.</p>
+            <h2 class="text-xl sm:text-2xl font-bold text-dark dark:text-white mb-1">Quản Lý Loại Sản Phẩm Bánh</h2>
+            <p class="text-xs sm:text-sm text-bodytext mb-0">Quản lý các nhóm bánh, số lượng món thuộc từng loại sản phẩm và phân loại thực đơn.</p>
         </div>
 
         <div class="flex items-center gap-2.5 shrink-0">
@@ -28,7 +28,7 @@
             </a>
             <button class="bakery-btn bakery-btn-primary bakery-btn-sm shadow-sm" @onclick="() => isCreateModalOpen = true">
                 <iconify-icon icon="solar:add-circle-linear" class="text-base"></iconify-icon>
-                <span>+ Thêm danh mục mới</span>
+                <span>+ Thêm loại sản phẩm mới</span>
             </button>
         </div>
     </div>
@@ -38,7 +38,7 @@
     {
         <div class="p-12 flex flex-col items-center justify-center gap-3">
             <div class="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-            <p class="text-sm text-bodytext mb-0">Đang tải danh mục từ cơ sở dữ liệu...</p>
+            <p class="text-sm text-bodytext mb-0">Đang tải dữ liệu từ cơ sở dữ liệu...</p>
         </div>
     }
     else
@@ -52,16 +52,16 @@
                             <iconify-icon icon="solar:folder-with-files-bold" class="text-2xl"></iconify-icon>
                         </div>
                         <span class="bakery-badge bakery-badge-primary text-xs">
-                            @cat.ProductCount sản phẩm
+                            @cat.ProductCount món
                         </span>
                     </div>
 
                     <div class="mt-4">
                         <h4 class="text-base font-bold text-dark dark:text-white mb-1">@cat.CategoryName</h4>
-                        <p class="text-xs text-slate-500 mb-4">Mã danh mục: #CAT-@cat.CategoryID</p>
+                        <p class="text-xs text-slate-500 mb-4">Mã loại: #CAT-@cat.CategoryID</p>
 
                         <a href="/products" class="text-xs font-semibold text-primary hover:underline flex items-center gap-1">
-                            <span>Xem sản phẩm trong nhóm</span>
+                            <span>Xem các món thuộc loại này</span>
                             <iconify-icon icon="solar:arrow-right-linear" class="text-sm"></iconify-icon>
                         </a>
                     </div>
@@ -71,7 +71,7 @@
     }
 </div>
 
-<!-- Modal Thêm Danh Mục -->
+<!-- Modal Thêm Loại Sản Phẩm -->
 @if (isCreateModalOpen)
 {
     <div class="bakery-modal-backdrop" @onclick="() => isCreateModalOpen = false">
@@ -82,8 +82,8 @@
                         <iconify-icon icon="solar:folder-with-files-bold" class="text-lg"></iconify-icon>
                     </div>
                     <div>
-                        <h4 class="text-base font-bold text-dark dark:text-white mb-0">Thêm Danh Mục Mới</h4>
-                        <p class="text-xs text-slate-500 mb-0">Khai báo nhóm sản phẩm bánh mới.</p>
+                        <h4 class="text-base font-bold text-dark dark:text-white mb-0">Thêm Loại Sản Phẩm Mới</h4>
+                        <p class="text-xs text-slate-500 mb-0">Khai báo nhóm loại sản phẩm bánh mới.</p>
                     </div>
                 </div>
                 <button type="button" class="text-slate-400 hover:text-slate-600 text-lg" @onclick="() => isCreateModalOpen = false">
@@ -98,14 +98,14 @@
                 }
 
                 <div>
-                    <label class="bakery-label">Tên danh mục <span class="text-rose-500">*</span></label>
-                    <input type="text" class="bakery-input" placeholder="Ví dụ: Bánh Croissant, Bánh Kem Sinh Nhật..." @bind="newCategoryName" />
+                    <label class="bakery-label">Tên loại sản phẩm <span class="text-rose-500">*</span></label>
+                    <input type="text" class="bakery-input" placeholder="Ví dụ: Bánh Mì Việt Nam, Kem Tươi, Bánh Kem..." @bind="newCategoryName" />
                 </div>
             </div>
 
             <div class="bakery-modal-footer">
                 <button type="button" class="bakery-btn bakery-btn-outline" @onclick="() => isCreateModalOpen = false">Hủy</button>
-                <button type="button" class="bakery-btn bakery-btn-primary" @onclick="SaveCategoryAsync">Tạo danh mục</button>
+                <button type="button" class="bakery-btn bakery-btn-primary" @onclick="SaveCategoryAsync">Tạo loại sản phẩm</button>
             </div>
         </div>
     </div>
@@ -140,7 +140,7 @@
     {
         if (string.IsNullOrWhiteSpace(newCategoryName))
         {
-            modalError = "Vui lòng nhập tên danh mục.";
+            modalError = "Vui lòng nhập tên loại sản phẩm.";
             return;
         }
 
@@ -153,7 +153,7 @@
         }
         catch (Exception ex)
         {
-            modalError = "Lỗi khi lưu danh mục: " + ex.Message;
+            modalError = "Lỗi khi lưu loại sản phẩm: " + ex.Message;
         }
     }
 }

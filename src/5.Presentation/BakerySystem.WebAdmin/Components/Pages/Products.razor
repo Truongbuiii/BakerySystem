@@ -18,7 +18,7 @@
                 <span class="text-slate-800 dark:text-slate-200 font-semibold">Menu & Bánh ngọt</span>
             </div>
             <h2 class="text-xl sm:text-2xl font-bold text-dark dark:text-white mb-1">Quản Lý Menu Bánh & Sản Phẩm</h2>
-            <p class="text-xs sm:text-sm text-bodytext mb-0">Quản lý danh mục, thêm món mới, cập nhật giá bán và giám sát số lượng tồn kho tại cửa hàng.</p>
+            <p class="text-xs sm:text-sm text-bodytext mb-0">Quản lý loại sản phẩm, thêm món mới, cập nhật giá bán và giám sát số lượng tồn kho tại cửa hàng.</p>
         </div>
 
         <div class="flex items-center gap-2.5 shrink-0 flex-wrap">
@@ -28,7 +28,7 @@
             </button>
             <button class="bakery-btn bakery-btn-outline bakery-btn-sm" @onclick="OpenCreateCategoryModal">
                 <iconify-icon icon="solar:folder-with-files-linear" class="text-base"></iconify-icon>
-                <span>+ Thêm danh mục</span>
+                <span>+ Thêm loại sản phẩm</span>
             </button>
             <button class="bakery-btn bakery-btn-primary bakery-btn-sm shadow-sm" @onclick="OpenCreateProductModal">
                 <iconify-icon icon="solar:add-circle-linear" class="text-base"></iconify-icon>
@@ -111,7 +111,7 @@
             <!-- Category Filter -->
             <div class="bakery-filter-select">
                 <select class="bakery-input" @bind="selectedCategoryId" @bind:after="ApplyFiltersAsync">
-                    <option value="0">Tất cả danh mục (@categories.Count)</option>
+                    <option value="0">Tất cả loại sản phẩm (@categories.Count)</option>
                     @foreach (var cat in categories)
                     {
                         <option value="@cat.CategoryID">@cat.CategoryName (@cat.ProductCount)</option>
@@ -198,7 +198,7 @@
                         <tr>
                             <th style="width: 70px;">Mã</th>
                             <th style="min-width: 280px;">Món Bánh & Mô Tả</th>
-                            <th style="width: 140px;">Danh Mục</th>
+                            <th style="width: 140px;">Loại Sản Phẩm</th>
                             <th style="width: 120px;">Giá Bán</th>
                             <th style="width: 130px;">Tồn Kho</th>
                             <th style="width: 90px;">Đã Bán</th>
@@ -350,7 +350,7 @@
                     </div>
                     <div>
                         <h4 class="text-base font-bold text-dark dark:text-white mb-0">Thêm Món Mới Vào Menu</h4>
-                        <p class="text-xs text-slate-500 mb-0">Khai báo thông tin sản phẩm và phân loại danh mục.</p>
+                        <p class="text-xs text-slate-500 mb-0">Khai báo thông tin sản phẩm và phân loại món.</p>
                     </div>
                 </div>
                 <button type="button" class="text-slate-400 hover:text-slate-600 text-lg" @onclick="CloseModals">
@@ -376,9 +376,9 @@
                 <!-- Category & Price Grid -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                        <label class="bakery-label">Danh mục món <span class="text-rose-500">*</span></label>
+                        <label class="bakery-label">Loại sản phẩm <span class="text-rose-500">*</span></label>
                         <select class="bakery-input" @bind="newProduct.CategoryID">
-                            <option value="0">-- Chọn danh mục --</option>
+                            <option value="0">-- Chọn loại sản phẩm --</option>
                             @foreach (var cat in categories)
                             {
                                 <option value="@cat.CategoryID">@cat.CategoryName</option>
@@ -481,7 +481,7 @@
                 <!-- Category & Price Grid -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                        <label class="bakery-label">Danh mục món <span class="text-rose-500">*</span></label>
+                        <label class="bakery-label">Loại sản phẩm <span class="text-rose-500">*</span></label>
                         <select class="bakery-input" @bind="editProduct.CategoryID">
                             @foreach (var cat in categories)
                             {
@@ -539,7 +539,7 @@
 }
 
 <!-- ========================================================
-     MODAL 3: THÊM NHANH DANH MỤC MỚI
+     MODAL 3: THÊM NHANH LOẠI SẢN PHẨM MỚI
      ======================================================== -->
 @if (isCategoryModalOpen)
 {
@@ -551,7 +551,7 @@
                         <iconify-icon icon="solar:folder-with-files-bold" class="text-lg"></iconify-icon>
                     </div>
                     <div>
-                        <h4 class="text-base font-bold text-dark dark:text-white mb-0">Thêm Danh Mục Mới</h4>
+                        <h4 class="text-base font-bold text-dark dark:text-white mb-0">Thêm Loại Sản Phẩm Mới</h4>
                         <p class="text-xs text-slate-500 mb-0">Tạo nhóm phân loại các món bánh.</p>
                     </div>
                 </div>
@@ -570,7 +570,7 @@
                 }
 
                 <div>
-                    <label class="bakery-label">Tên danh mục bánh <span class="text-rose-500">*</span></label>
+                    <label class="bakery-label">Tên loại sản phẩm <span class="text-rose-500">*</span></label>
                     <input type="text" class="bakery-input" placeholder="Ví dụ: Bánh Mì Việt Nam, Kem Tươi, Bánh Kem..." @bind="newCategoryName" />
                 </div>
             </div>
@@ -582,7 +582,7 @@
                     {
                         <span class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
                     }
-                    <span>Tạo danh mục</span>
+                    <span>Tạo loại sản phẩm</span>
                 </button>
             </div>
         </div>
@@ -733,9 +733,9 @@
         SortProducts();
     }
 
-    private void HandleSearchKeyUp(KeyboardEventArgs e)
+    private async Task HandleSearchKeyUp(KeyboardEventArgs e)
     {
-        ApplyFiltersAsync();
+        await ApplyFiltersAsync();
     }
 
     private void SortProducts()
@@ -804,7 +804,7 @@
 
         if (newProduct.CategoryID <= 0)
         {
-            modalError = "Vui lòng chọn danh mục cho sản phẩm.";
+            modalError = "Vui lòng chọn loại sản phẩm cho món bánh.";
             return;
         }
 
@@ -861,7 +861,7 @@
 
         if (editProduct.CategoryID <= 0)
         {
-            modalError = "Vui lòng chọn danh mục cho sản phẩm.";
+            modalError = "Vui lòng chọn loại sản phẩm cho món bánh.";
             return;
         }
 
@@ -904,7 +904,7 @@
     {
         if (string.IsNullOrWhiteSpace(newCategoryName))
         {
-            modalError = "Vui lòng nhập tên danh mục bánh mới.";
+            modalError = "Vui lòng nhập tên loại sản phẩm mới.";
             return;
         }
 
@@ -914,11 +914,11 @@
             var cat = await ProductService.CreateCategoryAsync(newCategoryName);
             CloseModals();
             categories = await ProductService.GetCategoriesAsync();
-            ShowToast($"Đã thêm danh mục mới '{cat.CategoryName}'!", true);
+            ShowToast($"Đã thêm loại sản phẩm mới '{cat.CategoryName}'!", true);
         }
         catch (Exception ex)
         {
-            modalError = "Lỗi khi tạo danh mục: " + ex.Message;
+            modalError = "Lỗi khi tạo loại sản phẩm: " + ex.Message;
         }
         finally
         {
