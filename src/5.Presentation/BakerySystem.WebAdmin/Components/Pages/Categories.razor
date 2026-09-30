@@ -1,0 +1,159 @@
+@page "/categories"
+@rendermode InteractiveServer
+@inject IProductService ProductService
+@inject NavigationManager Navigation
+
+<PageTitle>Danh Mục Bánh | BakeryAdmin</PageTitle>
+
+<div class="space-y-6">
+    <!-- Breadcrumb & Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2 text-xs font-medium text-slate-500 mb-1">
+                <a href="/" class="hover:text-primary transition-colors flex items-center gap-1">
+                    <iconify-icon icon="solar:home-2-linear" class="text-sm"></iconify-icon>
+                    Tổng quan
+                </a>
+                <span>/</span>
+                <span class="text-slate-800 dark:text-slate-200 font-semibold">Danh mục bánh</span>
+            </div>
+            <h2 class="text-xl sm:text-2xl font-bold text-dark dark:text-white mb-1">Phân Loại Danh Mục Bánh</h2>
+            <p class="text-xs sm:text-sm text-bodytext mb-0">Quản lý các nhóm bánh, số lượng món thuộc từng danh mục và phân nhóm thực đơn.</p>
+        </div>
+
+        <div class="flex items-center gap-2.5 shrink-0">
+            <a href="/products" class="bakery-btn bakery-btn-outline bakery-btn-sm">
+                <iconify-icon icon="solar:bag-5-linear" class="text-base"></iconify-icon>
+                <span>Xem tất cả món bánh</span>
+            </a>
+            <button class="bakery-btn bakery-btn-primary bakery-btn-sm shadow-sm" @onclick="() => isCreateModalOpen = true">
+                <iconify-icon icon="solar:add-circle-linear" class="text-base"></iconify-icon>
+                <span>+ Thêm danh mục mới</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Category Grid Cards -->
+    @if (isLoading)
+    {
+        <div class="p-12 flex flex-col items-center justify-center gap-3">
+            <div class="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+            <p class="text-sm text-bodytext mb-0">Đang tải danh mục từ cơ sở dữ liệu...</p>
+        </div>
+    }
+    else
+    {
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            @foreach (var cat in categories)
+            {
+                <div class="bakery-card p-5 hover:shadow-md transition-shadow">
+                    <div class="flex items-start justify-between">
+                        <div class="w-12 h-12 rounded-xl bg-lightprimary text-primary flex items-center justify-center">
+                            <iconify-icon icon="solar:folder-with-files-bold" class="text-2xl"></iconify-icon>
+                        </div>
+                        <span class="bakery-badge bakery-badge-primary text-xs">
+                            @cat.ProductCount sản phẩm
+                        </span>
+                    </div>
+
+                    <div class="mt-4">
+                        <h4 class="text-base font-bold text-dark dark:text-white mb-1">@cat.CategoryName</h4>
+                        <p class="text-xs text-slate-500 mb-4">Mã danh mục: #CAT-@cat.CategoryID</p>
+
+                        <a href="/products" class="text-xs font-semibold text-primary hover:underline flex items-center gap-1">
+                            <span>Xem sản phẩm trong nhóm</span>
+                            <iconify-icon icon="solar:arrow-right-linear" class="text-sm"></iconify-icon>
+                        </a>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+<!-- Modal Thêm Danh Mục -->
+@if (isCreateModalOpen)
+{
+    <div class="bakery-modal-backdrop" @onclick="() => isCreateModalOpen = false">
+        <div class="bakery-modal-card max-w-md" @onclick:stopPropagation="true">
+            <div class="bakery-modal-header">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-lg bg-lightprimary text-primary flex items-center justify-center">
+                        <iconify-icon icon="solar:folder-with-files-bold" class="text-lg"></iconify-icon>
+                    </div>
+                    <div>
+                        <h4 class="text-base font-bold text-dark dark:text-white mb-0">Thêm Danh Mục Mới</h4>
+                        <p class="text-xs text-slate-500 mb-0">Khai báo nhóm sản phẩm bánh mới.</p>
+                    </div>
+                </div>
+                <button type="button" class="text-slate-400 hover:text-slate-600 text-lg" @onclick="() => isCreateModalOpen = false">
+                    <iconify-icon icon="solar:close-circle-linear"></iconify-icon>
+                </button>
+            </div>
+
+            <div class="bakery-modal-body space-y-4">
+                @if (!string.IsNullOrEmpty(modalError))
+                {
+                    <div class="p-3 rounded-lg bg-rose-50 text-rose-600 text-xs font-medium">@modalError</div>
+                }
+
+                <div>
+                    <label class="bakery-label">Tên danh mục <span class="text-rose-500">*</span></label>
+                    <input type="text" class="bakery-input" placeholder="Ví dụ: Bánh Croissant, Bánh Kem Sinh Nhật..." @bind="newCategoryName" />
+                </div>
+            </div>
+
+            <div class="bakery-modal-footer">
+                <button type="button" class="bakery-btn bakery-btn-outline" @onclick="() => isCreateModalOpen = false">Hủy</button>
+                <button type="button" class="bakery-btn bakery-btn-primary" @onclick="SaveCategoryAsync">Tạo danh mục</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private bool isLoading = true;
+    private bool isCreateModalOpen = false;
+    private string newCategoryName = string.Empty;
+    private string? modalError = null;
+    private List<CategoryDto> categories = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadCategoriesAsync();
+    }
+
+    private async Task LoadCategoriesAsync()
+    {
+        isLoading = true;
+        try
+        {
+            categories = await ProductService.GetCategoriesAsync();
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task SaveCategoryAsync()
+    {
+        if (string.IsNullOrWhiteSpace(newCategoryName))
+        {
+            modalError = "Vui lòng nhập tên danh mục.";
+            return;
+        }
+
+        try
+        {
+            await ProductService.CreateCategoryAsync(newCategoryName);
+            newCategoryName = string.Empty;
+            isCreateModalOpen = false;
+            await LoadCategoriesAsync();
+        }
+        catch (Exception ex)
+        {
+            modalError = "Lỗi khi lưu danh mục: " + ex.Message;
+        }
+    }
+}

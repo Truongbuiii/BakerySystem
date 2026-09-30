@@ -10,11 +10,32 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddInfrastructureServices(this IServiceCollection services, IConfiguration configuration)
     {
-        var connectionString = configuration.GetConnectionString("DefaultConnection") 
-            ?? "Server=localhost;Database=BakerySystem;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True";
+        var configuredString = configuration.GetConnectionString("DefaultConnection") 
+            ?? "Server=(local);Database=BakerySystem;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True";
+
+        // Tự động phát hiện instance SQL Server đang chạy (hỗ trợ cả máy cài (local), SQLEXPRESS hoặc localhost)
+        string[] candidates = [
+            configuredString,
+            "Server=(local);Database=BakerySystem;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True;Connect Timeout=2;",
+            "Server=.\\SQLEXPRESS;Database=BakerySystem;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True;Connect Timeout=2;",
+            "Server=localhost;Database=BakerySystem;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True;Connect Timeout=2;"
+        ];
+
+        string resolvedConnection = configuredString;
+        foreach (var candidate in candidates)
+        {
+            try
+            {
+                using var conn = new Microsoft.Data.SqlClient.SqlConnection(candidate);
+                conn.Open();
+                resolvedConnection = candidate;
+                break;
+            }
+            catch { }
+        }
 
         services.AddDbContext<BakeryDbContext>(options =>
-            options.UseSqlServer(connectionString, b => b.MigrationsAssembly(typeof(BakeryDbContext).Assembly.FullName)));
+            options.UseSqlServer(resolvedConnection, b => b.MigrationsAssembly(typeof(BakeryDbContext).Assembly.FullName)));
 
         services.AddScoped<IBakeryDbContext>(provider => provider.GetRequiredService<BakeryDbContext>());
 

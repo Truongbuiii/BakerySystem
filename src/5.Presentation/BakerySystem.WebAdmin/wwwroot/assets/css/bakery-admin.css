@@ -560,3 +560,186 @@ html.dark .bakery-table tbody tr:hover {
     background-color: var(--bakery-error-light);
     color: #e11d48;
 }
+
+/* ========================================================
+   8. BUTTONS, FORMS, MODALS & TOAST UTILITIES
+   ======================================================== */
+.bakery-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.55rem 1.1rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    border: 1px solid transparent;
+    text-decoration: none;
+}
+
+.bakery-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.bakery-btn-primary {
+    background-color: var(--bakery-primary);
+    color: #ffffff;
+}
+.bakery-btn-primary:hover:not(:disabled) {
+    background-color: var(--bakery-primary-hover);
+    box-shadow: 0 4px 12px rgba(93, 135, 255, 0.35);
+}
+
+.bakery-btn-secondary {
+    background-color: #f1f5f9;
+    color: #334155;
+    border-color: #e2e8f0;
+}
+.bakery-btn-secondary:hover:not(:disabled) {
+    background-color: #e2e8f0;
+    color: #0f172a;
+}
+html.dark .bakery-btn-secondary {
+    background-color: #1e293b;
+    color: #cbd5e1;
+    border-color: #334155;
+}
+html.dark .bakery-btn-secondary:hover:not(:disabled) {
+    background-color: #334155;
+    color: #ffffff;
+}
+
+.bakery-btn-outline {
+    background-color: transparent;
+    border-color: var(--bakery-border);
+    color: #475569;
+}
+.bakery-btn-outline:hover:not(:disabled) {
+    background-color: #f8fafc;
+    color: var(--bakery-primary);
+    border-color: var(--bakery-primary);
+}
+
+.bakery-btn-danger {
+    background-color: #ef4444;
+    color: #ffffff;
+}
+.bakery-btn-danger:hover:not(:disabled) {
+    background-color: #dc2626;
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.35);
+}
+
+.bakery-btn-sm {
+    padding: 0.35rem 0.75rem;
+    font-size: 0.8125rem;
+    border-radius: 6px;
+}
+
+/* Forms */
+.bakery-input {
+    width: 100%;
+    padding: 0.6rem 0.85rem;
+    font-size: 0.875rem;
+    border-radius: 8px;
+    border: 1px solid var(--bakery-border);
+    background-color: #ffffff;
+    color: #1e293b;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+.bakery-input:focus {
+    border-color: var(--bakery-primary);
+    box-shadow: 0 0 0 3px rgba(93, 135, 255, 0.15);
+}
+html.dark .bakery-input {
+    background-color: #1e293b;
+    border-color: var(--bakery-border-dark);
+    color: #f8fafc;
+}
+
+.bakery-label {
+    display: block;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: #334155;
+    margin-bottom: 0.35rem;
+}
+html.dark .bakery-label {
+    color: #cbd5e1;
+}
+
+/* Modal styles */
+.bakery-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 1050;
+    background-color: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    animation: bakeryFadeIn 0.15s ease-out;
+}
+
+.bakery-modal-card {
+    background-color: #ffffff;
+    border-radius: 16px;
+    width: 100%;
+    max-width: 640px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    border: 1px solid var(--bakery-border);
+    overflow: hidden;
+    animation: bakeryScaleUp 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+html.dark .bakery-modal-card {
+    background-color: var(--bakery-bg-dark);
+    border-color: var(--bakery-border-dark);
+}
+
+.bakery-modal-header {
+    padding: 1.25rem 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--bakery-border);
+}
+html.dark .bakery-modal-header {
+    border-bottom-color: var(--bakery-border-dark);
+}
+
+.bakery-modal-body {
+    padding: 1.5rem;
+    overflow-y: auto;
+}
+
+.bakery-modal-footer {
+    padding: 1rem 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    border-top: 1px solid var(--bakery-border);
+    background-color: #f8fafc;
+}
+html.dark .bakery-modal-footer {
+    border-top-color: var(--bakery-border-dark);
+    background-color: rgba(15, 23, 42, 0.4);
+}
+
+/* Animations */
+@keyframes bakeryFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes bakeryScaleUp {
+    from { transform: scale(0.96); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}

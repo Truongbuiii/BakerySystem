@@ -1,0 +1,1016 @@
+@page "/products"
+@rendermode InteractiveServer
+@inject IProductService ProductService
+@inject IJSRuntime JS
+
+<PageTitle>Quản Lý Menu & Sản Phẩm | BakeryAdmin</PageTitle>
+
+<div class="space-y-6">
+    <!-- 1. Breadcrumb & Page Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2 text-xs font-medium text-slate-500 mb-1">
+                <a href="/" class="hover:text-primary transition-colors flex items-center gap-1">
+                    <iconify-icon icon="solar:home-2-linear" class="text-sm"></iconify-icon>
+                    Tổng quan
+                </a>
+                <span>/</span>
+                <span class="text-slate-800 dark:text-slate-200 font-semibold">Menu & Bánh ngọt</span>
+            </div>
+            <h2 class="text-xl sm:text-2xl font-bold text-dark dark:text-white mb-1">Quản Lý Menu Bánh & Sản Phẩm</h2>
+            <p class="text-xs sm:text-sm text-bodytext mb-0">Quản lý danh mục, thêm món mới, cập nhật giá bán và giám sát số lượng tồn kho tại cửa hàng.</p>
+        </div>
+
+        <div class="flex items-center gap-2.5 shrink-0 flex-wrap">
+            <button class="bakery-btn bakery-btn-secondary bakery-btn-sm" @onclick="RefreshDataAsync">
+                <iconify-icon icon="solar:restart-linear" class="text-base"></iconify-icon>
+                <span>Làm mới</span>
+            </button>
+            <button class="bakery-btn bakery-btn-outline bakery-btn-sm" @onclick="OpenCreateCategoryModal">
+                <iconify-icon icon="solar:folder-with-files-linear" class="text-base"></iconify-icon>
+                <span>+ Thêm Loại sản phẩm</span>
+            </button>
+            <button class="bakery-btn bakery-btn-primary bakery-btn-sm shadow-sm" @onclick="OpenCreateProductModal">
+                <iconify-icon icon="solar:add-circle-linear" class="text-base"></iconify-icon>
+                <span>+ Thêm món mới</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- 2. Top 4 KPI Metrics Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- KPI 1: Tổng số sản phẩm -->
+        <div class="bakery-card p-4 sm:p-5">
+            <div class="flex items-center justify-between">
+                <div>
+                    <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Tổng sản phẩm</span>
+                    <h3 class="text-2xl font-bold text-dark dark:text-white mt-1 mb-0">@(stats?.TotalProducts ?? 0)</h3>
+                    <span class="text-[11px] text-slate-500 mt-1 inline-block">Giá TB: @($"{stats?.AveragePrice ?? 0:N0}đ")</span>
+                </div>
+                <div class="w-12 h-12 rounded-xl bg-lightprimary text-primary flex items-center justify-center shrink-0">
+                    <iconify-icon icon="solar:bag-5-bold" class="text-2xl"></iconify-icon>
+                </div>
+            </div>
+        </div>
+
+        <!-- KPI 2: Đang mở bán -->
+        <div class="bakery-card p-4 sm:p-5">
+            <div class="flex items-center justify-between">
+                <div>
+                    <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Đang mở bán</span>
+                    <h3 class="text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-1 mb-0">@(stats?.ActiveProducts ?? 0)</h3>
+                    <span class="text-[11px] text-slate-500 mt-1 inline-block">Tạm ngừng: @(stats?.InactiveProducts ?? 0) món</span>
+                </div>
+                <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                    <iconify-icon icon="solar:check-circle-bold" class="text-2xl"></iconify-icon>
+                </div>
+            </div>
+        </div>
+
+        <!-- KPI 3: Sắp hết hàng -->
+        <div class="bakery-card p-4 sm:p-5">
+            <div class="flex items-center justify-between">
+                <div>
+                    <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Sắp hết hàng</span>
+                    <h3 class="text-2xl font-bold text-amber-500 mt-1 mb-0">@(stats?.LowStockProducts ?? 0)</h3>
+                    <span class="text-[11px] text-amber-600 dark:text-amber-400 mt-1 inline-block">Tồn kho còn &le; 5 cái</span>
+                </div>
+                <div class="w-12 h-12 rounded-xl bg-amber-50 text-amber-500 dark:bg-amber-950/40 flex items-center justify-center shrink-0">
+                    <iconify-icon icon="solar:danger-triangle-bold" class="text-2xl"></iconify-icon>
+                </div>
+            </div>
+        </div>
+
+        <!-- KPI 4: Hết hàng -->
+        <div class="bakery-card p-4 sm:p-5">
+            <div class="flex items-center justify-between">
+                <div>
+                    <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Hết hàng</span>
+                    <h3 class="text-2xl font-bold text-rose-500 mt-1 mb-0">@(stats?.OutOfStockProducts ?? 0)</h3>
+                    <span class="text-[11px] text-rose-500 mt-1 inline-block">Cần lập phiếu nhập kho</span>
+                </div>
+                <div class="w-12 h-12 rounded-xl bg-rose-50 text-rose-500 dark:bg-rose-950/40 flex items-center justify-center shrink-0">
+                    <iconify-icon icon="solar:box-minimalistic-bold" class="text-2xl"></iconify-icon>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Search & Filter Bar -->
+    <div class="bakery-card p-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+            <!-- Search Keyword -->
+            <div class="lg:col-span-2 relative">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                    <iconify-icon icon="solar:magnifer-linear" class="text-lg"></iconify-icon>
+                </div>
+                <input type="text" 
+                       class="bakery-input pl-9" 
+                       placeholder="Tìm theo tên bánh hoặc mô tả..." 
+                       @bind="searchKeyword" 
+                       @bind:event="oninput" 
+                       @onkeyup="HandleSearchKeyUp" />
+            </div>
+
+            <!-- Category Filter -->
+            <div>
+                <select class="bakery-input" @bind="selectedCategoryId" @bind:after="ApplyFiltersAsync">
+                    <option value="0">Tất cả danh mục (@categories.Count)</option>
+                    @foreach (var cat in categories)
+                    {
+                        <option value="@cat.CategoryID">@cat.CategoryName (@cat.ProductCount)</option>
+                    }
+                </select>
+            </div>
+
+            <!-- Stock Status Filter -->
+            <div>
+                <select class="bakery-input" @bind="selectedStockStatus" @bind:after="ApplyFiltersAsync">
+                    <option value="All">Tất cả tồn kho</option>
+                    <option value="InStock">Còn hàng (&gt; 5)</option>
+                    <option value="LowStock">Sắp hết (&le; 5)</option>
+                    <option value="OutOfStock">Hết hàng (0)</option>
+                </select>
+            </div>
+
+            <!-- Active Status Filter -->
+            <div>
+                <select class="bakery-input" @bind="selectedActiveFilter" @bind:after="ApplyFiltersAsync">
+                    <option value="">Tất cả trạng thái</option>
+                    <option value="true">Đang bán</option>
+                    <option value="false">Ngừng kinh doanh</option>
+                </select>
+            </div>
+
+            <!-- Reset Filter Button -->
+            <div>
+                <button class="bakery-btn bakery-btn-outline w-full" @onclick="ResetFiltersAsync">
+                    <iconify-icon icon="solar:refresh-linear" class="text-base"></iconify-icon>
+                    <span>Đặt lại</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. Products Table Card -->
+    <div class="bakery-card">
+        <div class="p-4 sm:p-5 border-b border-border dark:border-darkborder flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div class="flex items-center gap-2">
+                <iconify-icon icon="solar:list-bold-duotone" class="text-xl text-primary"></iconify-icon>
+                <h4 class="text-base font-bold text-dark dark:text-white mb-0">Danh Sách Món Ăn Trong Menu</h4>
+                <span class="bakery-badge bakery-badge-primary">@filteredProducts.Count món</span>
+            </div>
+
+            <div class="flex items-center gap-2 text-xs text-slate-500">
+                <span>Sắp xếp theo:</span>
+                <select class="bakery-input py-1 px-2.5 text-xs w-auto" @bind="sortBy" @bind:after="SortProducts">
+                    <option value="newest">Mới nhất</option>
+                    <option value="name_asc">Tên (A-Z)</option>
+                    <option value="price_asc">Giá (Thấp &rarr; Cao)</option>
+                    <option value="price_desc">Giá (Cao &rarr; Thấp)</option>
+                    <option value="stock_desc">Tồn kho nhiều nhất</option>
+                    <option value="sold_desc">Bán chạy nhất</option>
+                </select>
+            </div>
+        </div>
+
+        @if (isLoading)
+        {
+            <div class="p-12 flex flex-col items-center justify-center gap-3">
+                <div class="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                <p class="text-sm text-bodytext mb-0">Đang tải dữ liệu sản phẩm từ hệ thống...</p>
+            </div>
+        }
+        else if (filteredProducts.Count == 0)
+        {
+            <div class="p-12 text-center">
+                <div class="w-16 h-16 mx-auto mb-3 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400">
+                    <iconify-icon icon="solar:box-minimalistic-linear" class="text-3xl"></iconify-icon>
+                </div>
+                <h5 class="text-base font-bold text-dark dark:text-white mb-1">Không tìm thấy sản phẩm nào</h5>
+                <p class="text-xs sm:text-sm text-bodytext mb-4">Không có món ăn nào khớp với điều kiện tìm kiếm hoặc bộ lọc hiện tại.</p>
+                <button class="bakery-btn bakery-btn-primary bakery-btn-sm" @onclick="ResetFiltersAsync">
+                    Xóa bộ lọc & Tải lại
+                </button>
+            </div>
+        }
+        else
+        {
+            <div class="bakery-table-responsive">
+                <table class="bakery-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 60px;">Mã</th>
+                            <th>Món Ăn & Mô Tả</th>
+                            <th>Danh Mục</th>
+                            <th>Giá Bán</th>
+                            <th>Tồn Kho</th>
+                            <th>Đã Bán</th>
+                            <th>Kinh Doanh</th>
+                            <th class="text-right" style="width: 140px;">Thao Tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in filteredProducts)
+                        {
+                            <tr>
+                                <!-- ID -->
+                                <td class="font-mono text-xs font-semibold text-slate-500">
+                                    #@item.ProductID
+                                </td>
+
+                                <!-- Product Info (Image + Name + Desc) -->
+                                <td>
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-12 h-12 rounded-lg overflow-hidden border border-border dark:border-darkborder bg-slate-100 dark:bg-slate-800 shrink-0 relative">
+                                            <img src="@(string.IsNullOrWhiteSpace(item.ImageURL) ? "/assets/images/products/s1.jpg" : item.ImageURL)" 
+                                                 alt="@item.ProductName" 
+                                                 class="w-full h-full object-cover"
+                                                 onerror="this.src='/assets/images/products/s1.jpg'" />
+                                        </div>
+                                        <div class="min-w-0">
+                                            <h6 class="text-sm font-bold text-dark dark:text-white hover:text-primary transition-colors mb-0 truncate">
+                                                @item.ProductName
+                                            </h6>
+                                            <p class="text-xs text-slate-500 dark:text-slate-400 line-clamp-1 mb-0 max-w-xs">
+                                                @(string.IsNullOrWhiteSpace(item.Description) ? "Chưa có mô tả chi tiết." : item.Description)
+                                            </p>
+                                        </div>
+                                    </div>
+                                </td>
+
+                                <!-- Category -->
+                                <td>
+                                    <span class="bakery-badge bakery-badge-secondary text-xs">
+                                        <iconify-icon icon="solar:tag-linear" class="text-xs"></iconify-icon>
+                                        @item.CategoryName
+                                    </span>
+                                </td>
+
+                                <!-- Price -->
+                                <td>
+                                    <span class="text-sm font-bold text-slate-800 dark:text-slate-100">
+                                        @($"{item.Price:N0} đ")
+                                    </span>
+                                </td>
+
+                                <!-- Stock Status -->
+                                <td>
+                                    @if (item.Quantity <= 0)
+                                    {
+                                        <span class="bakery-badge bakery-badge-error text-xs font-semibold">
+                                            <iconify-icon icon="solar:close-circle-bold" class="text-xs"></iconify-icon>
+                                            Hết hàng (0)
+                                        </span>
+                                    }
+                                    else if (item.Quantity <= 5)
+                                    {
+                                        <span class="bakery-badge bakery-badge-warning text-xs font-semibold">
+                                            <iconify-icon icon="solar:danger-triangle-bold" class="text-xs"></iconify-icon>
+                                            Sắp hết (@item.Quantity)
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="bakery-badge bakery-badge-success text-xs font-semibold">
+                                            <iconify-icon icon="solar:check-circle-bold" class="text-xs"></iconify-icon>
+                                            Còn @item.Quantity cái
+                                        </span>
+                                    }
+                                </td>
+
+                                <!-- Sold count -->
+                                <td>
+                                    <span class="text-xs font-semibold text-slate-600 dark:text-slate-300">
+                                        @item.SoldCount đơn
+                                    </span>
+                                </td>
+
+                                <!-- Active toggle switch -->
+                                <td>
+                                    <button type="button" 
+                                            class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold transition-all @(item.IsActive ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400 hover:bg-emerald-100" : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 hover:bg-slate-200")"
+                                            title="Bấm để bật/tắt trạng thái kinh doanh"
+                                            @onclick="() => ToggleStatusAsync(item)">
+                                        <span class="w-2 h-2 rounded-full @(item.IsActive ? "bg-emerald-500 animate-pulse" : "bg-slate-400")"></span>
+                                        <span>@(item.IsActive ? "Đang bán" : "Tạm ngưng")</span>
+                                    </button>
+                                </td>
+
+                                <!-- Action Buttons -->
+                                <td class="text-right">
+                                    <div class="inline-flex items-center gap-1">
+                                        <button class="p-1.5 rounded-lg text-slate-600 hover:text-primary hover:bg-lightprimary transition-colors" 
+                                                title="Chỉnh sửa thông tin"
+                                                @onclick="() => OpenEditProductModal(item)">
+                                            <iconify-icon icon="solar:pen-linear" class="text-base"></iconify-icon>
+                                        </button>
+
+                                        <button class="p-1.5 rounded-lg text-slate-600 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors" 
+                                                title="Xóa hoặc ngừng bán"
+                                                @onclick="() => OpenDeleteConfirmModal(item)">
+                                            <iconify-icon icon="solar:trash-bin-trash-linear" class="text-base"></iconify-icon>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Table Footer -->
+            <div class="p-4 border-t border-border dark:border-darkborder flex flex-col sm:flex-row sm:items-center sm:justify-between text-xs text-slate-500 gap-2">
+                <div>
+                    Hiển thị <strong>@filteredProducts.Count</strong> trên tổng số <strong>@allProducts.Count</strong> món ăn.
+                </div>
+                <div class="flex items-center gap-3">
+                    <span class="inline-flex items-center gap-1">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500"></span> Còn hàng
+                    </span>
+                    <span class="inline-flex items-center gap-1">
+                        <span class="w-2 h-2 rounded-full bg-amber-500"></span> Sắp hết (&le; 5)
+                    </span>
+                    <span class="inline-flex items-center gap-1">
+                        <span class="w-2 h-2 rounded-full bg-rose-500"></span> Hết hàng
+                    </span>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- ========================================================
+     MODAL 1: THÊM BÁNH MỚI VÀO MENU
+     ======================================================== -->
+@if (isCreateModalOpen)
+{
+    <div class="bakery-modal-backdrop" @onclick="CloseModals">
+        <div class="bakery-modal-card" @onclick:stopPropagation="true">
+            <div class="bakery-modal-header">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-lg bg-lightprimary text-primary flex items-center justify-center">
+                        <iconify-icon icon="solar:bag-5-bold" class="text-lg"></iconify-icon>
+                    </div>
+                    <div>
+                        <h4 class="text-base font-bold text-dark dark:text-white mb-0">Thêm Món Mới Vào Menu</h4>
+                        <p class="text-xs text-slate-500 mb-0">Khai báo thông tin sản phẩm và phân loại danh mục.</p>
+                    </div>
+                </div>
+                <button type="button" class="text-slate-400 hover:text-slate-600 text-lg" @onclick="CloseModals">
+                    <iconify-icon icon="solar:close-circle-linear"></iconify-icon>
+                </button>
+            </div>
+
+            <div class="bakery-modal-body space-y-4">
+                @if (!string.IsNullOrEmpty(modalError))
+                {
+                    <div class="p-3 rounded-lg bg-rose-50 text-rose-600 text-xs font-medium flex items-center gap-2">
+                        <iconify-icon icon="solar:danger-circle-bold" class="text-base shrink-0"></iconify-icon>
+                        <span>@modalError</span>
+                    </div>
+                }
+
+                <!-- Product Name -->
+                <div>
+                    <label class="bakery-label">Tên sản phẩm bánh <span class="text-rose-500">*</span></label>
+                    <input type="text" class="bakery-input" placeholder="Ví dụ: Bánh Mì Bơ Tỏi Nướng Giòn" @bind="newProduct.ProductName" />
+                </div>
+
+                <!-- Category & Price Grid -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="bakery-label">Danh mục món <span class="text-rose-500">*</span></label>
+                        <select class="bakery-input" @bind="newProduct.CategoryID">
+                            <option value="0">-- Chọn danh mục --</option>
+                            @foreach (var cat in categories)
+                            {
+                                <option value="@cat.CategoryID">@cat.CategoryName</option>
+                            }
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="bakery-label">Giá bán niêm yết (VNĐ) <span class="text-rose-500">*</span></label>
+                        <input type="number" step="1000" min="0" class="bakery-input" placeholder="35000" @bind="newProduct.Price" />
+                    </div>
+                </div>
+
+                <!-- Initial Quantity -->
+                <div>
+                    <label class="bakery-label">Số lượng khởi tạo tồn kho</label>
+                    <input type="number" min="0" class="bakery-input" placeholder="10" @bind="newProduct.InitialQuantity" />
+                    <span class="text-[11px] text-slate-500 mt-1 block">Lưu ý: Sau khi tạo, số lượng tồn kho sẽ được quản lý tự động qua Phiếu Nhập Hàng và Bán Hàng.</span>
+                </div>
+
+                <!-- Image URL & Quick Picker -->
+                <div>
+                    <label class="bakery-label">Đường dẫn ảnh sản phẩm (URL)</label>
+                    <div class="flex gap-2">
+                        <input type="text" class="bakery-input flex-1" placeholder="/assets/images/products/s1.jpg hoặc link web" @bind="newProduct.ImageURL" />
+                        <div class="w-10 h-10 rounded-lg overflow-hidden border border-border dark:border-darkborder bg-slate-100 shrink-0">
+                            <img src="@(string.IsNullOrWhiteSpace(newProduct.ImageURL) ? "/assets/images/products/s1.jpg" : newProduct.ImageURL)" 
+                                 class="w-full h-full object-cover" 
+                                 onerror="this.src='/assets/images/products/s1.jpg'" />
+                        </div>
+                    </div>
+
+                    <!-- Quick Preset Image Pickers -->
+                    <div class="mt-2.5">
+                        <span class="text-[11px] font-semibold text-slate-500 block mb-1.5">Hoặc chọn nhanh ảnh mẫu có sẵn:</span>
+                        <div class="flex items-center gap-2 overflow-x-auto pb-1">
+                            @for (int i = 1; i <= 10; i++)
+                            {
+                                var imgPath = $"/assets/images/products/s{i}.jpg";
+                                <button type="button" 
+                                        class="w-9 h-9 rounded-lg overflow-hidden border-2 transition-all shrink-0 @(newProduct.ImageURL == imgPath ? "border-primary scale-105 shadow-sm" : "border-transparent hover:border-slate-300")"
+                                        @onclick="() => newProduct.ImageURL = imgPath">
+                                    <img src="@imgPath" class="w-full h-full object-cover" alt="Preset @i" />
+                                </button>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Description -->
+                <div>
+                    <label class="bakery-label">Mô tả sản phẩm</label>
+                    <textarea class="bakery-input h-20 resize-none" placeholder="Giới thiệu nguyên liệu, hương vị thơm ngon của bánh..." @bind="newProduct.Description"></textarea>
+                </div>
+
+                <!-- Active Toggle -->
+                <div class="flex items-center gap-2 pt-1">
+                    <input type="checkbox" id="createIsActive" class="w-4 h-4 text-primary rounded border-slate-300" @bind="newProduct.IsActive" />
+                    <label for="createIsActive" class="text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer">
+                        Mở bán ngay trên thực đơn
+                    </label>
+                </div>
+            </div>
+
+            <div class="bakery-modal-footer">
+                <button type="button" class="bakery-btn bakery-btn-outline" @onclick="CloseModals">Hủy bỏ</button>
+                <button type="button" class="bakery-btn bakery-btn-primary" @onclick="SaveCreateProductAsync" disabled="@isSubmitting">
+                    @if (isSubmitting)
+                    {
+                        <span class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                    }
+                    <span>Lưu món mới</span>
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- ========================================================
+     MODAL 2: CHỈNH SỬA THÔNG TIN SẢN PHẨM
+     ======================================================== -->
+@if (isEditModalOpen && editProduct != null)
+{
+    <div class="bakery-modal-backdrop" @onclick="CloseModals">
+        <div class="bakery-modal-card" @onclick:stopPropagation="true">
+            <div class="bakery-modal-header">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-lg bg-lightwarning text-warning flex items-center justify-center">
+                        <iconify-icon icon="solar:pen-bold" class="text-lg"></iconify-icon>
+                    </div>
+                    <div>
+                        <h4 class="text-base font-bold text-dark dark:text-white mb-0">Chỉnh Sửa Sản Phẩm #@editProduct.ProductID</h4>
+                        <p class="text-xs text-slate-500 mb-0">Cập nhật thông tin chi tiết, giá bán và hình ảnh món ăn.</p>
+                    </div>
+                </div>
+                <button type="button" class="text-slate-400 hover:text-slate-600 text-lg" @onclick="CloseModals">
+                    <iconify-icon icon="solar:close-circle-linear"></iconify-icon>
+                </button>
+            </div>
+
+            <div class="bakery-modal-body space-y-4">
+                @if (!string.IsNullOrEmpty(modalError))
+                {
+                    <div class="p-3 rounded-lg bg-rose-50 text-rose-600 text-xs font-medium flex items-center gap-2">
+                        <iconify-icon icon="solar:danger-circle-bold" class="text-base shrink-0"></iconify-icon>
+                        <span>@modalError</span>
+                    </div>
+                }
+
+                <!-- Product Name -->
+                <div>
+                    <label class="bakery-label">Tên sản phẩm bánh <span class="text-rose-500">*</span></label>
+                    <input type="text" class="bakery-input" @bind="editProduct.ProductName" />
+                </div>
+
+                <!-- Category & Price Grid -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="bakery-label">Danh mục món <span class="text-rose-500">*</span></label>
+                        <select class="bakery-input" @bind="editProduct.CategoryID">
+                            @foreach (var cat in categories)
+                            {
+                                <option value="@cat.CategoryID">@cat.CategoryName</option>
+                            }
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="bakery-label">Giá bán niêm yết (VNĐ) <span class="text-rose-500">*</span></label>
+                        <input type="number" step="1000" min="0" class="bakery-input" @bind="editProduct.Price" />
+                    </div>
+                </div>
+
+                <!-- Image URL & Quick Picker -->
+                <div>
+                    <label class="bakery-label">Đường dẫn ảnh sản phẩm (URL)</label>
+                    <div class="flex gap-2">
+                        <input type="text" class="bakery-input flex-1" @bind="editProduct.ImageURL" />
+                        <div class="w-10 h-10 rounded-lg overflow-hidden border border-border dark:border-darkborder bg-slate-100 shrink-0">
+                            <img src="@(string.IsNullOrWhiteSpace(editProduct.ImageURL) ? "/assets/images/products/s1.jpg" : editProduct.ImageURL)" 
+                                 class="w-full h-full object-cover" 
+                                 onerror="this.src='/assets/images/products/s1.jpg'" />
+                        </div>
+                    </div>
+
+                    <!-- Quick Preset Image Pickers -->
+                    <div class="mt-2.5">
+                        <span class="text-[11px] font-semibold text-slate-500 block mb-1.5">Chọn ảnh mẫu có sẵn:</span>
+                        <div class="flex items-center gap-2 overflow-x-auto pb-1">
+                            @for (int i = 1; i <= 10; i++)
+                            {
+                                var imgPath = $"/assets/images/products/s{i}.jpg";
+                                <button type="button" 
+                                        class="w-9 h-9 rounded-lg overflow-hidden border-2 transition-all shrink-0 @(editProduct.ImageURL == imgPath ? "border-primary scale-105 shadow-sm" : "border-transparent hover:border-slate-300")"
+                                        @onclick="() => editProduct.ImageURL = imgPath">
+                                    <img src="@imgPath" class="w-full h-full object-cover" alt="Preset @i" />
+                                </button>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Description -->
+                <div>
+                    <label class="bakery-label">Mô tả sản phẩm</label>
+                    <textarea class="bakery-input h-20 resize-none" @bind="editProduct.Description"></textarea>
+                </div>
+
+                <!-- Active Toggle -->
+                <div class="flex items-center gap-2 pt-1">
+                    <input type="checkbox" id="editIsActive" class="w-4 h-4 text-primary rounded border-slate-300" @bind="editProduct.IsActive" />
+                    <label for="editIsActive" class="text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer">
+                        Đang mở bán phục vụ khách hàng
+                    </label>
+                </div>
+            </div>
+
+            <div class="bakery-modal-footer">
+                <button type="button" class="bakery-btn bakery-btn-outline" @onclick="CloseModals">Hủy bỏ</button>
+                <button type="button" class="bakery-btn bakery-btn-primary" @onclick="SaveEditProductAsync" disabled="@isSubmitting">
+                    @if (isSubmitting)
+                    {
+                        <span class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                    }
+                    <span>Cập nhật món ăn</span>
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- ========================================================
+     MODAL 3: THÊM NHANH DANH MỤC MỚI
+     ======================================================== -->
+@if (isCategoryModalOpen)
+{
+    <div class="bakery-modal-backdrop" @onclick="CloseModals">
+        <div class="bakery-modal-card max-w-md" @onclick:stopPropagation="true">
+            <div class="bakery-modal-header">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-lg bg-lightsecondary text-secondary flex items-center justify-center">
+                        <iconify-icon icon="solar:folder-with-files-bold" class="text-lg"></iconify-icon>
+                    </div>
+                    <div>
+                        <h4 class="text-base font-bold text-dark dark:text-white mb-0">Thêm Danh Mục Mới</h4>
+                        <p class="text-xs text-slate-500 mb-0">Tạo nhóm phân loại các món bánh.</p>
+                    </div>
+                </div>
+                <button type="button" class="text-slate-400 hover:text-slate-600 text-lg" @onclick="CloseModals">
+                    <iconify-icon icon="solar:close-circle-linear"></iconify-icon>
+                </button>
+            </div>
+
+            <div class="bakery-modal-body space-y-4">
+                @if (!string.IsNullOrEmpty(modalError))
+                {
+                    <div class="p-3 rounded-lg bg-rose-50 text-rose-600 text-xs font-medium flex items-center gap-2">
+                        <iconify-icon icon="solar:danger-circle-bold" class="text-base shrink-0"></iconify-icon>
+                        <span>@modalError</span>
+                    </div>
+                }
+
+                <div>
+                    <label class="bakery-label">Tên danh mục bánh <span class="text-rose-500">*</span></label>
+                    <input type="text" class="bakery-input" placeholder="Ví dụ: Bánh Mì Việt Nam, Kem Tươi, Bánh Kem..." @bind="newCategoryName" />
+                </div>
+            </div>
+
+            <div class="bakery-modal-footer">
+                <button type="button" class="bakery-btn bakery-btn-outline" @onclick="CloseModals">Hủy bỏ</button>
+                <button type="button" class="bakery-btn bakery-btn-primary" @onclick="SaveCreateCategoryAsync" disabled="@isSubmitting">
+                    @if (isSubmitting)
+                    {
+                        <span class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                    }
+                    <span>Tạo danh mục</span>
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- ========================================================
+     MODAL 4: XÁC NHẬN XÓA / LƯU TRỮ
+     ======================================================== -->
+@if (isDeleteConfirmModalOpen && targetProduct != null)
+{
+    <div class="bakery-modal-backdrop" @onclick="CloseModals">
+        <div class="bakery-modal-card max-w-md" @onclick:stopPropagation="true">
+            <div class="bakery-modal-header">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-lg bg-rose-50 text-rose-500 flex items-center justify-center">
+                        <iconify-icon icon="solar:trash-bin-trash-bold" class="text-lg"></iconify-icon>
+                    </div>
+                    <div>
+                        <h4 class="text-base font-bold text-dark dark:text-white mb-0">Xác Nhận Xóa / Ngừng Bán</h4>
+                        <p class="text-xs text-slate-500 mb-0">Mã món: #@targetProduct.ProductID</p>
+                    </div>
+                </div>
+                <button type="button" class="text-slate-400 hover:text-slate-600 text-lg" @onclick="CloseModals">
+                    <iconify-icon icon="solar:close-circle-linear"></iconify-icon>
+                </button>
+            </div>
+
+            <div class="bakery-modal-body space-y-3">
+                <p class="text-sm text-slate-700 dark:text-slate-300 mb-0">
+                    Bạn có chắc chắn muốn xóa món <strong class="text-dark dark:text-white">"@targetProduct.ProductName"</strong> khỏi thực đơn?
+                </p>
+                <div class="p-3 rounded-lg bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 text-xs">
+                    <iconify-icon icon="solar:info-circle-bold" class="inline text-sm mr-1"></iconify-icon>
+                    Nếu món bánh này đã từng được đặt mua hoặc đã có phiếu nhập kho, hệ thống sẽ tự động chuyển sang trạng thái <strong>[Ngừng kinh doanh]</strong> để bảo toàn lịch sử doanh thu và báo cáo.
+                </div>
+            </div>
+
+            <div class="bakery-modal-footer">
+                <button type="button" class="bakery-btn bakery-btn-outline" @onclick="CloseModals">Hủy bỏ</button>
+                <button type="button" class="bakery-btn bakery-btn-danger" @onclick="ConfirmDeleteProductAsync" disabled="@isSubmitting">
+                    @if (isSubmitting)
+                    {
+                        <span class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                    }
+                    <span>Xác nhận thực hiện</span>
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- ========================================================
+     TOAST NOTIFICATION BANNER (FLOAT BOTTOM RIGHT)
+     ======================================================== -->
+@if (toastMessage != null)
+{
+    <div class="fixed bottom-6 right-6 z-50 transition-all transform animate-bounce-short">
+        <div class="flex items-center gap-3 p-4 rounded-xl shadow-xl text-white text-sm font-semibold @(isToastSuccess ? "bg-emerald-600" : "bg-rose-600")">
+            <iconify-icon icon="@(isToastSuccess ? "solar:check-circle-bold" : "solar:danger-circle-bold")" class="text-xl"></iconify-icon>
+            <span>@toastMessage</span>
+            <button class="ml-2 hover:opacity-75" @onclick="() => toastMessage = null">
+                <iconify-icon icon="solar:close-circle-linear" class="text-lg"></iconify-icon>
+            </button>
+        </div>
+    </div>
+}
+
+@code {
+    private bool isLoading = true;
+    private bool isSubmitting = false;
+
+    // Data lists
+    private List<ProductDto> allProducts = new();
+    private List<ProductDto> filteredProducts = new();
+    private List<CategoryDto> categories = new();
+    private ProductStatsDto? stats;
+
+    // Filters
+    private string searchKeyword = string.Empty;
+    private int selectedCategoryId = 0;
+    private string selectedStockStatus = "All";
+    private string selectedActiveFilter = string.Empty;
+    private string sortBy = "newest";
+
+    // Modals
+    private bool isCreateModalOpen = false;
+    private bool isEditModalOpen = false;
+    private bool isCategoryModalOpen = false;
+    private bool isDeleteConfirmModalOpen = false;
+    private string? modalError = null;
+
+    // Forms
+    private CreateProductDto newProduct = new();
+    private UpdateProductDto? editProduct = null;
+    private ProductDto? targetProduct = null;
+    private string newCategoryName = string.Empty;
+
+    // Toast
+    private string? toastMessage = null;
+    private bool isToastSuccess = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDataAsync();
+    }
+
+    private async Task LoadDataAsync()
+    {
+        isLoading = true;
+        try
+        {
+            categories = await ProductService.GetCategoriesAsync();
+            stats = await ProductService.GetProductStatsAsync();
+            await ApplyFiltersAsync();
+        }
+        catch (Exception ex)
+        {
+            ShowToast("Lỗi khi tải dữ liệu sản phẩm: " + ex.Message, false);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task RefreshDataAsync()
+    {
+        await LoadDataAsync();
+        ShowToast("Đã làm mới dữ liệu từ Database!", true);
+    }
+
+    private async Task ApplyFiltersAsync()
+    {
+        bool? isActiveParam = null;
+        if (!string.IsNullOrEmpty(selectedActiveFilter))
+        {
+            isActiveParam = bool.Parse(selectedActiveFilter);
+        }
+
+        allProducts = await ProductService.GetProductsAsync(
+            search: searchKeyword,
+            categoryId: selectedCategoryId > 0 ? selectedCategoryId : null,
+            isActive: isActiveParam,
+            stockStatus: selectedStockStatus
+        );
+
+        SortProducts();
+    }
+
+    private void HandleSearchKeyUp(KeyboardEventArgs e)
+    {
+        ApplyFiltersAsync();
+    }
+
+    private void SortProducts()
+    {
+        filteredProducts = sortBy switch
+        {
+            "name_asc" => allProducts.OrderBy(p => p.ProductName).ToList(),
+            "price_asc" => allProducts.OrderBy(p => p.Price).ToList(),
+            "price_desc" => allProducts.OrderByDescending(p => p.Price).ToList(),
+            "stock_desc" => allProducts.OrderByDescending(p => p.Quantity).ToList(),
+            "sold_desc" => allProducts.OrderByDescending(p => p.SoldCount).ToList(),
+            _ => allProducts.OrderByDescending(p => p.ProductID).ToList()
+        };
+    }
+
+    private async Task ResetFiltersAsync()
+    {
+        searchKeyword = string.Empty;
+        selectedCategoryId = 0;
+        selectedStockStatus = "All";
+        selectedActiveFilter = string.Empty;
+        sortBy = "newest";
+        await ApplyFiltersAsync();
+    }
+
+    // Toggle Product Active Status
+    private async Task ToggleStatusAsync(ProductDto item)
+    {
+        try
+        {
+            var success = await ProductService.ToggleProductStatusAsync(item.ProductID);
+            if (success)
+            {
+                item.IsActive = !item.IsActive;
+                stats = await ProductService.GetProductStatsAsync();
+                ShowToast($"Đã chuyển món '{item.ProductName}' sang trạng thái [{(item.IsActive ? "Đang bán" : "Tạm ngưng")}].", true);
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowToast("Lỗi cập nhật trạng thái: " + ex.Message, false);
+        }
+    }
+
+    // Create Product Modal Handlers
+    private void OpenCreateProductModal()
+    {
+        modalError = null;
+        newProduct = new CreateProductDto
+        {
+            CategoryID = categories.FirstOrDefault()?.CategoryID ?? 1,
+            InitialQuantity = 10,
+            ImageURL = "/assets/images/products/s1.jpg",
+            IsActive = true
+        };
+        isCreateModalOpen = true;
+    }
+
+    private async Task SaveCreateProductAsync()
+    {
+        if (string.IsNullOrWhiteSpace(newProduct.ProductName))
+        {
+            modalError = "Vui lòng nhập tên sản phẩm bánh.";
+            return;
+        }
+
+        if (newProduct.CategoryID <= 0)
+        {
+            modalError = "Vui lòng chọn danh mục cho sản phẩm.";
+            return;
+        }
+
+        if (newProduct.Price <= 0)
+        {
+            modalError = "Giá bán niêm yết phải lớn hơn 0 VNĐ.";
+            return;
+        }
+
+        isSubmitting = true;
+        try
+        {
+            var created = await ProductService.CreateProductAsync(newProduct);
+            CloseModals();
+            await LoadDataAsync();
+            ShowToast($"Đã thêm mới thành công món bánh '{created.ProductName}'!", true);
+        }
+        catch (Exception ex)
+        {
+            modalError = "Lỗi khi lưu sản phẩm: " + ex.Message;
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
+    }
+
+    // Edit Product Modal Handlers
+    private void OpenEditProductModal(ProductDto item)
+    {
+        modalError = null;
+        editProduct = new UpdateProductDto
+        {
+            ProductID = item.ProductID,
+            ProductName = item.ProductName,
+            CategoryID = item.CategoryID,
+            Price = item.Price,
+            Description = item.Description,
+            ImageURL = item.ImageURL,
+            IsActive = item.IsActive
+        };
+        isEditModalOpen = true;
+    }
+
+    private async Task SaveEditProductAsync()
+    {
+        if (editProduct == null) return;
+
+        if (string.IsNullOrWhiteSpace(editProduct.ProductName))
+        {
+            modalError = "Vui lòng nhập tên sản phẩm bánh.";
+            return;
+        }
+
+        if (editProduct.CategoryID <= 0)
+        {
+            modalError = "Vui lòng chọn danh mục cho sản phẩm.";
+            return;
+        }
+
+        if (editProduct.Price <= 0)
+        {
+            modalError = "Giá bán niêm yết phải lớn hơn 0 VNĐ.";
+            return;
+        }
+
+        isSubmitting = true;
+        try
+        {
+            var success = await ProductService.UpdateProductAsync(editProduct);
+            if (success)
+            {
+                CloseModals();
+                await LoadDataAsync();
+                ShowToast($"Đã cập nhật thành công món bánh '{editProduct.ProductName}'!", true);
+            }
+        }
+        catch (Exception ex)
+        {
+            modalError = "Lỗi khi cập nhật sản phẩm: " + ex.Message;
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
+    }
+
+    // Create Category Modal Handlers
+    private void OpenCreateCategoryModal()
+    {
+        modalError = null;
+        newCategoryName = string.Empty;
+        isCategoryModalOpen = true;
+    }
+
+    private async Task SaveCreateCategoryAsync()
+    {
+        if (string.IsNullOrWhiteSpace(newCategoryName))
+        {
+            modalError = "Vui lòng nhập tên danh mục bánh mới.";
+            return;
+        }
+
+        isSubmitting = true;
+        try
+        {
+            var cat = await ProductService.CreateCategoryAsync(newCategoryName);
+            CloseModals();
+            categories = await ProductService.GetCategoriesAsync();
+            ShowToast($"Đã thêm danh mục mới '{cat.CategoryName}'!", true);
+        }
+        catch (Exception ex)
+        {
+            modalError = "Lỗi khi tạo danh mục: " + ex.Message;
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
+    }
+
+    // Delete / Archive Modal Handlers
+    private void OpenDeleteConfirmModal(ProductDto item)
+    {
+        targetProduct = item;
+        isDeleteConfirmModalOpen = true;
+    }
+
+    private async Task ConfirmDeleteProductAsync()
+    {
+        if (targetProduct == null) return;
+
+        isSubmitting = true;
+        try
+        {
+            var result = await ProductService.DeleteOrArchiveProductAsync(targetProduct.ProductID);
+            CloseModals();
+            await LoadDataAsync();
+            ShowToast(result.Message, result.Success);
+        }
+        catch (Exception ex)
+        {
+            ShowToast("Lỗi khi xóa sản phẩm: " + ex.Message, false);
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
+    }
+
+    private void CloseModals()
+    {
+        isCreateModalOpen = false;
+        isEditModalOpen = false;
+        isCategoryModalOpen = false;
+        isDeleteConfirmModalOpen = false;
+        modalError = null;
+    }
+
+    private void ShowToast(string message, bool isSuccess)
+    {
+        toastMessage = message;
+        isToastSuccess = isSuccess;
+        StateHasChanged();
+
+        _ = Task.Run(async () =>
+        {
+            await Task.Delay(4000);
+            toastMessage = null;
+            await InvokeAsync(StateHasChanged);
+        });
+    }
+}

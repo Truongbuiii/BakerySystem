@@ -21,10 +21,28 @@ public static class MauiProgram
 
 		builder.Services.AddMauiBlazorWebView();
 
-		// Kết nối trực tiếp cơ sở dữ liệu BakerySystem từ SQL Server
-		const string connectionString = "Server=(local);Database=BakerySystem;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True";
+		// Tự động phát hiện instance SQL Server đang chạy (hỗ trợ cả máy cài (local), SQLEXPRESS hoặc localhost)
+		string[] candidateConnections = [
+			"Server=(local);Database=BakerySystem;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True;Connect Timeout=2;",
+			"Server=.\\SQLEXPRESS;Database=BakerySystem;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True;Connect Timeout=2;",
+			"Server=localhost;Database=BakerySystem;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True;Connect Timeout=2;"
+		];
+
+		string resolvedConnection = candidateConnections[0];
+		foreach (var candidate in candidateConnections)
+		{
+			try
+			{
+				using var testConn = new Microsoft.Data.SqlClient.SqlConnection(candidate);
+				testConn.Open();
+				resolvedConnection = candidate;
+				break;
+			}
+			catch { }
+		}
+
 		builder.Services.AddDbContext<BakeryDbContext>(options =>
-			options.UseSqlServer(connectionString));
+			options.UseSqlServer(resolvedConnection));
 
 		builder.Services.AddScoped<IBakeryDbContext>(sp => sp.GetRequiredService<BakeryDbContext>());
 		builder.Services.AddScoped<CartService>();

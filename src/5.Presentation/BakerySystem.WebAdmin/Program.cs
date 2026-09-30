@@ -16,7 +16,7 @@ builder.Services.AddInfrastructureServices(builder.Configuration);
 
 var app = builder.Build();
 
-// Khởi tạo và tự động Seed dữ liệu mẫu nếu database đang trống
+// Tự động Migrate database và Seed dữ liệu mẫu nếu database chưa có hoặc đang trống
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
