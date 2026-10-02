@@ -62,6 +62,21 @@ public static class MauiProgram
 		builder.Logging.AddDebug();
 #endif
 
-		return builder.Build();
+		var app = builder.Build();
+
+		// Tự động kiểm tra và khởi tạo Database + Dữ liệu mẫu nếu chưa có
+		_ = Task.Run(async () =>
+		{
+			try
+			{
+				using var scope = app.Services.CreateScope();
+				var context = scope.ServiceProvider.GetRequiredService<BakeryDbContext>();
+				await context.Database.MigrateAsync();
+				await BakeryDataSeeder.SeedAsync(context);
+			}
+			catch { }
+		});
+
+		return app;
 	}
 }
