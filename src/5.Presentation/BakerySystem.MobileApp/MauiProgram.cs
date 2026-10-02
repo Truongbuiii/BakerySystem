@@ -1,7 +1,10 @@
+using System;
+using System.Linq;
 using BakerySystem.Application;
 using BakerySystem.Application.Common.Interfaces;
 using BakerySystem.Infrastructure.Data;
 using BakerySystem.MobileApp.Services;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -21,28 +24,34 @@ public static class MauiProgram
 
 		builder.Services.AddMauiBlazorWebView();
 
-		// Tự động phát hiện instance SQL Server đang chạy (hỗ trợ cả máy cài (local), SQLEXPRESS hoặc localhost)
-		string[] candidateConnections = [
-			"Server=(local);Database=BakerySystem;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True;Connect Timeout=2;",
-			"Server=.\\SQLEXPRESS;Database=BakerySystem;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True;Connect Timeout=2;",
-			"Server=localhost;Database=BakerySystem;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True;Connect Timeout=2;"
+		// Tự động phát hiện instance SQL Server đang chạy (hỗ trợ cả máy XIAOXIN (local) và máy Thanh Tuyền .\SQLEXPRESS)
+		string[] candidateServers = [
+			".\\SQLEXPRESS",
+			"(local)\\SQLEXPRESS",
+			"(local)",
+			".",
+			"localhost"
 		];
 
-		string resolvedConnection = candidateConnections[0];
-		foreach (var candidate in candidateConnections)
+		string resolvedServer = candidateServers[0];
+		foreach (var server in candidateServers)
 		{
+			// Kiểm tra kết nối tới Database=master
+			var probeConnStr = $"Server={server};Database=master;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True;Connect Timeout=2;";
 			try
 			{
-				using var testConn = new Microsoft.Data.SqlClient.SqlConnection(candidate);
+				using var testConn = new SqlConnection(probeConnStr);
 				testConn.Open();
-				resolvedConnection = candidate;
+				resolvedServer = server;
 				break;
 			}
 			catch { }
 		}
 
+		string finalConnection = $"Server={resolvedServer};Database=BakerySystem;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True;";
+
 		builder.Services.AddDbContext<BakeryDbContext>(options =>
-			options.UseSqlServer(resolvedConnection));
+			options.UseSqlServer(finalConnection));
 
 		builder.Services.AddScoped<IBakeryDbContext>(sp => sp.GetRequiredService<BakeryDbContext>());
 		builder.Services.AddScoped<CartService>();
