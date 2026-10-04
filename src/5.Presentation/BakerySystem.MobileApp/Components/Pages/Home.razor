@@ -116,17 +116,32 @@
                     {
                         <div class="mobile-product-card" @onclick="() => OpenProductModal(prod)">
                             <div class="product-img-wrap">
-                                <img src="@GetProductImageUrl(prod)" alt="@prod.ProductName" class="product-img" onerror="this.src='http://localhost:5149/assets/images/products/default-bakery.svg';" />
+                                <img src="@GetProductImageUrl(prod)" alt="@prod.ProductName" class="product-img" style="@(prod.Quantity <= 0 ? "opacity: 0.5; filter: grayscale(40%);" : "")" onerror="this.src='http://localhost:5149/assets/images/products/default-bakery.svg';" />
                                 <span class="product-tag">@prod.Category?.CategoryName</span>
+                                @if (prod.Quantity <= 0)
+                                {
+                                    <span class="stock-badge stock-badge-out">Hết bánh</span>
+                                }
+                                else if (prod.Quantity <= 5)
+                                {
+                                    <span class="stock-badge stock-badge-low">Chỉ còn @prod.Quantity</span>
+                                }
                             </div>
                             <div class="product-info">
                                 <span class="product-category">Thủ công</span>
                                 <h6 class="product-name">@prod.ProductName</h6>
                                 <div class="product-price-row">
                                     <span class="product-price">@($"{prod.Price:N0}đ")</span>
-                                    <button class="btn-quick-add" @onclick:stopPropagation="true" @onclick="() => QuickAddToCart(prod)" title="Thêm nhanh">
-                                        <iconify-icon icon="solar:add-linear"></iconify-icon>
-                                    </button>
+                                    @if (prod.Quantity > 0)
+                                    {
+                                        <button class="btn-quick-add" @onclick:stopPropagation="true" @onclick="() => QuickAddToCart(prod)" title="Thêm nhanh">
+                                            <iconify-icon icon="solar:add-linear"></iconify-icon>
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <span style="font-size: 11px; font-weight: 700; color: #9C8E84; background: #F1ECE6; padding: 4px 8px; border-radius: 8px;">Hết hàng</span>
+                                    }
                                 </div>
                             </div>
                         </div>
@@ -168,17 +183,32 @@
                 {
                     <div class="mobile-product-card" @onclick="() => OpenProductModal(prod)">
                         <div class="product-img-wrap">
-                            <img src="@GetProductImageUrl(prod)" alt="@prod.ProductName" class="product-img" onerror="this.src='http://localhost:5149/assets/images/products/default-bakery.svg';" />
+                            <img src="@GetProductImageUrl(prod)" alt="@prod.ProductName" class="product-img" style="@(prod.Quantity <= 0 ? "opacity: 0.5; filter: grayscale(40%);" : "")" onerror="this.src='http://localhost:5149/assets/images/products/default-bakery.svg';" />
                             <span class="product-tag">@prod.Category?.CategoryName</span>
+                            @if (prod.Quantity <= 0)
+                            {
+                                <span class="stock-badge stock-badge-out">Hết bánh</span>
+                            }
+                            else if (prod.Quantity <= 5)
+                            {
+                                <span class="stock-badge stock-badge-low">Chỉ còn @prod.Quantity</span>
+                            }
                         </div>
                         <div class="product-info">
                             <h6 class="product-name">@prod.ProductName</h6>
                             <p style="font-size: 11px; color: #9C8E84; margin: 0 0 6px; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden;">@prod.Description</p>
                             <div class="product-price-row">
                                 <span class="product-price">@($"{prod.Price:N0}đ")</span>
-                                <button class="btn-quick-add" @onclick:stopPropagation="true" @onclick="() => QuickAddToCart(prod)">
-                                    <iconify-icon icon="solar:add-linear"></iconify-icon>
-                                </button>
+                                @if (prod.Quantity > 0)
+                                {
+                                    <button class="btn-quick-add" @onclick:stopPropagation="true" @onclick="() => QuickAddToCart(prod)">
+                                        <iconify-icon icon="solar:add-linear"></iconify-icon>
+                                    </button>
+                                }
+                                else
+                                {
+                                    <span style="font-size: 11px; font-weight: 700; color: #9C8E84; background: #F1ECE6; padding: 4px 8px; border-radius: 8px;">Hết hàng</span>
+                                }
                             </div>
                         </div>
                     </div>
@@ -425,19 +455,56 @@
 
                 <!-- Quantity selector -->
                 <div style="display: flex; align-items: center; justify-content: space-between; padding-top: 10px; border-top: 1px solid var(--bk-border);">
-                    <span style="font-size: 13px; font-weight: 700; color: #2B2118;">Số lượng:</span>
-                    <div class="quantity-stepper">
-                        <button class="stepper-btn" @onclick="() => modalQuantity = Math.Max(1, modalQuantity - 1)">-</button>
-                        <span class="stepper-value">@modalQuantity</span>
-                        <button class="stepper-btn" @onclick="() => modalQuantity++">+</button>
+                    <div>
+                        <span style="font-size: 13px; font-weight: 700; color: #2B2118; display: block;">Số lượng:</span>
+                        @if (selectedProduct != null)
+                        {
+                            @if (selectedProduct.Quantity <= 0)
+                            {
+                                <span style="font-size: 11px; font-weight: 700; color: #E63946;">⚠️ Tạm hết bánh hôm nay</span>
+                            }
+                            else if (selectedProduct.Quantity <= 5)
+                            {
+                                <span style="font-size: 11px; font-weight: 700; color: #D97706;">🔥 Chỉ còn @selectedProduct.Quantity cái trong ngày</span>
+                            }
+                            else
+                            {
+                                <span style="font-size: 11px; font-weight: 600; color: #9C8E84;">(Còn @selectedProduct.Quantity cái trong ngày)</span>
+                            }
+                        }
                     </div>
+
+                    @if (selectedProduct != null && selectedProduct.Quantity > 0)
+                    {
+                        <div class="quantity-stepper">
+                            <button class="stepper-btn" @onclick="() => modalQuantity = Math.Max(1, modalQuantity - 1)" disabled="@(modalQuantity <= 1)">-</button>
+                            <span class="stepper-value">@modalQuantity</span>
+                            <button class="stepper-btn" 
+                                    @onclick="IncreaseModalQuantity" 
+                                    disabled="@(modalQuantity >= selectedProduct.Quantity)"
+                                    style="@(modalQuantity >= selectedProduct.Quantity ? "opacity: 0.35; cursor: not-allowed;" : "")">+</button>
+                        </div>
+                    }
+                    else
+                    {
+                        <span style="font-size: 12px; font-weight: 700; color: #9C8E84; background: #F3EFEA; padding: 4px 10px; border-radius: 8px;">Tạm hết hàng</span>
+                    }
                 </div>
             </div>
 
             <div class="sheet-footer">
-                <button class="btn-bk-primary" @onclick="AddToCartFromModal">
-                    Thêm vào giỏ hàng • @($"{((selectedProduct?.Price ?? 0) * modalQuantity):N0}đ")
-                </button>
+                @if (selectedProduct != null && selectedProduct.Quantity > 0)
+                {
+                    <button class="btn-bk-primary" @onclick="AddToCartFromModal">
+                        Thêm vào giỏ hàng • @($"{((selectedProduct.Price) * modalQuantity):N0}đ")
+                    </button>
+                }
+                else
+                {
+                    <button class="btn-bk-primary" disabled style="background: #D1C7BD; color: #FFFFFF; cursor: not-allowed; box-shadow: none;">
+                        Tạm Hết Bánh Hôm Nay
+                    </button>
+                }
             </div>
         </div>
     </div>
@@ -483,7 +550,10 @@
                                     <div class="quantity-stepper">
                                         <button class="stepper-btn" @onclick="() => CartService.UpdateQuantity(item.ProductID, -1)">-</button>
                                         <span class="stepper-value">@item.Quantity</span>
-                                        <button class="stepper-btn" @onclick="() => CartService.UpdateQuantity(item.ProductID, 1)">+</button>
+                                        <button class="stepper-btn" 
+                                                @onclick="() => CartService.UpdateQuantity(item.ProductID, 1)"
+                                                disabled="@(item.Quantity >= item.MaxStock)"
+                                                style="@(item.Quantity >= item.MaxStock ? "opacity: 0.35; cursor: not-allowed;" : "")">+</button>
                                     </div>
                                     <button style="border: none; background: transparent; color: #E63946; font-size: 16px; cursor: pointer;" @onclick="() => CartService.RemoveItem(item.ProductID)">
                                         <iconify-icon icon="solar:trash-bin-trash-linear"></iconify-icon>
@@ -789,13 +859,24 @@
 
     private void QuickAddToCart(Product product)
     {
+        if (product.Quantity <= 0) return;
+        var existing = CartService.Items.FirstOrDefault(i => i.ProductID == product.ProductID);
+        if (existing != null && existing.Quantity >= product.Quantity) return;
         CartService.AddItem(product, 1);
     }
 
     private void OpenProductModal(Product product)
     {
         selectedProduct = product;
-        modalQuantity = 1;
+        modalQuantity = product.Quantity > 0 ? 1 : 0;
+    }
+
+    private void IncreaseModalQuantity()
+    {
+        if (selectedProduct != null && modalQuantity < selectedProduct.Quantity)
+        {
+            modalQuantity++;
+        }
     }
 
     private void CloseProductModal()
@@ -805,7 +886,7 @@
 
     private void AddToCartFromModal()
     {
-        if (selectedProduct != null)
+        if (selectedProduct != null && selectedProduct.Quantity > 0 && modalQuantity > 0)
         {
             CartService.AddItem(selectedProduct, modalQuantity);
             CloseProductModal();

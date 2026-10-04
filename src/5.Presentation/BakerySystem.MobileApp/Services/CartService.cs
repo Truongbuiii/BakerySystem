@@ -12,6 +12,7 @@ public class CartItem
     public string ImageURL { get; set; } = string.Empty;
     public decimal UnitPrice { get; set; }
     public int Quantity { get; set; } = 1;
+    public int MaxStock { get; set; } = 999;
 
     public decimal SubTotal => UnitPrice * Quantity;
 }
@@ -52,10 +53,13 @@ public class CartService
 
     public void AddItem(Product product, int quantity = 1)
     {
+        if (product.Quantity <= 0) return;
+
         var existing = Items.FirstOrDefault(i => i.ProductID == product.ProductID);
         if (existing != null)
         {
-            existing.Quantity += quantity;
+            existing.MaxStock = product.Quantity;
+            existing.Quantity = Math.Min(existing.Quantity + quantity, product.Quantity);
         }
         else
         {
@@ -73,7 +77,8 @@ public class CartService
                 ProductName = product.ProductName,
                 ImageURL = resolvedImg,
                 UnitPrice = product.Price,
-                Quantity = quantity
+                Quantity = Math.Min(quantity, product.Quantity),
+                MaxStock = product.Quantity
             });
         }
         NotifyStateChanged();
@@ -84,6 +89,11 @@ public class CartService
         var item = Items.FirstOrDefault(i => i.ProductID == productId);
         if (item != null)
         {
+            if (delta > 0 && item.Quantity >= item.MaxStock)
+            {
+                return; // Đã đạt số lượng tồn kho tối đa
+            }
+
             item.Quantity += delta;
             if (item.Quantity <= 0)
             {

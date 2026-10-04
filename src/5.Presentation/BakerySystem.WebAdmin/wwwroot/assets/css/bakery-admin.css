@@ -37,6 +37,7 @@ html, body {
     background-color: #f8fafc;
     font-size: 13.5px;
     line-height: 1.5;
+    min-height: 100vh;
 }
 
 /* ========================================================
@@ -94,9 +95,9 @@ html, body {
    2. MAIN RESPONSIVE SHELL (SIDEBAR & PAGE WRAPPER)
    ======================================================== */
 .bakery-layout-root {
-    display: flex;
-    min-height: 100vh;
-    width: 100%;
+    display: flex !important;
+    min-height: 100vh !important;
+    width: 100% !important;
     background-color: #f8fafc;
     position: relative;
 }
@@ -173,9 +174,38 @@ html.dark .bakery-sidebar-divider {
 .bakery-page-wrapper {
     margin-left: var(--bakery-sidebar-w) !important;
     width: calc(100% - var(--bakery-sidebar-w)) !important;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
+    min-height: 100vh !important;
+    display: flex !important;
+    flex-direction: column !important;
+}
+
+.bakery-main {
+    flex: 1 0 auto !important;
+    width: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+}
+
+.flex-1 {
+    flex: 1 1 0% !important;
+}
+
+.bakery-footer {
+    margin-top: auto !important;
+    width: 100% !important;
+    padding: 0.875rem 1.5rem !important;
+    border-top: 1px solid var(--bakery-border) !important;
+    text-align: center !important;
+    font-size: 0.75rem !important;
+    color: #64748b !important;
+    background-color: #ffffff !important;
+    flex-shrink: 0 !important;
+}
+
+html.dark .bakery-footer {
+    border-top-color: var(--bakery-border-dark) !important;
+    background-color: var(--bakery-bg-dark) !important;
+    color: #94a3b8 !important;
 }
 
 @media (min-width: 1024px) {

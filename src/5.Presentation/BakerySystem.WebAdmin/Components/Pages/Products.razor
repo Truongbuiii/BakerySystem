@@ -747,7 +747,10 @@
     private List<CategoryDto> categories = new();
     private ProductStatsDto? stats;
 
-    // Filters
+    // Filters & Query Parameters
+    [SupplyParameterFromQuery(Name = "categoryId")]
+    public int? QueryCategoryId { get; set; }
+
     private string searchKeyword = string.Empty;
     private int selectedCategoryId = 0;
     private string selectedStockStatus = "All";
@@ -782,7 +785,23 @@
 
     protected override async Task OnInitializedAsync()
     {
+        if (QueryCategoryId.HasValue && QueryCategoryId.Value > 0)
+        {
+            selectedCategoryId = QueryCategoryId.Value;
+        }
         await LoadDataAsync();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (QueryCategoryId.HasValue && QueryCategoryId.Value > 0 && selectedCategoryId != QueryCategoryId.Value)
+        {
+            selectedCategoryId = QueryCategoryId.Value;
+            if (!isLoading)
+            {
+                await ApplyFiltersAsync();
+            }
+        }
     }
 
     private async Task LoadDataAsync()
@@ -850,9 +869,11 @@
     {
         searchKeyword = string.Empty;
         selectedCategoryId = 0;
+        QueryCategoryId = null;
         selectedStockStatus = "All";
         selectedActiveFilter = string.Empty;
         sortBy = "newest";
+        Navigation.NavigateTo("/products", replace: true);
         await ApplyFiltersAsync();
     }
 
