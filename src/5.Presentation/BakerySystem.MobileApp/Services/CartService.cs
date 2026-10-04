@@ -27,6 +27,7 @@ public class CartService
     public string AppliedVoucherCode { get; private set; } = string.Empty;
     public decimal DiscountPercent { get; private set; } = 0;
     public decimal MaxDiscountAmount { get; private set; } = 0;
+    public decimal MinOrderAmount { get; private set; } = 0;
 
     public CartService(IBakeryDbContext context)
     {
@@ -37,11 +38,15 @@ public class CartService
 
     public decimal SubTotalAmount => Items.Sum(i => i.SubTotal);
 
+    public bool IsVoucherEligible => !string.IsNullOrEmpty(AppliedVoucherCode) && (MinOrderAmount <= 0 || SubTotalAmount >= MinOrderAmount);
+    public decimal RemainingForVoucher => Math.Max(0, MinOrderAmount - SubTotalAmount);
+
     public decimal DiscountAmount
     {
         get
         {
             if (DiscountPercent <= 0) return 0;
+            if (MinOrderAmount > 0 && SubTotalAmount < MinOrderAmount) return 0;
             var discount = SubTotalAmount * (DiscountPercent / 100m);
             if (MaxDiscountAmount > 0 && discount > MaxDiscountAmount)
                 return MaxDiscountAmount;
@@ -115,6 +120,16 @@ public class CartService
         AppliedVoucherCode = string.Empty;
         DiscountPercent = 0;
         MaxDiscountAmount = 0;
+        MinOrderAmount = 0;
+        NotifyStateChanged();
+    }
+
+    public void RemoveVoucher()
+    {
+        AppliedVoucherCode = string.Empty;
+        DiscountPercent = 0;
+        MaxDiscountAmount = 0;
+        MinOrderAmount = 0;
         NotifyStateChanged();
     }
 
@@ -131,6 +146,7 @@ public class CartService
             AppliedVoucherCode = promo.PromotionCode;
             DiscountPercent = promo.PromotionInvoice.DiscountPercent;
             MaxDiscountAmount = promo.PromotionInvoice.MaxDiscountAmount ?? 100000m;
+            MinOrderAmount = promo.PromotionInvoice.MinOrderAmount;
             NotifyStateChanged();
             return true;
         }

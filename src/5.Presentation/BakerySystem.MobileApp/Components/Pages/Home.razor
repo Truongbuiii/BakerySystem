@@ -35,6 +35,14 @@
     </div>
 </header>
 
+@if (!string.IsNullOrEmpty(voucherToastMessage))
+{
+    <div class="voucher-toast">
+        <iconify-icon icon="solar:check-circle-bold" style="color: #10B981; font-size: 16px;"></iconify-icon>
+        <span>@voucherToastMessage</span>
+    </div>
+}
+
 <!-- 2. Main Mobile Scrollable Content Area -->
 <div class="mobile-content-area no-scrollbar">
 
@@ -60,15 +68,15 @@
         </div>
 
         <!-- Promo Banner Carousel / Card -->
-        <div class="promo-banner">
+        <div class="promo-banner" @onclick='() => OpenVouchersTab("home")' style="cursor: pointer;">
             <span class="promo-badge">Ưu Đãi Hôm Nay</span>
-            <h3 class="promo-title">Giảm 10% Cho Đơn Bánh Mới</h3>
-            <p class="promo-subtitle">Nhập mã ưu đãi <strong style="text-decoration: underline;">BAKERY2026</strong> khi thanh toán giỏ hàng.</p>
-            <button class="promo-btn" @onclick="ApplyPromoDirectly">
-                <span>Dùng mã ngay</span>
+            <h3 class="promo-title">Kho Voucher & Khuyến Mãi Bánh</h3>
+            <p class="promo-subtitle">Khám phá ngay @(promotions.Count > 0 ? $"{promotions.Count} mã" : "nhiều") ưu đãi giảm đến 20% khi đặt bánh!</p>
+            <button class="promo-btn" @onclick:stopPropagation="true" @onclick='() => OpenVouchersTab("home")'>
+                <span>Xem kho voucher</span>
                 <iconify-icon icon="solar:arrow-right-linear" style="font-size: 12px;"></iconify-icon>
             </button>
-            <iconify-icon icon="solar:cake-bold" class="promo-decor-icon"></iconify-icon>
+            <iconify-icon icon="solar:ticket-sale-bold" class="promo-decor-icon"></iconify-icon>
         </div>
 
         <!-- Categories Horizontal Pills -->
@@ -311,9 +319,9 @@
                         <div style="font-size: 15px; font-weight: 800; color: #F4A261;">450 điểm</div>
                     </div>
                     <div style="width: 1px; background: rgba(255,255,255,0.15);"></div>
-                    <div style="text-align: center;">
+                    <div style="text-align: center; cursor: pointer;" @onclick='() => OpenVouchersTab("profile")'>
                         <span style="font-size: 11px; color: #C0B4A9;">Voucher có sẵn</span>
-                        <div style="font-size: 15px; font-weight: 800; color: #E76F51;">02 mã</div>
+                        <div style="font-size: 15px; font-weight: 800; color: #E76F51;">@($"{promotions.Count:D2} mã")</div>
                     </div>
                     <div style="width: 1px; background: rgba(255,255,255,0.15);"></div>
                     <div style="text-align: center;">
@@ -325,14 +333,20 @@
 
             <!-- Profile Menu Options -->
             <div style="background: white; border-radius: 16px; border: 1px solid var(--bk-border); overflow: hidden; margin-bottom: 16px;">
-                <div style="display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid #F4EFEA; cursor: pointer;">
+                <div style="display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid #F4EFEA; cursor: pointer;" @onclick='() => OpenVouchersTab("profile")'>
                     <div style="display: flex; align-items: center; gap: 12px;">
                         <div style="width: 32px; height: 32px; border-radius: 8px; background: #FFF5EE; color: #E76F51; display: flex; align-items: center; justify-content: center;">
                             <iconify-icon icon="solar:ticket-sale-bold"></iconify-icon>
                         </div>
-                        <span style="font-size: 13px; font-weight: 700; color: #2B2118;">Kho Voucher Của Tôi</span>
+                        <div>
+                            <span style="font-size: 13px; font-weight: 700; color: #2B2118;">Kho Voucher Của Tôi</span>
+                            <div style="font-size: 11px; color: #9C8E84;">@promotions.Count mã ưu đãi khả dụng</div>
+                        </div>
                     </div>
-                    <span style="font-size: 11px; font-weight: 700; color: #E76F51;">Mã BAKERY2026</span>
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <span style="font-size: 11px; font-weight: 700; color: #E76F51;">Xem ngay</span>
+                        <iconify-icon icon="solar:alt-arrow-right-linear" style="color: #9C8E84; font-size: 14px;"></iconify-icon>
+                    </div>
                 </div>
 
                 <div style="display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid #F4EFEA; cursor: pointer;">
@@ -366,6 +380,128 @@
             <div style="text-align: center; padding: 10px; color: #9C8E84; font-size: 11px;">
                 Bakery Mobile Customer v1.0.0<br />
                 .NET 10 MAUI Blazor Hybrid
+            </div>
+        </div>
+    }
+    else if (currentTab == "vouchers")
+    {
+        <!-- Kho Voucher & Khuyến Mãi Tab -->
+        <div style="background: var(--bk-bg); min-height: 100%;">
+            <!-- Header with Back Button -->
+            <div class="voucher-page-header">
+                <button class="voucher-back-btn" @onclick="BackFromVouchers" title="Quay lại">
+                    <iconify-icon icon="solar:alt-arrow-left-linear"></iconify-icon>
+                </button>
+                <div style="flex: 1;">
+                    <h5 style="margin: 0; font-size: 16px; font-weight: 800; color: #2B2118;">Kho Voucher & Khuyến Mãi</h5>
+                    <span style="font-size: 11px; color: #9C8E84;">@promotions.Count mã ưu đãi khả dụng</span>
+                </div>
+            </div>
+
+            <!-- Quick Voucher Code Input -->
+            <div style="padding: 14px 18px 6px;">
+                <div style="display: flex; gap: 8px; background: white; padding: 6px 6px 6px 12px; border-radius: 14px; border: 1px solid var(--bk-border); box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
+                    <div style="display: flex; align-items: center; gap: 8px; flex: 1;">
+                        <iconify-icon icon="solar:ticket-sale-linear" style="color: #E76F51; font-size: 18px;"></iconify-icon>
+                        <input type="text" placeholder="Nhập mã voucher (VD: BAKERY2026)..."
+                               style="border: none; outline: none; width: 100%; font-size: 12px; color: #2B2118; background: transparent;"
+                               @bind="quickVoucherCode" />
+                    </div>
+                    <button style="background: var(--bk-primary); color: white; border: none; border-radius: 10px; padding: 8px 16px; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap;"
+                            @onclick="ApplyQuickVoucherFromWallet">
+                        Áp dụng
+                    </button>
+                </div>
+            </div>
+
+            <!-- Active Applied Voucher Banner -->
+            @if (!string.IsNullOrEmpty(CartService.AppliedVoucherCode))
+            {
+                <div style="margin: 8px 18px 10px; padding: 12px 14px; background: #FFFAF8; border-radius: 14px; border: 1.5px dashed #E76F51; display: flex; align-items: center; justify-content: space-between;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <div style="width: 36px; height: 36px; border-radius: 10px; background: #FDF0ED; color: #E76F51; display: flex; align-items: center; justify-content: center; font-size: 20px;">
+                            <iconify-icon icon="solar:verified-check-bold"></iconify-icon>
+                        </div>
+                        <div>
+                            <div style="font-size: 13px; font-weight: 800; color: #2B2118;">
+                                Đang chọn: <span style="color: #E76F51;">@CartService.AppliedVoucherCode</span>
+                            </div>
+                            <div style="font-size: 11px; color: #6E6259;">
+                                Giảm @($"{CartService.DiscountPercent:0}%") @(CartService.MaxDiscountAmount > 0 ? $"(tối đa {CartService.MaxDiscountAmount:N0}đ)" : "")
+                            </div>
+                        </div>
+                    </div>
+                    <button class="btn-voucher-remove" @onclick="RemoveAppliedVoucher" title="Bỏ chọn voucher">
+                        <iconify-icon icon="solar:close-circle-bold" style="font-size: 13px;"></iconify-icon>
+                        <span>Bỏ chọn</span>
+                    </button>
+                </div>
+            }
+
+            <!-- Ticket List -->
+            <div style="padding: 6px 18px 24px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <span style="font-size: 12px; font-weight: 700; color: #6E6259; text-transform: uppercase; letter-spacing: 0.5px;">Mã Ưu Đãi Có Thể Dùng</span>
+                    <span style="font-size: 11px; color: #9C8E84;">Chạm mã để sao chép</span>
+                </div>
+
+                @if (!promotions.Any())
+                {
+                    <div style="text-align: center; padding: 40px 10px; color: #9C8E84;">
+                        <iconify-icon icon="solar:ticket-sale-linear" style="font-size: 48px; color: #D5C8BD; margin-bottom: 8px;"></iconify-icon>
+                        <h6 style="font-weight: 700; color: #2B2118;">Kho voucher đang trống</h6>
+                        <p style="font-size: 12px; margin: 0;">Các chương trình ưu đãi mới nhất sẽ sớm được cập nhật!</p>
+                    </div>
+                }
+                else
+                {
+                    @foreach (var promo in promotions)
+                    {
+                        var isApplied = CartService.AppliedVoucherCode.Equals(promo.PromotionCode, StringComparison.OrdinalIgnoreCase);
+                        var discountPct = promo.PromotionInvoice?.DiscountPercent ?? 10;
+                        var minOrder = promo.PromotionInvoice?.MinOrderAmount ?? 0;
+                        var maxDiscount = promo.PromotionInvoice?.MaxDiscountAmount ?? 50000;
+
+                        <div class="voucher-ticket @(isApplied ? "active-applied" : "")">
+                            <div class="voucher-stub">
+                                <span class="voucher-stub-percent">@($"{discountPct:0}%")</span>
+                                <span class="voucher-stub-label">GIẢM</span>
+                            </div>
+                            <div class="voucher-details">
+                                <h6 class="voucher-title">@promo.PromotionName</h6>
+                                <p class="voucher-cond">Đơn tối thiểu: <strong>@($"{minOrder:N0}đ")</strong></p>
+                                <p class="voucher-cond">Giảm tối đa: <strong>@($"{maxDiscount:N0}đ")</strong></p>
+                                <div class="voucher-expiry">
+                                    <iconify-icon icon="solar:clock-circle-linear" style="font-size: 11px;"></iconify-icon>
+                                    <span>HSD: @promo.EndDate.ToString("dd/MM/yyyy")</span>
+                                </div>
+                                <div class="voucher-code-pill" @onclick="() => CopyVoucherCode(promo.PromotionCode)" title="Sao chép mã">
+                                    <span>@promo.PromotionCode</span>
+                                    <iconify-icon icon="solar:copy-linear" style="font-size: 11px; color: #E76F51;"></iconify-icon>
+                                </div>
+                            </div>
+                            <div class="voucher-action-col">
+                                @if (isApplied)
+                                {
+                                    <div class="btn-voucher-applied">
+                                        <iconify-icon icon="solar:check-circle-bold"></iconify-icon>
+                                        <span>Đang dùng</span>
+                                    </div>
+                                    <button class="btn-voucher-remove" @onclick="RemoveAppliedVoucher" title="Bỏ chọn voucher này">
+                                        <iconify-icon icon="solar:close-circle-bold" style="font-size: 13px;"></iconify-icon>
+                                        <span>Bỏ chọn</span>
+                                    </button>
+                                }
+                                else
+                                {
+                                    <button class="btn-voucher-use" @onclick="() => UseVoucherFromWallet(promo)">
+                                        Dùng ngay
+                                    </button>
+                                }
+                            </div>
+                        </div>
+                    }
+                }
             </div>
         </div>
     }
@@ -418,8 +554,8 @@
         <span>Đơn hàng</span>
     </div>
 
-    <div class="nav-tab-item @(currentTab == "profile" ? "active" : "")" @onclick='() => SwitchTab("profile")'>
-        <iconify-icon icon="@(currentTab == "profile" ? "solar:user-bold" : "solar:user-linear")"></iconify-icon>
+    <div class="nav-tab-item @(currentTab == "profile" || currentTab == "vouchers" ? "active" : "")" @onclick='() => SwitchTab("profile")'>
+        <iconify-icon icon="@(currentTab == "profile" || currentTab == "vouchers" ? "solar:user-bold" : "solar:user-linear")"></iconify-icon>
         <span>Tài khoản</span>
     </div>
 </nav>
@@ -524,11 +660,33 @@
             <div class="sheet-body">
                 @if (!CartService.Items.Any())
                 {
-                    <div style="text-align: center; padding: 40px 10px; color: #9C8E84;">
+                    <div style="text-align: center; padding: 30px 10px; color: #9C8E84;">
                         <iconify-icon icon="solar:cart-cross-linear" style="font-size: 48px; color: #C0B4A9; margin-bottom: 8px;"></iconify-icon>
                         <h6 style="font-weight: 700; color: #2B2118; margin-bottom: 4px;">Giỏ hàng đang trống</h6>
-                        <p style="font-size: 12px; margin: 0 0 14px;">Hãy chọn những chiếc bánh tươi ngon để thêm vào giỏ nhé!</p>
-                        <button class="btn-bk-primary" style="width: auto; padding: 8px 20px;" @onclick="CloseCart">Tiếp tục xem bánh</button>
+
+                        @if (!string.IsNullOrEmpty(CartService.AppliedVoucherCode))
+                        {
+                            <div style="background: #FFFAF8; border: 1.5px dashed #E76F51; border-radius: 14px; padding: 12px 14px; margin: 12px 0 16px; text-align: left;">
+                                <div style="display: flex; align-items: center; justify-content: space-between;">
+                                    <div style="display: flex; align-items: center; gap: 10px;">
+                                        <div style="width: 34px; height: 34px; border-radius: 10px; background: #FDF0ED; color: #E76F51; display: flex; align-items: center; justify-content: center; font-size: 18px;">
+                                            <iconify-icon icon="solar:ticket-sale-bold"></iconify-icon>
+                                        </div>
+                                        <div>
+                                            <span style="font-size: 12px; font-weight: 800; color: #2B2118;">Đã lưu mã: @CartService.AppliedVoucherCode</span>
+                                            <div style="font-size: 11px; color: #6E6259;">Giảm @($"{CartService.DiscountPercent:0}%") khi thêm bánh vào giỏ!</div>
+                                        </div>
+                                    </div>
+                                    <button style="border: none; background: #FEE2E2; color: #DC2626; border-radius: 6px; padding: 4px 8px; font-size: 11px; font-weight: 700; cursor: pointer;"
+                                            @onclick="RemoveAppliedVoucher" title="Bỏ mã">✕</button>
+                                </div>
+                            </div>
+                        }
+
+                        <p style="font-size: 12px; margin: 0 0 16px;">Hãy chọn những chiếc bánh thơm ngon để tận hưởng ưu đãi giảm giá nhé!</p>
+                        <button class="btn-bk-primary" style="width: auto; padding: 10px 24px;" @onclick='() => { CloseCart(); SwitchTab("menu"); }'>
+                            Khám phá thực đơn ngay
+                        </button>
                     </div>
                 }
                 else
@@ -565,9 +723,58 @@
 
                     <!-- Voucher Promo Code -->
                     <div style="margin-bottom: 16px;">
-                        <label style="font-size: 12px; font-weight: 700; color: #2B2118; margin-bottom: 4px; display: block;">Mã Khuyến Mãi / Voucher:</label>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                            <label style="font-size: 12px; font-weight: 700; color: #2B2118; margin: 0;">Mã Khuyến Mãi / Voucher:</label>
+                            <span style="font-size: 11px; font-weight: 700; color: #E76F51; cursor: pointer; display: flex; align-items: center; gap: 2px;"
+                                  @onclick='() => OpenVouchersTab("cart")'>
+                                <span>Kho voucher (@promotions.Count)</span>
+                                <iconify-icon icon="solar:alt-arrow-right-linear" style="font-size: 12px;"></iconify-icon>
+                            </span>
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(CartService.AppliedVoucherCode))
+                        {
+                            <div style="background: #FFFAF8; border: 1.5px dashed #E76F51; border-radius: 12px; padding: 10px 12px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <iconify-icon icon="solar:ticket-sale-bold" style="font-size: 20px; color: #E76F51;"></iconify-icon>
+                                    <div>
+                                        <div style="font-size: 12px; font-weight: 800; color: #2B2118;">Mã: @CartService.AppliedVoucherCode</div>
+                                        <div style="font-size: 11px; color: #6E6259;">
+                                            Giảm @($"{CartService.DiscountPercent:0}%") @(CartService.MaxDiscountAmount > 0 ? $"(tối đa {CartService.MaxDiscountAmount:N0}đ)" : "")
+                                            @if (CartService.MinOrderAmount > 0)
+                                            {
+                                                <span> • Đơn từ @($"{CartService.MinOrderAmount:N0}đ")</span>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 6px;">
+                                    <button style="border: 1px solid #E76F51; background: white; color: #E76F51; font-size: 11px; font-weight: 700; border-radius: 8px; padding: 3px 8px; cursor: pointer;"
+                                            @onclick='() => OpenVouchersTab("cart")'>
+                                        Đổi mã
+                                    </button>
+                                    <button class="btn-voucher-remove" style="padding: 3px 8px; font-size: 10px; border-radius: 8px;"
+                                            @onclick="RemoveAppliedVoucher" title="Bỏ voucher">
+                                        <iconify-icon icon="solar:close-circle-bold" style="font-size: 12px;"></iconify-icon>
+                                        <span>Bỏ</span>
+                                    </button>
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <div style="background: #FFF5EE; border: 1px dashed #E76F51; border-radius: 12px; padding: 10px 12px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; cursor: pointer;"
+                                 @onclick='() => OpenVouchersTab("cart")'>
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <iconify-icon icon="solar:ticket-sale-bold" style="font-size: 18px; color: #E76F51;"></iconify-icon>
+                                    <span style="font-size: 12px; font-weight: 700; color: #E76F51;">Chọn từ kho voucher (@promotions.Count mã có sẵn)</span>
+                                </div>
+                                <iconify-icon icon="solar:alt-arrow-right-linear" style="font-size: 14px; color: #E76F51;"></iconify-icon>
+                            </div>
+                        }
+
                         <div style="display: flex; gap: 8px;">
-                            <input type="text" class="form-control" placeholder="Nhập mã voucher (VD: BAKERY2026)"
+                            <input type="text" class="form-control" placeholder="Hoặc nhập mã voucher..."
                                    style="border-radius: 12px; font-size: 12px; border-color: var(--bk-border);"
                                    @bind="voucherInput" />
                             <button style="background: #2B2118; color: white; border: none; border-radius: 12px; padding: 0 16px; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap;"
@@ -649,6 +856,12 @@
                                 <span style="font-weight: 700;">-@($"{CartService.DiscountAmount:N0}đ")</span>
                             </div>
                         }
+                        else if (!string.IsNullOrEmpty(CartService.AppliedVoucherCode) && CartService.RemainingForVoucher > 0)
+                        {
+                            <div style="font-size: 11px; color: #D97706; margin-bottom: 4px; font-weight: 600; background: #FEF3C7; padding: 4px 8px; border-radius: 6px;">
+                                ⚠️ Cần mua thêm @($"{CartService.RemainingForVoucher:N0}đ") để áp dụng mã @CartService.AppliedVoucherCode!
+                            </div>
+                        }
                         <div style="display: flex; justify-content: space-between; font-size: 12px; color: #6E6259; margin-bottom: 6px;">
                             <span>Phí giao hàng:</span>
                             <span style="color: #16A34A; font-weight: 700;">Miễn phí (Freeship)</span>
@@ -706,11 +919,13 @@
 
 @code {
     private string currentTab = "home";
+    private string previousTab = "profile";
     private string searchQuery = string.Empty;
     private int selectedCategoryId = 0;
 
     private List<Category> categories = new();
     private List<Product> products = new();
+    private List<Promotion> promotions = new();
     private List<Order> customerOrders = new();
 
     private Product? selectedProduct;
@@ -719,7 +934,9 @@
     private bool isCartOpen = false;
     private bool isSubmittingOrder = false;
     private string voucherInput = string.Empty;
+    private string quickVoucherCode = string.Empty;
     private string voucherMessage = string.Empty;
+    private string? voucherToastMessage;
 
     private string receiverName = "Nguyễn Hoàng Anh";
     private string receiverPhone = "0912 345 678";
@@ -746,6 +963,13 @@
                 .Where(p => p.IsActive)
                 .ToListAsync();
 
+            // Tải danh sách voucher & chương trình khuyến mãi
+            promotions = await DbContext.Promotions
+                .Include(p => p.PromotionInvoice)
+                .Where(p => p.Status == PromotionStatus.Active)
+                .OrderByDescending(p => p.PromotionInvoice != null ? p.PromotionInvoice.DiscountPercent : 0)
+                .ToListAsync();
+
             await LoadOrdersAsync();
         }
         catch (Exception ex)
@@ -770,6 +994,52 @@
                     new Product { ProductID = 4, CategoryID = 2, ProductName = "Bánh Mousse Dâu Tây Nhật Bản", Description = "Mousse dâu tây Đà Lạt tươi mát kết hợp thạch hoa hồng ngọt dịu và sốt dâu tươi.", Price = 290000m, ImageURL = "/assets/images/products/mousse.jpg", IsActive = true, Category = categories[1] },
                     new Product { ProductID = 5, CategoryID = 3, ProductName = "Bánh Mì Hoa Cúc Brioche", Description = "Bánh mì bơ Brioche Pháp thơm hương hoa cúc tự nhiên, mềm dẻo từng thớ bánh.", Price = 120000m, ImageURL = "/assets/images/products/brioche.jpg", IsActive = true, Category = categories[2] },
                     new Product { ProductID = 6, CategoryID = 1, ProductName = "Bánh Black Forest Cherry Rừng", Description = "Hương vị sô cô la đen Bỉ đậm đà hòa quyện cùng quả anh đào chua ngọt và rượu Kirsch.", Price = 480000m, ImageURL = "/assets/images/products/black-forest.jpg", IsActive = true, Category = categories[0] }
+                };
+            }
+            if (!promotions.Any())
+            {
+                promotions = new List<Promotion>
+                {
+                    new Promotion
+                    {
+                        PromotionID = 1,
+                        PromotionCode = "BAKERY2026",
+                        PromotionName = "Ưu đãi khách hàng mới 2026",
+                        StartDate = DateTime.Today,
+                        EndDate = DateTime.Today.AddDays(90),
+                        Status = "Active",
+                        PromotionInvoice = new PromotionInvoice { PromotionID = 1, DiscountPercent = 10, MinOrderAmount = 100000m, MaxDiscountAmount = 50000m }
+                    },
+                    new Promotion
+                    {
+                        PromotionID = 2,
+                        PromotionCode = "SWEETLOVE",
+                        PromotionName = "Ngọt ngào cùng bánh kem cao cấp",
+                        StartDate = DateTime.Today,
+                        EndDate = DateTime.Today.AddDays(60),
+                        Status = "Active",
+                        PromotionInvoice = new PromotionInvoice { PromotionID = 2, DiscountPercent = 15, MinOrderAmount = 250000m, MaxDiscountAmount = 80000m }
+                    },
+                    new Promotion
+                    {
+                        PromotionID = 3,
+                        PromotionCode = "TIEMBANH20",
+                        PromotionName = "Đại tiệc tiệm bánh giảm sốc 20%",
+                        StartDate = DateTime.Today,
+                        EndDate = DateTime.Today.AddDays(30),
+                        Status = "Active",
+                        PromotionInvoice = new PromotionInvoice { PromotionID = 3, DiscountPercent = 20, MinOrderAmount = 400000m, MaxDiscountAmount = 150000m }
+                    },
+                    new Promotion
+                    {
+                        PromotionID = 4,
+                        PromotionCode = "BANHTUOI8",
+                        PromotionName = "Bánh tươi mỗi ngày",
+                        StartDate = DateTime.Today,
+                        EndDate = DateTime.Today.AddDays(120),
+                        Status = "Active",
+                        PromotionInvoice = new PromotionInvoice { PromotionID = 4, DiscountPercent = 8, MinOrderAmount = 50000m, MaxDiscountAmount = 30000m }
+                    }
                 };
             }
         }
@@ -917,12 +1187,102 @@
         OpenCart();
     }
 
+    private void OpenVouchersTab(string fromTab)
+    {
+        previousTab = fromTab;
+        if (isCartOpen) isCartOpen = false;
+        currentTab = "vouchers";
+    }
+
+    private void BackFromVouchers()
+    {
+        if (previousTab == "cart")
+        {
+            currentTab = "home";
+            isCartOpen = true;
+        }
+        else
+        {
+            currentTab = previousTab;
+        }
+    }
+
+    private async Task UseVoucherFromWallet(Promotion promo)
+    {
+        bool ok = await CartService.ApplyVoucherAsync(promo.PromotionCode);
+        if (ok)
+        {
+            voucherMessage = $"Áp dụng thành công mã {promo.PromotionCode}: Giảm {CartService.DiscountPercent:0}%!";
+            ShowToast($"Đã áp dụng mã {promo.PromotionCode} (-{CartService.DiscountPercent:0}%)!");
+
+            // Chuyển về tab phù hợp và mở ngay Giỏ hàng để khách đặt bánh giống Shopee
+            if (previousTab == "cart" || previousTab == "vouchers")
+            {
+                currentTab = "home";
+            }
+            else
+            {
+                currentTab = previousTab;
+            }
+
+            OpenCart();
+        }
+    }
+
+    private void RemoveAppliedVoucher()
+    {
+        CartService.RemoveVoucher();
+        voucherMessage = string.Empty;
+        ShowToast("Đã bỏ áp dụng voucher.");
+    }
+
+    private async Task CopyVoucherCode(string code)
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("navigator.clipboard.writeText", code);
+            ShowToast($"Đã sao chép mã {code}!");
+        }
+        catch
+        {
+            ShowToast($"Mã ưu đãi: {code}");
+        }
+    }
+
+    private async Task ApplyQuickVoucherFromWallet()
+    {
+        if (string.IsNullOrWhiteSpace(quickVoucherCode)) return;
+        bool ok = await CartService.ApplyVoucherAsync(quickVoucherCode);
+        if (ok)
+        {
+            voucherMessage = $"Áp dụng thành công mã {quickVoucherCode.ToUpper()}: Giảm {CartService.DiscountPercent:0}%!";
+            ShowToast($"Đã áp dụng mã {quickVoucherCode.ToUpper()} (-{CartService.DiscountPercent:0}%)!");
+            quickVoucherCode = string.Empty;
+        }
+        else
+        {
+            ShowToast("Mã voucher không tồn tại hoặc đã hết hạn!");
+        }
+    }
+
+    private void ShowToast(string message)
+    {
+        voucherToastMessage = message;
+        _ = Task.Run(async () =>
+        {
+            await Task.Delay(2500);
+            voucherToastMessage = null;
+            await InvokeAsync(StateHasChanged);
+        });
+    }
+
     private async Task ApplyVoucher()
     {
         bool success = await CartService.ApplyVoucherAsync(voucherInput);
         if (success)
         {
-            voucherMessage = $"Áp dụng thành công mã {voucherInput}: Giảm {CartService.DiscountPercent}%!";
+            voucherMessage = $"Áp dụng thành công mã {voucherInput}: Giảm {CartService.DiscountPercent:0}%!";
+            ShowToast($"Đã áp dụng mã {voucherInput}!");
         }
         else
         {
