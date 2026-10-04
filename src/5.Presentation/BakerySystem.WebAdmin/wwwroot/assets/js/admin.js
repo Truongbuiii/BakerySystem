@@ -71,6 +71,44 @@
         }
     };
 
+    window.bakeryAuth = {
+        login: async function (username, password, returnUrl) {
+            try {
+                const resp = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: username, password: password })
+                });
+                if (!resp.ok) {
+                    let errText = 'Lỗi máy chủ (' + resp.status + ')';
+                    try {
+                        const errJson = await resp.json();
+                        if (errJson.errorMessage) errText = errJson.errorMessage;
+                        else if (errJson.title) errText = errJson.title;
+                    } catch (_) {}
+                    return { success: false, errorMessage: errText };
+                }
+                const data = await resp.json();
+                if (data.success) {
+                    const target = returnUrl && returnUrl !== 'login' ? ('/' + returnUrl.replace(/^\//, '')) : '/';
+                    window.location.href = target;
+                    return { success: true };
+                } else {
+                    return { success: false, errorMessage: data.errorMessage || 'Đăng nhập không thành công.' };
+                }
+            } catch (err) {
+                return { success: false, errorMessage: 'Không thể kết nối đến máy chủ: ' + (err.message || 'Lỗi mạng') };
+            }
+        },
+        logout: async function () {
+            try {
+                await fetch('/api/auth/logout', { method: 'POST' });
+            } finally {
+                window.location.href = '/login';
+            }
+        }
+    };
+
     // Close dropdowns when clicking outside
     document.addEventListener('click', function (e) {
         if (!e.target.closest('[data-dropdown-trigger]') && !e.target.closest('[data-admin-dropdown]')) {

@@ -1,0 +1,222 @@
+@page "/login"
+@layout LoginLayout
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+@attribute [AllowAnonymous]
+@rendermode InteractiveServer
+
+<PageTitle>Đăng nhập | BakerySystem</PageTitle>
+
+<div class="bakery-login-card">
+    <!-- Brand Logo & Header -->
+    <div class="bakery-login-header">
+        <div class="flex items-center justify-center mb-3">
+            <img src="/assets/images/logos/dark-logo.svg" alt="BakerySystem" class="h-9 dark:hidden block" />
+            <img src="/assets/images/logos/light-logo.svg" alt="BakerySystem" class="h-9 dark:block hidden" />
+        </div>
+        <h1 class="bakery-login-title">Đăng nhập hệ thống</h1>
+        <p class="bakery-login-subtitle">Hệ thống quản lý cửa hàng bán bánh mì & bánh ngọt</p>
+    </div>
+
+    <!-- Dev Quick-Fill Helper Box: Chỉ 2 loại tài khoản Quản trị & Nhân viên -->
+    <div class="bakery-login-devbox">
+        <div class="flex items-center justify-between mb-1.5">
+            <span class="text-[11px] font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide">
+                Tài khoản thử nghiệm:
+            </span>
+            <span class="text-[10px] text-slate-500 font-mono">dev mode</span>
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+            <button type="button" 
+                    class="bakery-dev-chip @(username == "admin" ? "active" : "")"
+                    @onclick='() => SelectDevAccount("admin", "admin123")'
+                    title="Chủ cửa hàng - Toàn quyền quản trị">
+                <span class="font-bold block">Quản trị viên</span>
+                <span class="text-[10px] opacity-75">admin</span>
+            </button>
+            <button type="button" 
+                    class="bakery-dev-chip @(username == "staffbakery" ? "active" : "")"
+                    @onclick='() => SelectDevAccount("staffbakery", "staff123")'
+                    title="Nhân viên cửa hàng">
+                <span class="font-bold block">Nhân viên</span>
+                <span class="text-[10px] opacity-75">staffbakery</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Login Form -->
+    <div class="bakery-login-form">
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="bakery-login-error">
+                <iconify-icon icon="solar:danger-triangle-linear" class="text-base shrink-0"></iconify-icon>
+                <span>@errorMessage</span>
+            </div>
+        }
+
+        <!-- Username Input -->
+        <div class="bakery-login-field">
+            <label for="username" class="bakery-login-label">Tên đăng nhập</label>
+            <div class="bakery-login-input-wrap">
+                <iconify-icon icon="solar:user-linear" class="bakery-login-input-icon"></iconify-icon>
+                <input id="username" 
+                       type="text" 
+                       class="bakery-login-input"
+                       placeholder="Nhập tên đăng nhập"
+                       @bind="username" 
+                       @bind:event="oninput"
+                       @onkeydown="HandleKeyDown"
+                       disabled="@isLoading" 
+                       autocomplete="username" />
+            </div>
+        </div>
+
+        <!-- Password Input -->
+        <div class="bakery-login-field">
+            <div class="flex items-center justify-between">
+                <label for="password" class="bakery-login-label">Mật khẩu</label>
+            </div>
+            <div class="bakery-login-input-wrap">
+                <iconify-icon icon="solar:lock-keyhole-linear" class="bakery-login-input-icon"></iconify-icon>
+                <input id="password" 
+                       type="@(showPassword ? "text" : "password")" 
+                       class="bakery-login-input"
+                       placeholder="Nhập mật khẩu"
+                       @bind="password" 
+                       @bind:event="oninput"
+                       @onkeydown="HandleKeyDown"
+                       disabled="@isLoading" 
+                       autocomplete="current-password" />
+                <button type="button" 
+                        class="bakery-login-toggle-pw" 
+                        @onclick="() => showPassword = !showPassword" 
+                        tabindex="-1"
+                        title="@(showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu")">
+                    <iconify-icon icon="@(showPassword ? "solar:eye-closed-linear" : "solar:eye-linear")" class="text-base"></iconify-icon>
+                </button>
+            </div>
+        </div>
+
+        <!-- Submit Button -->
+        <button class="bakery-login-btn" @onclick="HandleLogin" disabled="@isLoading">
+            @if (isLoading)
+            {
+                <span class="bakery-login-spinner"></span>
+                <span>Đang xác thực thông tin...</span>
+            }
+            else
+            {
+                <span>Đăng nhập hệ thống</span>
+            }
+        </button>
+    </div>
+
+    <!-- Card Footer -->
+    <div class="bakery-login-footer">
+        <span>&copy; @DateTime.Now.Year BakerySystem. Phiên bản quản trị nội bộ.</span>
+    </div>
+</div>
+
+<script>
+    window.bakeryAuth = window.bakeryAuth || {};
+    window.bakeryAuth.login = async function (username, password, returnUrl) {
+        try {
+            const resp = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: username, password: password })
+            });
+            if (!resp.ok) {
+                let errText = 'Lỗi máy chủ (' + resp.status + ')';
+                try {
+                    const errJson = await resp.json();
+                    if (errJson.errorMessage) errText = errJson.errorMessage;
+                    else if (errJson.title) errText = errJson.title;
+                } catch (_) {}
+                return { success: false, errorMessage: errText };
+            }
+            const data = await resp.json();
+            if (data.success) {
+                const target = returnUrl && returnUrl !== 'login' ? ('/' + returnUrl.replace(/^\//, '')) : '/';
+                window.location.href = target;
+                return { success: true };
+            } else {
+                return { success: false, errorMessage: data.errorMessage || 'Đăng nhập không thành công.' };
+            }
+        } catch (err) {
+            return { success: false, errorMessage: 'Không thể kết nối đến máy chủ: ' + (err.message || 'Lỗi mạng') };
+        }
+    };
+    window.bakeryAuth.logout = async function () {
+        try {
+            await fetch('/api/auth/logout', { method: 'POST' });
+        } finally {
+            window.location.href = '/login';
+        }
+    };
+</script>
+
+@code {
+    [SupplyParameterFromQuery(Name = "returnUrl")]
+    public string? ReturnUrl { get; set; }
+
+    // Mặc định điền sẵn tài khoản Quản trị để thử nghiệm nhanh
+    private string username = "admin";
+    private string password = "admin123";
+    private string? errorMessage;
+    private bool isLoading;
+    private bool showPassword;
+
+    private void SelectDevAccount(string u, string p)
+    {
+        username = u;
+        password = p;
+        errorMessage = null;
+    }
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await HandleLogin();
+        }
+    }
+
+    private async Task HandleLogin()
+    {
+        errorMessage = null;
+
+        if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
+        {
+            errorMessage = "Vui lòng nhập đầy đủ tên đăng nhập và mật khẩu.";
+            return;
+        }
+
+        isLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            var response = await JSRuntime.InvokeAsync<LoginResponse>("bakeryAuth.login", username.Trim(), password, ReturnUrl);
+            if (!response.Success)
+            {
+                errorMessage = response.ErrorMessage ?? "Đăng nhập không thành công.";
+                isLoading = false;
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = "Lỗi kết nối: " + ex.Message;
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private class LoginResponse
+    {
+        public bool Success { get; set; }
+        public string? ErrorMessage { get; set; }
+    }
+}
+

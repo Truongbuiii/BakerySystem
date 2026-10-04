@@ -58,38 +58,36 @@
                 <span>Khách hàng VIP</span>
             </NavLink>
 
-            <NavLink class="bakery-nav-link" href="reports">
-                <iconify-icon icon="solar:chart-linear" class="text-xl shrink-0"></iconify-icon>
-                <span>Báo cáo doanh thu</span>
-            </NavLink>
+            <AuthorizeView Roles="Admin">
+                <Authorized>
+                    <NavLink class="bakery-nav-link" href="reports">
+                        <iconify-icon icon="solar:chart-linear" class="text-xl shrink-0"></iconify-icon>
+                        <span>Báo cáo doanh thu</span>
+                    </NavLink>
+                </Authorized>
+            </AuthorizeView>
         </nav>
     </div>
-
-    <!-- Divider Line 3 -->
-    <div class="bakery-sidebar-divider"></div>
 
     <!-- Section 4: System & Demos -->
-    <div>
-        <div class="bakery-sidebar-caption">
-            Hệ thống & Tiện ích
-        </div>
-        <nav class="space-y-1">
-            <NavLink class="bakery-nav-link" href="counter">
-                <iconify-icon icon="solar:calculator-linear" class="text-xl shrink-0"></iconify-icon>
-                <span>Counter Demo</span>
-            </NavLink>
+    <AuthorizeView Roles="Admin">
+        <Authorized>
+            <!-- Divider Line 3 -->
+            <div class="bakery-sidebar-divider"></div>
 
-            <NavLink class="bakery-nav-link" href="weather">
-                <iconify-icon icon="solar:cloud-sun-2-linear" class="text-xl shrink-0"></iconify-icon>
-                <span>Thời tiết API</span>
-            </NavLink>
-
-            <NavLink class="bakery-nav-link" href="settings">
-                <iconify-icon icon="solar:settings-linear" class="text-xl shrink-0"></iconify-icon>
-                <span>Cài đặt hệ thống</span>
-            </NavLink>
-        </nav>
-    </div>
+            <div>
+                <div class="bakery-sidebar-caption">
+                    Hệ thống & Cài đặt
+                </div>
+                <nav class="space-y-1">
+                    <NavLink class="bakery-nav-link" href="settings">
+                        <iconify-icon icon="solar:settings-linear" class="text-xl shrink-0"></iconify-icon>
+                        <span>Cài đặt hệ thống</span>
+                    </NavLink>
+                </nav>
+            </div>
+        </Authorized>
+    </AuthorizeView>
 
     <!-- Divider Line 4 -->
     <div class="bakery-sidebar-divider"></div>

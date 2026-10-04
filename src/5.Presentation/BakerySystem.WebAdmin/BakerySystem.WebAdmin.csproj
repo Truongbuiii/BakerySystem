@@ -5,6 +5,7 @@
     <ProjectReference Include="..\..\3.Infrastructure\BakerySystem.Infrastructure\BakerySystem.Infrastructure.csproj" />
   </ItemGroup>
 
+
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
@@ -13,3 +14,4 @@
   </PropertyGroup>
 
 </Project>
+

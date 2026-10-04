@@ -1,6 +1,26 @@
-﻿<Router AppAssembly="typeof(Program).Assembly" NotFoundPage="typeof(Pages.NotFound)">
+<Router AppAssembly="typeof(Program).Assembly" NotFoundPage="typeof(Pages.NotFound)">
     <Found Context="routeData">
-        <RouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)" />
+        <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)">
+            <NotAuthorized>
+                @if (context.User.Identity?.IsAuthenticated == true)
+                {
+                    <div class="p-8 text-center max-w-md mx-auto my-12 bg-white dark:bg-slate-800 rounded-xl border border-border dark:border-darkborder shadow-sm">
+                        <div class="inline-flex p-3 rounded-xl bg-red-50 dark:bg-red-950/40 text-red-600 mb-3">
+                            <iconify-icon icon="solar:shield-warning-linear" class="text-3xl"></iconify-icon>
+                        </div>
+                        <h3 class="text-lg font-bold text-slate-800 dark:text-white mb-1">Không có quyền truy cập</h3>
+                        <p class="text-sm text-slate-500 mb-4">Tài khoản của bạn không có quyền truy cập phân hệ này.</p>
+                        <a href="/" class="bakery-btn bakery-btn-primary bakery-btn-sm inline-flex items-center gap-1">
+                            Về bảng điều khiển
+                        </a>
+                    </div>
+                }
+                else
+                {
+                    <RedirectToLogin />
+                }
+            </NotAuthorized>
+        </AuthorizeRouteView>
         <FocusOnNavigate RouteData="routeData" Selector="h1" />
     </Found>
 </Router>

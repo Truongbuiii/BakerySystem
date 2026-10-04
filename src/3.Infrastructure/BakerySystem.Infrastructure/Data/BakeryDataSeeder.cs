@@ -14,7 +14,7 @@ public static class BakeryDataSeeder
             var adminAccount = new Account
             {
                 Username = "admin",
-                Password = "hashed_admin_password_123", // Trong thực tế sẽ hash bằng BCrypt/Argon2
+                Password = BCrypt.Net.BCrypt.HashPassword("admin123"),
                 Role = AccountRole.Admin,
                 Status = AccountStatus.Active
             };
@@ -22,7 +22,7 @@ public static class BakeryDataSeeder
             var chefAccount = new Account
             {
                 Username = "chefbakery",
-                Password = "hashed_chef_password_123",
+                Password = BCrypt.Net.BCrypt.HashPassword("staff123"),
                 Role = AccountRole.Employee,
                 Status = AccountStatus.Active
             };
@@ -30,7 +30,7 @@ public static class BakeryDataSeeder
             var staffAccount = new Account
             {
                 Username = "staffbakery",
-                Password = "hashed_staff_password_123",
+                Password = BCrypt.Net.BCrypt.HashPassword("staff123"),
                 Role = AccountRole.Employee,
                 Status = AccountStatus.Active
             };
@@ -38,7 +38,7 @@ public static class BakeryDataSeeder
             var customerAccount1 = new Account
             {
                 Username = "hoanganh",
-                Password = "hashed_user_password_123",
+                Password = BCrypt.Net.BCrypt.HashPassword("customer123"),
                 Role = AccountRole.Customer,
                 Status = AccountStatus.Active
             };
@@ -46,7 +46,7 @@ public static class BakeryDataSeeder
             var customerAccount2 = new Account
             {
                 Username = "thuha",
-                Password = "hashed_user_password_123",
+                Password = BCrypt.Net.BCrypt.HashPassword("customer123"),
                 Role = AccountRole.Customer,
                 Status = AccountStatus.Active
             };
@@ -98,6 +98,26 @@ public static class BakeryDataSeeder
 
             context.Customers.AddRange(cust1, cust2, cust3);
             await context.SaveChangesAsync();
+        }
+        else
+        {
+            // Tự động nâng cấp tài khoản cũ (nếu có mật khẩu chưa hash) sang chuẩn BCrypt
+            var existingAccounts = await context.Accounts.ToListAsync();
+            bool hasMigration = false;
+            foreach (var acc in existingAccounts)
+            {
+                if (!acc.Password.StartsWith("$2a$") && !acc.Password.StartsWith("$2b$") && !acc.Password.StartsWith("$2y$"))
+                {
+                    if (acc.Username == "admin") acc.Password = BCrypt.Net.BCrypt.HashPassword("admin123");
+                    else if (acc.Username is "chefbakery" or "staffbakery") acc.Password = BCrypt.Net.BCrypt.HashPassword("staff123");
+                    else acc.Password = BCrypt.Net.BCrypt.HashPassword("customer123");
+                    hasMigration = true;
+                }
+            }
+            if (hasMigration)
+            {
+                await context.SaveChangesAsync();
+            }
         }
 
         // 4. Seed Categories if empty
@@ -192,18 +212,69 @@ public static class BakeryDataSeeder
                 Status = PromotionStatus.Active
             };
 
-            context.Promotions.Add(promo1);
-            await context.SaveChangesAsync();
-
-            var promoInvoice = new PromotionInvoice
+            var promo2 = new Promotion
             {
-                PromotionID = promo1.PromotionID,
-                MinOrderAmount = 200000m,
-                DiscountPercent = 10m,
-                MaxDiscountAmount = 100000m
+                PromotionCode = "SWEETLOVE",
+                PromotionName = "Tín Đồ Bánh Ngọt & Mousse",
+                StartDate = DateTime.Today.AddDays(-10),
+                EndDate = DateTime.Today.AddDays(90),
+                Description = "Giảm 15% cho đơn hàng từ 300.000đ",
+                Status = PromotionStatus.Active
             };
 
-            context.PromotionInvoices.Add(promoInvoice);
+            var promo3 = new Promotion
+            {
+                PromotionCode = "TIEMBANH20",
+                PromotionName = "Tiệc Sinh Nhật & Sự Kiện",
+                StartDate = DateTime.Today.AddDays(-10),
+                EndDate = DateTime.Today.AddDays(120),
+                Description = "Giảm 20% cho đơn bánh từ 500.000đ",
+                Status = PromotionStatus.Active
+            };
+
+            var promo4 = new Promotion
+            {
+                PromotionCode = "BANHTUOI8",
+                PromotionName = "Bánh Tươi Mỗi Ngày",
+                StartDate = DateTime.Today.AddDays(-15),
+                EndDate = DateTime.Today.AddDays(180),
+                Description = "Giảm 8% cho mọi đơn hàng từ 100.000đ",
+                Status = PromotionStatus.Active
+            };
+
+            context.Promotions.AddRange(promo1, promo2, promo3, promo4);
+            await context.SaveChangesAsync();
+
+            context.PromotionInvoices.AddRange(
+                new PromotionInvoice
+                {
+                    PromotionID = promo1.PromotionID,
+                    MinOrderAmount = 200000m,
+                    DiscountPercent = 10m,
+                    MaxDiscountAmount = 100000m
+                },
+                new PromotionInvoice
+                {
+                    PromotionID = promo2.PromotionID,
+                    MinOrderAmount = 300000m,
+                    DiscountPercent = 15m,
+                    MaxDiscountAmount = 60000m
+                },
+                new PromotionInvoice
+                {
+                    PromotionID = promo3.PromotionID,
+                    MinOrderAmount = 500000m,
+                    DiscountPercent = 20m,
+                    MaxDiscountAmount = 150000m
+                },
+                new PromotionInvoice
+                {
+                    PromotionID = promo4.PromotionID,
+                    MinOrderAmount = 100000m,
+                    DiscountPercent = 8m,
+                    MaxDiscountAmount = 30000m
+                }
+            );
             await context.SaveChangesAsync();
         }
 

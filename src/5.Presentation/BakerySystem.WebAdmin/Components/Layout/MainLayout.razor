@@ -79,31 +79,54 @@
                 </div>
 
                 <!-- User Profile Dropdown -->
-                <div class="relative">
-                    <button data-dropdown-trigger onclick="window.bakeryAdmin.toggleDropdown('profile-dropdown')" class="flex items-center gap-2 p-0.5 rounded hover:bg-slate-100 transition-colors cursor-pointer" title="Hồ sơ quản trị">
-                        <span class="bakery-avatar-initials">AD</span>
-                    </button>
-                    <div id="profile-dropdown" data-admin-dropdown class="hidden absolute right-0 mt-2 w-56 bg-white dark:bg-dark border border-border dark:border-darkborder rounded-md shadow-sm py-2 z-50">
-                        <div class="px-4 py-2.5 border-b border-border dark:border-darkborder flex items-center gap-3">
-                            <span class="bakery-avatar-initials-lg">AD</span>
-                            <div>
-                                <p class="text-xs font-semibold text-slate-800 dark:text-white mb-0">Quản trị viên</p>
-                                <p class="text-[11px] text-slate-500 mb-0">admin@bakerysystem.com</p>
+                <AuthorizeView>
+                    <Authorized>
+                        @{
+                            var displayName = context.User.FindFirst("FullName")?.Value ?? context.User.Identity?.Name ?? "Quản trị viên";
+                            var userRole = context.User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value == "Admin" ? "Quản trị viên" : "Nhân viên";
+                            var username = context.User.Identity?.Name ?? "admin";
+                            var initials = displayName.Split(' ', StringSplitOptions.RemoveEmptyEntries) is { Length: > 1 } words 
+                                ? $"{words[0][0]}{words[^1][0]}".ToUpper() 
+                                : (displayName.Length >= 2 ? displayName[..2].ToUpper() : "NV");
+                        }
+                        <div class="relative">
+                            <button data-dropdown-trigger onclick="window.bakeryAdmin.toggleDropdown('profile-dropdown')" class="flex items-center gap-2 p-0.5 rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer" title="Hồ sơ tài khoản: @displayName">
+                                <span class="bakery-avatar-initials">@initials</span>
+                            </button>
+                            <div id="profile-dropdown" data-admin-dropdown class="hidden absolute right-0 mt-2 w-60 bg-white dark:bg-dark border border-border dark:border-darkborder rounded-md shadow-sm py-2 z-50">
+                                <div class="px-4 py-2.5 border-b border-border dark:border-darkborder flex items-center gap-3">
+                                    <span class="bakery-avatar-initials-lg">@initials</span>
+                                    <div class="min-w-0">
+                                        <p class="text-xs font-semibold text-slate-800 dark:text-white mb-0 truncate">@displayName</p>
+                                        <div class="flex items-center gap-1.5 mt-0.5">
+                                            <span class="bakery-badge @(context.User.IsInRole("Admin") ? "bakery-badge-primary" : "bakery-badge-success") text-[10px] py-0.5 px-1.5">
+                                                @userRole
+                                            </span>
+                                            <span class="text-[11px] text-slate-400 font-mono">@@@username</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="py-1">
+                                    <a href="settings" class="flex items-center gap-2.5 px-4 py-2 text-xs text-slate-700 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-primary transition-colors">
+                                        <iconify-icon icon="solar:user-circle-linear" class="text-base"></iconify-icon>
+                                        Hồ sơ & Cài đặt
+                                    </a>
+                                </div>
+                                <div class="p-2.5 border-t border-border dark:border-darkborder">
+                                    <button onclick="window.bakeryAuth.logout()" class="bakery-btn bakery-btn-outline w-full text-xs text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/30" style="height: 30px;">
+                                        <iconify-icon icon="solar:logout-2-linear" class="text-sm"></iconify-icon>
+                                        <span>Đăng xuất</span>
+                                    </button>
+                                </div>
                             </div>
                         </div>
-                        <div class="py-1">
-                            <a href="settings" class="flex items-center gap-2.5 px-4 py-2 text-xs text-slate-700 dark:text-white hover:bg-slate-50 hover:text-primary transition-colors">
-                                <iconify-icon icon="solar:user-circle-linear" class="text-base"></iconify-icon>
-                                Hồ sơ & Cài đặt
-                            </a>
-                        </div>
-                        <div class="p-2.5 border-t border-border dark:border-darkborder">
-                            <button class="bakery-btn bakery-btn-outline w-full text-xs" style="height: 30px;">
-                                Đăng xuất
-                            </button>
-                        </div>
-                    </div>
-                </div>
+                    </Authorized>
+                    <NotAuthorized>
+                        <a href="/login" class="bakery-btn bakery-btn-primary bakery-btn-sm text-xs">
+                            Đăng nhập
+                        </a>
+                    </NotAuthorized>
+                </AuthorizeView>
             </div>
         </header>
 

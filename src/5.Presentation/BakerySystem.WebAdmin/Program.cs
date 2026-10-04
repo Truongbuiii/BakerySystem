@@ -1,7 +1,12 @@
+using System.Security.Claims;
 using BakerySystem.Application;
+using BakerySystem.Application.Features.Auth;
 using BakerySystem.Infrastructure;
 using BakerySystem.Infrastructure.Data;
 using BakerySystem.WebAdmin.Components;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -13,6 +18,21 @@ builder.Services.AddRazorComponents()
 // Đăng ký tầng Application và tầng Infrastructure (kết nối SQL Server qua Entity Framework Core)
 builder.Services.AddApplicationServices();
 builder.Services.AddInfrastructureServices(builder.Configuration);
+
+// === Authentication: Cookie-based ===
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
+    {
+        options.LoginPath = "/login";
+        options.LogoutPath = "/api/auth/logout";
+        options.AccessDeniedPath = "/access-denied";
+        options.ExpireTimeSpan = TimeSpan.FromHours(8);
+        options.SlidingExpiration = true;
+        options.Cookie.HttpOnly = true;
+        options.Cookie.SameSite = SameSiteMode.Lax;
+    });
+builder.Services.AddAuthorization();
+builder.Services.AddCascadingAuthenticationState();
 
 var app = builder.Build();
 
@@ -88,11 +108,57 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
-app.UseHttpsRedirection();
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
+
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.UseAntiforgery();
 
 app.MapStaticAssets();
+
+// === Minimal API: Auth endpoints ===
+app.MapPost("/api/auth/login", async (LoginRequest request, [FromServices] IAuthService authService, HttpContext httpContext) =>
+{
+    var result = await authService.LoginAsync(request);
+    if (!result.Success)
+        return Results.Json(result);
+
+    var claims = new List<Claim>
+    {
+        new(ClaimTypes.NameIdentifier, result.AccountId.ToString()),
+        new(ClaimTypes.Name, result.Username),
+        new(ClaimTypes.Role, result.Role),
+        new("FullName", result.FullName ?? result.Username)
+    };
+    var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+    await httpContext.SignInAsync(
+        CookieAuthenticationDefaults.AuthenticationScheme,
+        new ClaimsPrincipal(identity),
+        new AuthenticationProperties
+        {
+            IsPersistent = true,
+            ExpiresUtc = DateTimeOffset.UtcNow.AddHours(8)
+        });
+
+    return Results.Json(result);
+}).DisableAntiforgery();
+
+app.MapPost("/api/auth/logout", async (HttpContext httpContext) =>
+{
+    await httpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+    return Results.Ok();
+}).DisableAntiforgery();
+
+app.MapGet("/api/auth/logout", async (HttpContext httpContext) =>
+{
+    await httpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+    return Results.Redirect("/login");
+});
+
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 

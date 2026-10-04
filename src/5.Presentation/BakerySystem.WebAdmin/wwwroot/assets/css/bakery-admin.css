@@ -1278,3 +1278,301 @@ html.dark .bakery-image-preview-card {
     min-width: 0 !important;
     flex: 1 1 auto !important;
 }
+
+/* ========================================================
+   ENTERPRISE LOGIN PAGE (KiotViet / Sapo Flat Design)
+   ======================================================== */
+.bakery-login-wrapper {
+    min-height: 100vh !important;
+    width: 100vw !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background-color: #f1f5f9 !important;
+    padding: 1.5rem !important;
+    box-sizing: border-box !important;
+}
+
+html.dark .bakery-login-wrapper {
+    background-color: #0b1120 !important;
+}
+
+.bakery-login-card {
+    width: 100% !important;
+    max-width: 420px !important;
+    background-color: #ffffff !important;
+    border: 1px solid var(--bakery-border) !important;
+    border-radius: 8px !important;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05) !important;
+    padding: 2.25rem 2rem 1.75rem !important;
+    box-sizing: border-box !important;
+}
+
+html.dark .bakery-login-card {
+    background-color: var(--bakery-bg-dark) !important;
+    border-color: var(--bakery-border-dark) !important;
+}
+
+.bakery-login-header {
+    text-align: center !important;
+    margin-bottom: 1.5rem !important;
+}
+
+.bakery-login-title {
+    font-size: 1.25rem !important; /* 20px */
+    font-weight: 700 !important;
+    color: #0f172a !important;
+    margin: 0.5rem 0 0.25rem !important;
+    letter-spacing: -0.01em !important;
+}
+
+html.dark .bakery-login-title {
+    color: #ffffff !important;
+}
+
+.bakery-login-subtitle {
+    font-size: 0.8125rem !important;
+    color: #64748b !important;
+    margin: 0 !important;
+    line-height: 1.4 !important;
+}
+
+html.dark .bakery-login-subtitle {
+    color: #94a3b8 !important;
+}
+
+/* Dev Quick-Fill Helper Box */
+.bakery-login-devbox {
+    background-color: #f8fafc !important;
+    border: 1px dashed #cbd5e1 !important;
+    border-radius: 6px !important;
+    padding: 0.75rem !important;
+    margin-bottom: 1.25rem !important;
+}
+
+html.dark .bakery-login-devbox {
+    background-color: #1e293b !important;
+    border-color: #475569 !important;
+}
+
+.bakery-dev-chip {
+    padding: 0.5rem 0.5rem !important;
+    border-radius: 6px !important;
+    border: 1px solid #e2e8f0 !important;
+    background-color: #ffffff !important;
+    color: #334155 !important;
+    font-size: 0.8125rem !important;
+    text-align: center !important;
+    cursor: pointer !important;
+    transition: all 0.15s ease !important;
+    outline: none !important;
+}
+
+html.dark .bakery-dev-chip {
+    background-color: #0f172a !important;
+    border-color: #334155 !important;
+    color: #cbd5e1 !important;
+}
+
+.bakery-dev-chip:hover {
+    border-color: #1e40af !important;
+    color: #1e40af !important;
+    background-color: #eff6ff !important;
+}
+
+html.dark .bakery-dev-chip:hover {
+    border-color: #60a5fa !important;
+    color: #93c5fd !important;
+    background-color: #1e293b !important;
+}
+
+.bakery-dev-chip.active {
+    border-color: #1e40af !important;
+    background-color: #eff6ff !important;
+    color: #1e40af !important;
+    font-weight: 600 !important;
+    box-shadow: 0 0 0 1px #1e40af !important;
+}
+
+html.dark .bakery-dev-chip.active {
+    border-color: #3b82f6 !important;
+    background-color: rgba(59, 130, 246, 0.15) !important;
+    color: #93c5fd !important;
+    box-shadow: 0 0 0 1px #3b82f6 !important;
+}
+
+/* Form Layout */
+.bakery-login-form {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 1rem !important;
+}
+
+.bakery-login-field {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0.35rem !important;
+}
+
+.bakery-login-label {
+    font-size: 0.8125rem !important;
+    font-weight: 600 !important;
+    color: #334155 !important;
+    display: block !important;
+}
+
+html.dark .bakery-login-label {
+    color: #cbd5e1 !important;
+}
+
+.bakery-login-input-wrap {
+    position: relative !important;
+    display: flex !important;
+    align-items: center !important;
+    width: 100% !important;
+}
+
+.bakery-login-input-icon {
+    position: absolute !important;
+    left: 0.875rem !important;
+    font-size: 1.125rem !important;
+    color: #94a3b8 !important;
+    pointer-events: none !important;
+    display: flex !important;
+    align-items: center !important;
+}
+
+.bakery-login-input {
+    width: 100% !important;
+    height: 42px !important;
+    padding: 0 2.5rem 0 2.65rem !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 6px !important;
+    font-size: 0.875rem !important;
+    color: #0f172a !important;
+    background-color: #ffffff !important;
+    outline: none !important;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
+    box-sizing: border-box !important;
+}
+
+html.dark .bakery-login-input {
+    background-color: #0f172a !important;
+    border-color: #334155 !important;
+    color: #ffffff !important;
+}
+
+.bakery-login-input:focus {
+    border-color: #1e40af !important;
+    box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.1) !important;
+}
+
+html.dark .bakery-login-input:focus {
+    border-color: #3b82f6 !important;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2) !important;
+}
+
+.bakery-login-input::placeholder {
+    color: #94a3b8 !important;
+    font-size: 0.8125rem !important;
+}
+
+.bakery-login-input:disabled {
+    background-color: #f8fafc !important;
+    cursor: not-allowed !important;
+}
+
+.bakery-login-toggle-pw {
+    position: absolute !important;
+    right: 0.65rem !important;
+    background: none !important;
+    border: none !important;
+    color: #94a3b8 !important;
+    cursor: pointer !important;
+    padding: 0.25rem !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.bakery-login-toggle-pw:hover {
+    color: #475569 !important;
+}
+
+html.dark .bakery-login-toggle-pw:hover {
+    color: #e2e8f0 !important;
+}
+
+.bakery-login-error {
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.5rem !important;
+    padding: 0.625rem 0.875rem !important;
+    background-color: #fef2f2 !important;
+    border: 1px solid #fecaca !important;
+    border-radius: 6px !important;
+    color: #b91c1c !important;
+    font-size: 0.8125rem !important;
+    font-weight: 500 !important;
+}
+
+html.dark .bakery-login-error {
+    background-color: rgba(185, 28, 28, 0.15) !important;
+    border-color: rgba(239, 68, 68, 0.3) !important;
+    color: #fca5a5 !important;
+}
+
+.bakery-login-btn {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 0.5rem !important;
+    width: 100% !important;
+    height: 42px !important;
+    margin-top: 0.35rem !important;
+    background-color: #1e40af !important;
+    color: #ffffff !important;
+    font-size: 0.875rem !important;
+    font-weight: 600 !important;
+    border: none !important;
+    border-radius: 6px !important;
+    cursor: pointer !important;
+    transition: background-color 0.15s ease !important;
+}
+
+.bakery-login-btn:hover:not(:disabled) {
+    background-color: #1d4ed8 !important;
+}
+
+.bakery-login-btn:disabled {
+    opacity: 0.7 !important;
+    cursor: not-allowed !important;
+}
+
+.bakery-login-spinner {
+    width: 16px !important;
+    height: 16px !important;
+    border: 2px solid rgba(255, 255, 255, 0.3) !important;
+    border-top-color: #ffffff !important;
+    border-radius: 50% !important;
+    animation: bakerySpin 0.6s linear infinite !important;
+}
+
+@keyframes bakerySpin {
+    to { transform: rotate(360deg); }
+}
+
+.bakery-login-footer {
+    text-align: center !important;
+    margin-top: 1.5rem !important;
+    padding-top: 1rem !important;
+    border-top: 1px solid var(--bakery-border) !important;
+    font-size: 0.75rem !important;
+    color: #94a3b8 !important;
+}
+
+html.dark .bakery-login-footer {
+    border-top-color: var(--bakery-border-dark) !important;
+    color: #64748b !important;
+}
+
