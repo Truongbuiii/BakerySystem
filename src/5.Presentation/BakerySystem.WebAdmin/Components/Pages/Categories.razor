@@ -5,10 +5,10 @@
 
 <PageTitle>Loại Sản Phẩm | BakeryAdmin</PageTitle>
 
-<div class="space-y-6">
+<div>
     <!-- Breadcrumb & Header -->
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
+    <div class="bakery-page-header">
+        <div style="max-width: 650px;">
             <div class="flex items-center gap-2 text-xs font-medium text-slate-500 mb-1">
                 <a href="/" class="hover:text-primary transition-colors flex items-center gap-1">
                     <iconify-icon icon="solar:home-2-linear" class="text-sm"></iconify-icon>
@@ -21,7 +21,7 @@
             <p class="text-xs sm:text-sm text-bodytext mb-0">Quản lý các nhóm bánh, số lượng món thuộc từng loại sản phẩm và phân loại thực đơn.</p>
         </div>
 
-        <div class="flex items-center gap-2.5 shrink-0">
+        <div class="bakery-page-actions">
             <a href="/products" class="bakery-btn bakery-btn-outline bakery-btn-sm">
                 <iconify-icon icon="solar:bag-5-linear" class="text-base"></iconify-icon>
                 <span>Xem tất cả món bánh</span>
@@ -43,27 +43,33 @@
     }
     else
     {
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <div class="bakery-category-grid">
             @foreach (var cat in categories)
             {
-                <div class="bakery-card p-5 hover:shadow-md transition-shadow">
-                    <div class="flex items-start justify-between">
-                        <div class="w-12 h-12 rounded-xl bg-lightprimary text-primary flex items-center justify-center">
-                            <iconify-icon icon="solar:folder-with-files-bold" class="text-2xl"></iconify-icon>
+                <div class="bakery-category-card">
+                    <div>
+                        <div class="flex items-start justify-between mb-3">
+                            <div class="w-11 h-11 rounded-xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 flex items-center justify-center border border-blue-100 dark:border-blue-900/50">
+                                <iconify-icon icon="solar:folder-with-files-bold" class="text-xl"></iconify-icon>
+                            </div>
+                            <span class="bakery-badge bakery-badge-primary text-xs font-semibold">
+                                @cat.ProductCount món
+                            </span>
                         </div>
-                        <span class="bakery-badge bakery-badge-primary text-xs">
-                            @cat.ProductCount món
-                        </span>
+
+                        <h4 class="text-base font-bold text-slate-900 dark:text-white mb-1">@cat.CategoryName</h4>
+                        <span class="text-xs font-mono text-slate-500">Mã phân loại: #CAT-@cat.CategoryID.ToString("D2")</span>
                     </div>
 
-                    <div class="mt-4">
-                        <h4 class="text-base font-bold text-dark dark:text-white mb-1">@cat.CategoryName</h4>
-                        <p class="text-xs text-slate-500 mb-4">Mã loại: #CAT-@cat.CategoryID</p>
-
-                        <a href="/products" class="text-xs font-semibold text-primary hover:underline flex items-center gap-1">
-                            <span>Xem các món thuộc loại này</span>
+                    <div class="pt-4 mt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                        <a href="/products?categoryId=@cat.CategoryID" class="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 flex items-center gap-1.5 transition-colors">
+                            <span>Quản lý danh sách món</span>
                             <iconify-icon icon="solar:arrow-right-linear" class="text-sm"></iconify-icon>
                         </a>
+                        <span class="text-[11px] font-medium text-emerald-600 flex items-center gap-1">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                            Hoạt động
+                        </span>
                     </div>
                 </div>
             }
@@ -78,8 +84,8 @@
         <div class="bakery-modal-card max-w-md" @onclick:stopPropagation="true">
             <div class="bakery-modal-header">
                 <div class="flex items-center gap-2">
-                    <div class="w-8 h-8 rounded-lg bg-lightprimary text-primary flex items-center justify-center">
-                        <iconify-icon icon="solar:folder-with-files-bold" class="text-lg"></iconify-icon>
+                    <div class="w-8 h-8 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center">
+                        <iconify-icon icon="solar:folder-with-files-linear" class="text-base"></iconify-icon>
                     </div>
                     <div>
                         <h4 class="text-base font-bold text-dark dark:text-white mb-0">Thêm Loại Sản Phẩm Mới</h4>
@@ -104,7 +110,7 @@
             </div>
 
             <div class="bakery-modal-footer">
-                <button type="button" class="bakery-btn bakery-btn-outline" @onclick="() => isCreateModalOpen = false">Hủy</button>
+                <button type="button" class="bakery-btn bakery-btn-outline" @onclick="() => isCreateModalOpen = false">Hủy bỏ</button>
                 <button type="button" class="bakery-btn bakery-btn-primary" @onclick="SaveCategoryAsync">Tạo loại sản phẩm</button>
             </div>
         </div>

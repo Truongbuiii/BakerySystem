@@ -22,7 +22,7 @@
     --bk-radius: 18px;
     --bk-radius-sm: 12px;
     --bk-radius-full: 9999px;
-    --bk-font: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    --bk-font: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
 * {

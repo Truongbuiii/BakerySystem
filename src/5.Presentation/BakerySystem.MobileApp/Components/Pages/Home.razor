@@ -42,8 +42,8 @@
     {
         <!-- Greeting & Subtitle -->
         <div style="padding: 14px 18px 4px;">
-            <p style="margin: 0; font-size: 12px; color: #9C8E84; font-weight: 600;">Chào mừng bạn trở lại! 👋</p>
-            <h4 style="margin: 2px 0 0; font-size: 19px; font-weight: 800; color: #2B2118;">Hôm nay bạn muốn thưởng thức món bánh nào? 🧁</h4>
+            <p style="margin: 0; font-size: 12px; color: #9C8E84; font-weight: 600;">Chào mừng trở lại</p>
+            <h4 style="margin: 2px 0 0; font-size: 19px; font-weight: 800; color: #2B2118;">Thực đơn bánh tươi hôm nay</h4>
         </div>
 
         <!-- Search Input Bar -->
@@ -61,7 +61,7 @@
 
         <!-- Promo Banner Carousel / Card -->
         <div class="promo-banner">
-            <span class="promo-badge">Ưu Đãi Đặc Biệt 2026 🎉</span>
+            <span class="promo-badge">Ưu Đãi Hôm Nay</span>
             <h3 class="promo-title">Giảm 10% Cho Đơn Bánh Mới</h3>
             <p class="promo-subtitle">Nhập mã ưu đãi <strong style="text-decoration: underline;">BAKERY2026</strong> khi thanh toán giỏ hàng.</p>
             <button class="promo-btn" @onclick="ApplyPromoDirectly">
@@ -116,7 +116,7 @@
                     {
                         <div class="mobile-product-card" @onclick="() => OpenProductModal(prod)">
                             <div class="product-img-wrap">
-                                <img src="@GetProductImageUrl(prod)" alt="@prod.ProductName" class="product-img" onerror="this.src='/assets/images/products/tiramisu.jpg';" />
+                                <img src="@GetProductImageUrl(prod)" alt="@prod.ProductName" class="product-img" onerror="this.src='http://localhost:5149/assets/images/products/default-bakery.svg';" />
                                 <span class="product-tag">@prod.Category?.CategoryName</span>
                             </div>
                             <div class="product-info">
@@ -139,8 +139,8 @@
     {
         <!-- Full Menu Tab -->
         <div style="padding: 14px 18px;">
-            <h4 style="margin: 0 0 4px; font-size: 19px; font-weight: 800; color: #2B2118;">Thực Đơn Tiệm Bánh 📜</h4>
-            <p style="margin: 0 0 12px; font-size: 12px; color: #9C8E84;">Khám phá toàn bộ hương vị bánh thơm ngon được nướng mới mỗi ngày</p>
+            <h4 style="margin: 0 0 4px; font-size: 19px; font-weight: 800; color: #2B2118;">Thực Đơn Bánh Tươi</h4>
+            <p style="margin: 0 0 12px; font-size: 12px; color: #9C8E84;">Danh mục các món bánh nướng mới phục vụ trong ngày</p>
 
             <!-- Search in Menu -->
             <div class="mobile-search-box" style="margin-bottom: 14px;">
@@ -168,7 +168,7 @@
                 {
                     <div class="mobile-product-card" @onclick="() => OpenProductModal(prod)">
                         <div class="product-img-wrap">
-                            <img src="@GetProductImageUrl(prod)" alt="@prod.ProductName" class="product-img" onerror="this.src='/assets/images/products/tiramisu.jpg';" />
+                            <img src="@GetProductImageUrl(prod)" alt="@prod.ProductName" class="product-img" onerror="this.src='http://localhost:5149/assets/images/products/default-bakery.svg';" />
                             <span class="product-tag">@prod.Category?.CategoryName</span>
                         </div>
                         <div class="product-info">
@@ -190,8 +190,8 @@
     {
         <!-- Customer Orders Tab (Real DB Data) -->
         <div style="padding: 14px 18px;">
-            <h4 style="margin: 0 0 4px; font-size: 19px; font-weight: 800; color: #2B2118;">Đơn Hàng Của Tôi 📦</h4>
-            <p style="margin: 0 0 14px; font-size: 12px; color: #9C8E84;">Theo dõi tiến độ chuẩn bị và giao hàng trực tiếp từ bếp bánh</p>
+            <h4 style="margin: 0 0 4px; font-size: 19px; font-weight: 800; color: #2B2118;">Đơn Hàng Của Tôi</h4>
+            <p style="margin: 0 0 14px; font-size: 12px; color: #9C8E84;">Theo dõi tiến độ thực hiện và giao hàng theo thời gian thực</p>
 
             @if (customerOrders == null || !customerOrders.Any())
             {
@@ -235,7 +235,7 @@
                             @if (!string.IsNullOrEmpty(order.Note))
                             {
                                 <div style="font-size: 11px; color: #E76F51; background: #FFF5EE; padding: 6px 10px; border-radius: 8px; margin-bottom: 10px;">
-                                    📝 <strong>Ghi chú:</strong> @order.Note
+                                    <strong>Ghi chú:</strong> @order.Note
                                 </div>
                             }
 
@@ -243,7 +243,7 @@
                             <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 8px; border-top: 1px dashed #EAE3D8;">
                                 <div style="font-size: 11px; color: #9C8E84;">
                                     PTTT: <strong style="color: #2B2118;">@order.PaymentMethod</strong>
-                                    <span style="margin-left: 4px; color: @(order.PaymentStatus == PaymentStatus.Paid ? "#16A34A" : "#D97706") font-weight: 600;">
+                                    <span style="margin-left: 4px; color: @(order.PaymentStatus == PaymentStatus.Paid ? "#16A34A" : "#D97706"); font-weight: 600;">
                                         (@(order.PaymentStatus == PaymentStatus.Paid ? "Đã thanh toán" : "Chưa thanh toán"))
                                     </span>
                                 </div>
@@ -265,7 +265,7 @@
             <!-- VIP Member Profile Card -->
             <div style="background: linear-gradient(135deg, #2B2118 0%, #463428 100%); border-radius: 20px; padding: 20px; color: white; margin-bottom: 16px; box-shadow: 0 10px 25px rgba(43,33,24,0.25);">
                 <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 14px;">
-                    <img src="/assets/images/profile/user-1.jpg" alt="Avatar" style="width: 54px; height: 54px; border-radius: 50%; border: 2px solid #F4A261;" />
+                    <div style="width: 52px; height: 52px; border-radius: 50%; background: #F4A261; color: #2B2118; font-weight: 700; font-size: 18px; display: flex; align-items: center; justify-content: center; border: 2px solid rgba(255,255,255,0.2);">HA</div>
                     <div>
                         <div style="display: flex; align-items: center; gap: 6px;">
                             <h5 style="margin: 0; font-size: 16px; font-weight: 800;">Nguyễn Hoàng Anh</h5>
@@ -407,42 +407,21 @@
 
             <div class="sheet-body">
                 <div style="width: 100%; height: 210px; border-radius: 16px; overflow: hidden; background: #FFF5EE; margin-bottom: 14px;">
-                    <img src="@GetProductImageUrl(selectedProduct)" alt="@selectedProduct.ProductName" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.src='/assets/images/products/tiramisu.jpg';" />
+                    <img src="@GetProductImageUrl(selectedProduct)" alt="@selectedProduct?.ProductName" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.src='http://localhost:5149/assets/images/products/default-bakery.svg';" />
                 </div>
 
                 <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
                     <div>
-                        <span style="font-size: 11px; font-weight: 700; color: #E76F51; text-transform: uppercase;">@selectedProduct.Category?.CategoryName</span>
-                        <h4 style="margin: 2px 0 0; font-size: 17px; font-weight: 800; color: #2B2118;">@selectedProduct.ProductName</h4>
+                        <span style="font-size: 11px; font-weight: 700; color: #E76F51; text-transform: uppercase;">@selectedProduct?.Category?.CategoryName</span>
+                        <h4 style="margin: 2px 0 0; font-size: 17px; font-weight: 800; color: #2B2118;">@selectedProduct?.ProductName</h4>
                     </div>
-                    <span style="font-size: 18px; font-weight: 800; color: #E76F51;">@($"{selectedProduct.Price:N0}đ")</span>
+                    <span style="font-size: 18px; font-weight: 800; color: #E76F51;">@($"{selectedProduct?.Price ?? 0:N0}đ")</span>
                 </div>
 
                 <p style="font-size: 13px; color: #6E6259; line-height: 1.5; margin-bottom: 16px;">
-                    @selectedProduct.Description
+                    @selectedProduct?.Description
                 </p>
 
-                <!-- Size options -->
-                <div style="margin-bottom: 16px;">
-                    <label style="font-size: 12px; font-weight: 700; color: #2B2118; margin-bottom: 6px; display: block;">Chọn Kích Cỡ / Phần Ăn:</label>
-                    <div style="display: flex; gap: 8px;">
-                        @foreach (var size in new[] { "Tiêu chuẩn", "Size Vừa (20cm)", "Size Lớn (24cm)" })
-                        {
-                            <button style="flex: 1; padding: 8px 6px; border-radius: 12px; font-size: 11px; font-weight: 600; border: 1.5px solid @(selectedSize == size ? "#E76F51" : "#EFE8DE"); background: @(selectedSize == size ? "#FDF0ED" : "white"); color: @(selectedSize == size ? "#E76F51" : "#6E6259"); cursor: pointer;"
-                                    @onclick="() => selectedSize = size">
-                                @size
-                            </button>
-                        }
-                    </div>
-                </div>
-
-                <!-- Custom writing on cake -->
-                <div style="margin-bottom: 16px;">
-                    <label style="font-size: 12px; font-weight: 700; color: #2B2118; margin-bottom: 6px; display: block;">Lời Nhắn / Ghi Chữ Lên Bánh (nếu có):</label>
-                    <input type="text" class="form-control" placeholder="Ví dụ: Chúc mừng sinh nhật Hoàng Anh..."
-                           style="border-radius: 12px; font-size: 12px; border-color: var(--bk-border);"
-                           @bind="customWritingNote" />
-                </div>
 
                 <!-- Quantity selector -->
                 <div style="display: flex; align-items: center; justify-content: space-between; padding-top: 10px; border-top: 1px solid var(--bk-border);">
@@ -457,7 +436,7 @@
 
             <div class="sheet-footer">
                 <button class="btn-bk-primary" @onclick="AddToCartFromModal">
-                    Thêm vào giỏ hàng • @($"{(selectedProduct.Price * modalQuantity):N0}đ")
+                    Thêm vào giỏ hàng • @($"{((selectedProduct?.Price ?? 0) * modalQuantity):N0}đ")
                 </button>
             </div>
         </div>
@@ -493,10 +472,9 @@
                         {
                             <div style="display: flex; align-items: center; justify-content: space-between; background: #FAF7F2; border-radius: 14px; padding: 10px 12px;">
                                 <div style="display: flex; align-items: center; gap: 10px;">
-                                    <img src="@item.ImageURL" alt="@item.ProductName" style="width: 44px; height: 44px; border-radius: 10px; object-fit: cover;" onerror="this.src='/assets/images/products/tiramisu.jpg';" />
+                                    <img src="@item.ImageURL" alt="@item.ProductName" style="width: 44px; height: 44px; border-radius: 10px; object-fit: cover;" onerror="this.src='http://localhost:5149/assets/images/products/default-bakery.svg';" />
                                     <div>
                                         <h6 style="margin: 0; font-size: 13px; font-weight: 700; color: #2B2118;">@item.ProductName</h6>
-                                        <span style="font-size: 11px; color: #9C8E84;">@item.SelectedSize @(string.IsNullOrEmpty(item.CustomNote) ? "" : $"• 📝 {item.CustomNote}")</span>
                                         <div style="font-size: 12px; font-weight: 800; color: #E76F51; margin-top: 2px;">@($"{item.UnitPrice:N0}đ")</div>
                                     </div>
                                 </div>
@@ -640,7 +618,7 @@
             <div style="width: 64px; height: 64px; background: #DCFCE7; color: #16A34A; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 32px; margin: 0 auto 12px;">
                 <iconify-icon icon="solar:check-circle-bold"></iconify-icon>
             </div>
-            <h4 style="margin: 0 0 6px; font-size: 19px; font-weight: 800; color: #2B2118;">Đặt Bánh Thành Công! 🎉</h4>
+            <h4 style="margin: 0 0 6px; font-size: 19px; font-weight: 800; color: #2B2118;">Đặt Hàng Thành Công</h4>
             <p style="font-size: 13px; color: #6E6259; margin: 0 0 16px;">
                 Mã đơn hàng: <strong style="color: #E76F51;">#@justPlacedOrder.OrderID</strong>. Đơn hàng của bạn đã được chuyển đến bếp làm bánh BakerySystem.
             </p>
@@ -666,8 +644,6 @@
     private List<Order> customerOrders = new();
 
     private Product? selectedProduct;
-    private string selectedSize = "Tiêu chuẩn";
-    private string customWritingNote = string.Empty;
     private int modalQuantity = 1;
 
     private bool isCartOpen = false;
@@ -785,27 +761,40 @@
         return "solar:box-minimalistic-bold";
     }
 
-    private string GetProductImageUrl(Product p)
+    private string GetProductImageUrl(Product? p)
     {
-        if (p.ProductName.Contains("Tiramisu", StringComparison.OrdinalIgnoreCase)) return "/assets/images/products/tiramisu.jpg";
-        if (p.ProductName.Contains("Croissant", StringComparison.OrdinalIgnoreCase)) return "/assets/images/products/croissant.jpg";
-        if (p.ProductName.Contains("Bắp", StringComparison.OrdinalIgnoreCase)) return "/assets/images/products/corn-cake.jpg";
-        if (p.ProductName.Contains("Mousse", StringComparison.OrdinalIgnoreCase)) return "/assets/images/products/mousse.jpg";
-        if (p.ProductName.Contains("Brioche", StringComparison.OrdinalIgnoreCase) || p.ProductName.Contains("Cúc", StringComparison.OrdinalIgnoreCase)) return "/assets/images/products/brioche.jpg";
-        if (p.ProductName.Contains("Forest", StringComparison.OrdinalIgnoreCase)) return "/assets/images/products/black-forest.jpg";
-        return !string.IsNullOrEmpty(p.ImageURL) ? p.ImageURL : "/assets/images/products/tiramisu.jpg";
+        if (p == null) return "http://localhost:5149/assets/images/products/default-bakery.svg";
+
+        string rawUrl = p.ImageURL?.Trim() ?? string.Empty;
+        if (string.IsNullOrEmpty(rawUrl))
+        {
+            var name = p.ProductName ?? string.Empty;
+            if (name.Contains("Tiramisu", StringComparison.OrdinalIgnoreCase)) rawUrl = "/assets/images/products/tiramisu.jpg";
+            else if (name.Contains("Croissant", StringComparison.OrdinalIgnoreCase)) rawUrl = "/assets/images/products/croissant.jpg";
+            else if (name.Contains("Bắp", StringComparison.OrdinalIgnoreCase)) rawUrl = "/assets/images/products/corn-cake.jpg";
+            else if (name.Contains("Mousse", StringComparison.OrdinalIgnoreCase)) rawUrl = "/assets/images/products/mousse.jpg";
+            else if (name.Contains("Brioche", StringComparison.OrdinalIgnoreCase) || name.Contains("Cúc", StringComparison.OrdinalIgnoreCase)) rawUrl = "/assets/images/products/brioche.jpg";
+            else if (name.Contains("Forest", StringComparison.OrdinalIgnoreCase)) rawUrl = "/assets/images/products/black-forest.jpg";
+            else rawUrl = "/assets/images/products/default-bakery.svg";
+        }
+
+        if (rawUrl.StartsWith("http://", StringComparison.OrdinalIgnoreCase) || 
+            rawUrl.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+        {
+            return rawUrl;
+        }
+
+        return rawUrl.StartsWith('/') ? $"http://localhost:5149{rawUrl}" : $"http://localhost:5149/{rawUrl}";
     }
 
     private void QuickAddToCart(Product product)
     {
-        CartService.AddItem(product, 1, "Tiêu chuẩn", "");
+        CartService.AddItem(product, 1);
     }
 
     private void OpenProductModal(Product product)
     {
         selectedProduct = product;
-        selectedSize = "Tiêu chuẩn";
-        customWritingNote = string.Empty;
         modalQuantity = 1;
     }
 
@@ -818,7 +807,7 @@
     {
         if (selectedProduct != null)
         {
-            CartService.AddItem(selectedProduct, modalQuantity, selectedSize, customWritingNote);
+            CartService.AddItem(selectedProduct, modalQuantity);
             CloseProductModal();
         }
     }
@@ -894,9 +883,9 @@
     private string GetStatusText(string status) => status switch
     {
         OrderStatus.Pending => "Chờ duyệt",
-        OrderStatus.Confirmed => "Đang nướng bánh 👨‍🍳",
-        OrderStatus.Shipping => "Đang giao hàng 🛵",
-        OrderStatus.Completed => "Giao thành công ✅",
+        OrderStatus.Confirmed => "Đang chuẩn bị bánh",
+        OrderStatus.Shipping => "Đang giao hàng",
+        OrderStatus.Completed => "Giao thành công",
         _ => "Đã hủy"
     };
 

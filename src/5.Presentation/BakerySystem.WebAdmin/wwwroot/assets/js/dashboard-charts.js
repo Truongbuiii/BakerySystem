@@ -3,21 +3,28 @@
  */
 
 window.initBakeryDashboardCharts = function (categorySeries, categoryLabels) {
+    if (typeof ApexCharts === 'undefined') {
+        setTimeout(function() {
+            window.initBakeryDashboardCharts(categorySeries, categoryLabels);
+        }, 120);
+        return;
+    }
+
     // 1. Revenue Updates Stacked Bar Chart
     const revenueEl = document.querySelector("#revenue-updates");
-    if (revenueEl && typeof ApexCharts !== 'undefined') {
+    if (revenueEl) {
         revenueEl.innerHTML = "";
         const revenueChartOptions = {
             series: [
                 {
                     name: 'Doanh thu bánh (triệu)',
                     data: [15, 27, 22, 30, 18, 25, 24, 32, 28, 35, 30, 38],
-                    color: '#5d87ff',
+                    color: '#1e40af',
                 },
                 {
                     name: 'Chi phí nguyên liệu (triệu)',
                     data: [-8, -11, -9, -12, -7, -10, -9, -13, -11, -14, -12, -15],
-                    color: '#49beff',
+                    color: '#94a3b8',
                 },
             ],
             chart: {
@@ -88,7 +95,7 @@ window.initBakeryDashboardCharts = function (categorySeries, categoryLabels) {
                 fontFamily: "inherit",
                 foreColor: "#adb0bb",
             },
-            colors: ["#5d87ff", "#49beff", "#13deb9", "#ffae1f", "#fa896b"],
+            colors: ["#1e40af", "#3b82f6", "#10b981", "#f59e0b", "#8b5cf6"],
             plotOptions: {
                 pie: {
                     startAngle: 0,
@@ -117,7 +124,7 @@ window.initBakeryDashboardCharts = function (categorySeries, categoryLabels) {
 
     // 3. Monthly Earning Sparkline Chart
     const earningEl = document.querySelector("#earning");
-    if (earningEl && typeof ApexCharts !== 'undefined') {
+    if (earningEl) {
         earningEl.innerHTML = "";
         const earningOptions = {
             chart: {
@@ -132,7 +139,7 @@ window.initBakeryDashboardCharts = function (categorySeries, categoryLabels) {
             series: [
                 {
                     name: 'Doanh số tuần',
-                    color: "#49beff",
+                    color: "#1e40af",
                     data: [25, 45, 30, 60, 48, 70, 62, 85],
                 },
             ],

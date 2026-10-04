@@ -16,22 +16,16 @@
 }
 else
 {
-    <!-- 1. Welcome Banner -->
-    <div class="bakery-welcome-banner">
-        <div class="bakery-welcome-content">
-            <div class="shrink-0">
-                <img src="/assets/images/profile/user-1.jpg" alt="Admin" class="bakery-avatar-lg border-2 border-white dark:border-dark shadow-sm" />
-            </div>
-            <div class="flex flex-col gap-1">
-                <div class="flex flex-wrap items-center gap-2">
-                    <h5 class="text-lg font-bold text-dark dark:text-white mb-0">Chào mừng trở lại, Quản Trị Viên! 👋</h5>
-                    <span class="bakery-badge bakery-badge-primary">BakeryAdmin v1.0</span>
-                </div>
-                <p class="text-sm text-bodytext mb-0">Hệ thống quản lý Tiệm Bánh BakerySystem - Đang có @(stats.BakingOrdersCount + stats.ShippingOrdersCount) đơn bánh đang được phục vụ.</p>
-            </div>
-        </div>
+    <!-- 1. Enterprise Page Header -->
+    <div class="bakery-page-header pb-3 border-b border-border dark:border-darkborder">
         <div>
-            <img src="/assets/images/dashboard/customer-support-img.png" alt="Bakery Assistant" class="bakery-support-img" />
+            <h2 class="text-lg sm:text-xl font-semibold text-dark dark:text-white mb-0.5">Tổng quan hoạt động</h2>
+            <p class="text-xs text-slate-500 mb-0">Hệ thống quản lý cửa hàng BakerySystem &bull; Đang phục vụ @(stats.BakingOrdersCount + stats.ShippingOrdersCount) đơn hàng</p>
+        </div>
+        <div class="bakery-page-actions">
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Cơ sở dữ liệu sẵn sàng
+            </span>
         </div>
     </div>
 
@@ -39,63 +33,63 @@ else
     <div class="bakery-kpi-grid">
         <!-- Card 1: Doanh thu -->
         <div class="bakery-kpi-card">
-            <div>
-                <span class="text-xs font-semibold uppercase tracking-wider text-bodytext">Doanh thu hôm nay</span>
-                <h4 class="text-xl font-bold text-dark dark:text-white mt-1 mb-1">@($"{stats.TodayRevenue:N0}đ")</h4>
-                <div class="flex items-center gap-1.5">
-                    <span class="bakery-badge bakery-badge-success text-[11px] py-0.5 px-2">
+            <div class="bakery-kpi-content">
+                <span class="bakery-kpi-label">Doanh thu hôm nay</span>
+                <div class="bakery-kpi-val">@($"{stats.TodayRevenue:N0} đ")</div>
+                <div class="bakery-kpi-subtext">
+                    <span class="bakery-badge bakery-badge-success text-[10px] py-0 px-1.5">
                         <iconify-icon icon="solar:arrow-right-up-linear" class="text-xs"></iconify-icon> +@stats.TodayRevenueGrowthPercent%
                     </span>
-                    <span class="text-[11px] text-bodytext">so với hôm qua</span>
+                    <span>so với hôm qua</span>
                 </div>
             </div>
-            <div class="bakery-kpi-iconbox bg-lightprimary">
-                <img src="/assets/images/svgs/icon-speech-bubble.svg" class="bakery-icon-img" alt="Doanh thu" />
+            <div class="bakery-kpi-iconbox bakery-kpi-blue">
+                <iconify-icon icon="solar:wallet-money-bold"></iconify-icon>
             </div>
         </div>
 
         <!-- Card 2: Đơn hàng mới -->
         <div class="bakery-kpi-card">
-            <div>
-                <span class="text-xs font-semibold uppercase tracking-wider text-bodytext">Đơn đặt bánh mới</span>
-                <h4 class="text-xl font-bold text-dark dark:text-white mt-1 mb-1">@stats.TodayOrdersCount Đơn</h4>
-                <div class="flex items-center gap-1.5">
-                    <span class="bakery-badge bakery-badge-primary text-[11px] py-0.5 px-2">@stats.BakingOrdersCount đang nướng</span>
-                    <span class="text-[11px] text-bodytext">@stats.ShippingOrdersCount đang giao</span>
+            <div class="bakery-kpi-content">
+                <span class="bakery-kpi-label">Đơn đặt hàng hôm nay</span>
+                <div class="bakery-kpi-val">@stats.TodayOrdersCount đơn</div>
+                <div class="bakery-kpi-subtext">
+                    <span class="bakery-badge bakery-badge-primary text-[10px] py-0 px-1.5">@stats.BakingOrdersCount đang làm</span>
+                    <span>@stats.ShippingOrdersCount đang giao</span>
                 </div>
             </div>
-            <div class="bakery-kpi-iconbox bg-lightwarning">
-                <img src="/assets/images/svgs/icon-mailbox.svg" class="bakery-icon-img" alt="Đơn hàng" />
+            <div class="bakery-kpi-iconbox bakery-kpi-purple">
+                <iconify-icon icon="solar:bill-list-bold"></iconify-icon>
             </div>
         </div>
 
         <!-- Card 3: Menu & Sản phẩm -->
         <div class="bakery-kpi-card">
-            <div>
-                <span class="text-xs font-semibold uppercase tracking-wider text-bodytext">Sản phẩm trong Menu</span>
-                <h4 class="text-xl font-bold text-dark dark:text-white mt-1 mb-1">@stats.TotalProductsCount Món</h4>
-                <div class="flex items-center gap-1.5">
-                    <span class="bakery-badge bakery-badge-secondary text-[11px] py-0.5 px-2">@stats.BestSellerProductsCount Best Seller</span>
-                    <span class="text-[11px] text-bodytext">@stats.CategoryBreakups.Count loại sản phẩm</span>
+            <div class="bakery-kpi-content">
+                <span class="bakery-kpi-label">Sản phẩm kinh doanh</span>
+                <div class="bakery-kpi-val">@stats.TotalProductsCount món</div>
+                <div class="bakery-kpi-subtext">
+                    <span class="bakery-badge bakery-badge-secondary text-[10px] py-0 px-1.5">@stats.BestSellerProductsCount bán chạy</span>
+                    <span>@stats.CategoryBreakups.Count loại</span>
                 </div>
             </div>
-            <div class="bakery-kpi-iconbox bg-lighterror">
-                <img src="/assets/images/svgs/icon-favorites.svg" class="bakery-icon-img" alt="Menu bánh" />
+            <div class="bakery-kpi-iconbox bakery-kpi-green">
+                <iconify-icon icon="solar:box-minimalistic-bold"></iconify-icon>
             </div>
         </div>
 
         <!-- Card 4: Khách hàng thân thiết -->
         <div class="bakery-kpi-card">
-            <div>
-                <span class="text-xs font-semibold uppercase tracking-wider text-bodytext">Khách hàng thành viên</span>
-                <h4 class="text-xl font-bold text-dark dark:text-white mt-1 mb-1">@stats.TotalCustomersCount Khách</h4>
-                <div class="flex items-center gap-1.5">
-                    <span class="bakery-badge bakery-badge-success text-[11px] py-0.5 px-2">+@stats.NewCustomersThisMonthCount mới</span>
-                    <span class="text-[11px] text-bodytext">tháng này</span>
+            <div class="bakery-kpi-content">
+                <span class="bakery-kpi-label">Khách hàng thành viên</span>
+                <div class="bakery-kpi-val">@stats.TotalCustomersCount khách</div>
+                <div class="bakery-kpi-subtext">
+                    <span class="bakery-badge bakery-badge-success text-[10px] py-0 px-1.5">+@stats.NewCustomersThisMonthCount mới</span>
+                    <span>trong tháng</span>
                 </div>
             </div>
-            <div class="bakery-kpi-iconbox bg-lightsecondary">
-                <img src="/assets/images/svgs/icon-briefcase.svg" class="bakery-icon-img" alt="Khách hàng" />
+            <div class="bakery-kpi-iconbox bakery-kpi-amber">
+                <iconify-icon icon="solar:users-group-two-rounded-bold"></iconify-icon>
             </div>
         </div>
     </div>
@@ -152,13 +146,13 @@ else
                         <div id="breakup" style="min-height: 165px; width: 100%;"></div>
                     </div>
 
-                    <div class="grid grid-cols-3 gap-2 pt-3 border-t border-border dark:border-darkborder text-center">
+                    <div class="flex flex-wrap items-center justify-around gap-2 pt-3 border-t border-border dark:border-darkborder text-center">
                         @if (stats.CategoryBreakups != null)
                         {
                             @foreach (var cat in stats.CategoryBreakups)
                             {
-                                <div>
-                                    <div class="flex items-center justify-center gap-1 text-[11px] text-bodytext">
+                                <div class="px-2">
+                                    <div class="flex items-center justify-center gap-1.5 text-[11px] text-bodytext">
                                         <span style="width: 8px; height: 8px; border-radius: 50%; background-color: @cat.ColorHex; display: inline-block;"></span> @cat.CategoryName
                                     </div>
                                     <span class="font-bold text-dark dark:text-white text-xs">@cat.Percentage%</span>
@@ -183,8 +177,8 @@ else
                                 <span class="text-[11px] text-bodytext">tuần trước</span>
                             </div>
                         </div>
-                        <div class="w-10 h-10 rounded-full bg-lightsecondary text-secondary flex items-center justify-center shrink-0">
-                            <iconify-icon icon="solar:dollar-linear" class="text-xl"></iconify-icon>
+                        <div class="bakery-kpi-iconbox bakery-kpi-blue">
+                            <iconify-icon icon="solar:dollar-bold" class="text-xl"></iconify-icon>
                         </div>
                     </div>
                 </div>
@@ -245,11 +239,11 @@ else
                     <table class="bakery-table">
                         <thead>
                             <tr>
-                                <th class="ps-1">STT</th>
-                                <th>Thợ làm bánh</th>
+                                <th style="width: 50px;">Hạng</th>
                                 <th>Tên món bánh</th>
-                                <th class="text-center">Mức bán</th>
-                                <th class="text-right">Doanh số</th>
+                                <th>Loại sản phẩm</th>
+                                <th class="text-center" style="width: 110px;">Đánh giá</th>
+                                <th class="text-right" style="width: 120px;">Doanh số</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -258,24 +252,24 @@ else
                                 @foreach (var prod in stats.TopSellingProducts)
                                 {
                                     <tr>
-                                        <td class="ps-1 font-bold text-dark dark:text-white">@prod.Rank.ToString("D2")</td>
-                                        <td class="whitespace-nowrap">
-                                            <div class="flex items-center gap-2.5">
-                                                <img src="@prod.AvatarUrl" alt="Chef" class="bakery-avatar-sm" />
-                                                <div>
-                                                    <h6 class="font-semibold text-dark dark:text-white text-xs mb-0">@prod.ChefName</h6>
-                                                    <p class="text-[11px] text-bodytext mb-0">@prod.CategoryName</p>
-                                                </div>
-                                            </div>
+                                        <td>
+                                            <span class="inline-flex items-center justify-center w-6 h-6 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-semibold">
+                                                @prod.Rank.ToString("D2")
+                                            </span>
                                         </td>
-                                        <td class="whitespace-nowrap font-medium text-dark dark:text-white">
+                                        <td class="font-medium text-slate-900 dark:text-white">
                                             @prod.ProductName
                                         </td>
-                                        <td class="text-center">
-                                            <span class="bakery-badge @(prod.Rank == 1 ? "bakery-badge-success" : (prod.Rank == 2 ? "bakery-badge-primary" : "bakery-badge-secondary")) text-[10px]">@prod.LevelBadge</span>
+                                        <td class="text-xs text-slate-500">
+                                            @prod.CategoryName
                                         </td>
-                                        <td class="text-right font-bold text-dark dark:text-white">
-                                            @(prod.TotalRevenue >= 1000000m ? $"{(prod.TotalRevenue / 1000000m):0.#} Tr" : $"{prod.TotalRevenue:N0}đ")
+                                        <td class="text-center">
+                                            <span class="bakery-badge @(prod.Rank == 1 ? "bakery-badge-success" : (prod.Rank == 2 ? "bakery-badge-primary" : "bakery-badge-secondary")) text-[11px]">
+                                                @prod.LevelBadge
+                                            </span>
+                                        </td>
+                                        <td class="text-right font-semibold text-slate-900 dark:text-white">
+                                            @(prod.TotalRevenue >= 1000000m ? $"{(prod.TotalRevenue / 1000000m):0.#} Tr" : $"{prod.TotalRevenue:N0} đ")
                                         </td>
                                     </tr>
                                 }
@@ -309,8 +303,15 @@ else
         {
             var series = stats.CategoryBreakups.Select(c => c.Percentage).ToArray();
             var labels = stats.CategoryBreakups.Select(c => c.CategoryName).ToArray();
-            // Khởi tạo ApexCharts với số liệu phân bổ thật từ Database
-            await JS.InvokeVoidAsync("initBakeryDashboardCharts", series, labels);
+            try
+            {
+                await Task.Delay(50);
+                await JS.InvokeVoidAsync("initBakeryDashboardCharts", series, labels);
+            }
+            catch
+            {
+                // Silently ignore navigation disconnects
+            }
         }
     }
 }

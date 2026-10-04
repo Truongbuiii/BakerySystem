@@ -12,8 +12,6 @@ public class CartItem
     public string ImageURL { get; set; } = string.Empty;
     public decimal UnitPrice { get; set; }
     public int Quantity { get; set; } = 1;
-    public string SelectedSize { get; set; } = "Tiêu chuẩn";
-    public string CustomNote { get; set; } = string.Empty;
 
     public decimal SubTotal => UnitPrice * Quantity;
 }
@@ -52,24 +50,30 @@ public class CartService
 
     public decimal FinalAmount => Math.Max(0, SubTotalAmount - DiscountAmount);
 
-    public void AddItem(Product product, int quantity = 1, string size = "Tiêu chuẩn", string note = "")
+    public void AddItem(Product product, int quantity = 1)
     {
-        var existing = Items.FirstOrDefault(i => i.ProductID == product.ProductID && i.SelectedSize == size && i.CustomNote == note);
+        var existing = Items.FirstOrDefault(i => i.ProductID == product.ProductID);
         if (existing != null)
         {
             existing.Quantity += quantity;
         }
         else
         {
+            var rawImg = !string.IsNullOrWhiteSpace(product.ImageURL) ? product.ImageURL.Trim() : "/assets/images/products/default-bakery.svg";
+            string resolvedImg = rawImg;
+            if (!rawImg.StartsWith("http://", StringComparison.OrdinalIgnoreCase) && 
+                !rawImg.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+            {
+                resolvedImg = rawImg.StartsWith('/') ? $"http://localhost:5149{rawImg}" : $"http://localhost:5149/{rawImg}";
+            }
+
             Items.Add(new CartItem
             {
                 ProductID = product.ProductID,
                 ProductName = product.ProductName,
-                ImageURL = !string.IsNullOrEmpty(product.ImageURL) ? product.ImageURL : "/assets/images/products/tiramisu.jpg",
+                ImageURL = resolvedImg,
                 UnitPrice = product.Price,
-                Quantity = quantity,
-                SelectedSize = size,
-                CustomNote = note
+                Quantity = quantity
             });
         }
         NotifyStateChanged();
