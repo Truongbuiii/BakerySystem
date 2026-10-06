@@ -1,6 +1,7 @@
 @page "/"
 @inject IJSRuntime JS
 @inject IDashboardService DashboardService
+@inject AuthenticationStateProvider AuthStateProvider
 
 <PageTitle>Bảng Điều Khiển | BakeryAdmin</PageTitle>
 
@@ -16,276 +17,441 @@
 }
 else
 {
-    <!-- 1. Enterprise Page Header -->
-    <div class="bakery-page-header pb-3 border-b border-border dark:border-darkborder">
-        <div>
-            <h2 class="text-lg sm:text-xl font-semibold text-dark dark:text-white mb-0.5">Tổng quan hoạt động</h2>
-            <p class="text-xs text-slate-500 mb-0">Hệ thống quản lý cửa hàng BakerySystem &bull; Đang phục vụ @(stats.BakingOrdersCount + stats.ShippingOrdersCount) đơn hàng</p>
-        </div>
-        <div class="bakery-page-actions">
-            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800">
-                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Cơ sở dữ liệu sẵn sàng
-            </span>
-        </div>
-    </div>
+    <!-- ========================================================
+         PHÂN QUYỀN GIAO DIỆN TRANG CHỦ THEO ROLE
+         1. Quản trị viên (Admin): Doanh thu, Lợi nhuận, Biểu đồ tài chính, Quản lý toàn diện
+         2. Nhân viên (Employee): Ca trực thu ngân, Thao tác POS, Xử lý đơn hàng, Tra cứu menu
+         ======================================================== -->
 
-    <!-- 2. Top 4 KPI Metrics Cards (Connected to Database) -->
-    <div class="bakery-kpi-grid">
-        <!-- Card 1: Doanh thu -->
-        <div class="bakery-kpi-card">
-            <div class="bakery-kpi-content">
-                <span class="bakery-kpi-label">Doanh thu hôm nay</span>
-                <div class="bakery-kpi-val">@($"{stats.TodayRevenue:N0} đ")</div>
-                <div class="bakery-kpi-subtext">
-                    <span class="bakery-badge bakery-badge-success text-[10px] py-0 px-1.5">
-                        <iconify-icon icon="solar:arrow-right-up-linear" class="text-xs"></iconify-icon> +@stats.TodayRevenueGrowthPercent%
-                    </span>
-                    <span>so với hôm qua</span>
-                </div>
-            </div>
-            <div class="bakery-kpi-iconbox bakery-kpi-blue">
-                <iconify-icon icon="solar:wallet-money-bold"></iconify-icon>
-            </div>
-        </div>
-
-        <!-- Card 2: Đơn hàng mới -->
-        <div class="bakery-kpi-card">
-            <div class="bakery-kpi-content">
-                <span class="bakery-kpi-label">Đơn đặt hàng hôm nay</span>
-                <div class="bakery-kpi-val">@stats.TodayOrdersCount đơn</div>
-                <div class="bakery-kpi-subtext">
-                    <span class="bakery-badge bakery-badge-primary text-[10px] py-0 px-1.5">@stats.BakingOrdersCount đang làm</span>
-                    <span>@stats.ShippingOrdersCount đang giao</span>
-                </div>
-            </div>
-            <div class="bakery-kpi-iconbox bakery-kpi-purple">
-                <iconify-icon icon="solar:bill-list-bold"></iconify-icon>
-            </div>
-        </div>
-
-        <!-- Card 3: Menu & Sản phẩm -->
-        <div class="bakery-kpi-card">
-            <div class="bakery-kpi-content">
-                <span class="bakery-kpi-label">Sản phẩm kinh doanh</span>
-                <div class="bakery-kpi-val">@stats.TotalProductsCount món</div>
-                <div class="bakery-kpi-subtext">
-                    <span class="bakery-badge bakery-badge-secondary text-[10px] py-0 px-1.5">@stats.BestSellerProductsCount bán chạy</span>
-                    <span>@stats.CategoryBreakups.Count loại</span>
-                </div>
-            </div>
-            <div class="bakery-kpi-iconbox bakery-kpi-green">
-                <iconify-icon icon="solar:box-minimalistic-bold"></iconify-icon>
-            </div>
-        </div>
-
-        <!-- Card 4: Khách hàng thân thiết -->
-        <div class="bakery-kpi-card">
-            <div class="bakery-kpi-content">
-                <span class="bakery-kpi-label">Khách hàng thành viên</span>
-                <div class="bakery-kpi-val">@stats.TotalCustomersCount khách</div>
-                <div class="bakery-kpi-subtext">
-                    <span class="bakery-badge bakery-badge-success text-[10px] py-0 px-1.5">+@stats.NewCustomersThisMonthCount mới</span>
-                    <span>trong tháng</span>
-                </div>
-            </div>
-            <div class="bakery-kpi-iconbox bakery-kpi-amber">
-                <iconify-icon icon="solar:users-group-two-rounded-bold"></iconify-icon>
-            </div>
-        </div>
-    </div>
-
-    <!-- 3. Revenue Update & Category Breakups (Main Visual Section) -->
-    <div class="bakery-grid-main">
-        <!-- Left: Revenue Updates Stacked Bar Chart -->
-        <div class="bakery-card">
-            <div class="bakery-card-body">
-                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-                    <div>
-                        <h5 class="text-base font-bold text-dark dark:text-white mb-0.5">Báo Cáo Doanh Thu & Chi Phí</h5>
-                        <p class="text-xs text-bodytext mb-0">Biến động tài chính và lợi nhuận kinh doanh theo 12 tháng</p>
-                    </div>
-                    <div class="flex items-center gap-4 flex-wrap">
-                        <div class="flex items-center gap-3 text-xs">
-                            <span class="flex items-center gap-1.5">
-                                <span style="width: 10px; height: 10px; border-radius: 50%; background-color: #5d87ff; display: inline-block;"></span>
-                                <span class="text-bodytext">Doanh thu</span>
-                            </span>
-                            <span class="flex items-center gap-1.5">
-                                <span style="width: 10px; height: 10px; border-radius: 50%; background-color: #49beff; display: inline-block;"></span>
-                                <span class="text-bodytext">Chi phí</span>
-                            </span>
-                        </div>
-                        <select class="form-control text-xs py-1 px-2.5 w-auto border border-border dark:border-darkborder rounded-md bg-white dark:bg-dark">
-                            <option selected>Năm 2026</option>
-                            <option>Năm 2025</option>
-                        </select>
-                    </div>
-                </div>
+    <AuthorizeView Roles="Admin">
+        <Authorized>
+            <!-- 1. Enterprise Page Header -->
+            <div class="bakery-page-header pb-3 border-b border-border dark:border-darkborder">
                 <div>
-                    <div id="revenue-updates"></div>
+                    <h2 class="text-lg sm:text-xl font-semibold text-dark dark:text-white mb-0.5">Tổng quan hoạt động kinh doanh</h2>
+                    <p class="text-xs text-slate-500 mb-0">Hệ thống quản lý cửa hàng BakerySystem &bull; Đang phục vụ @(stats.BakingOrdersCount + stats.ShippingOrdersCount) đơn hàng</p>
+                </div>
+                <div class="bakery-page-actions">
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Cơ sở dữ liệu sẵn sàng
+                    </span>
                 </div>
             </div>
-        </div>
 
-        <!-- Right: Category Breakup Donut & Weekly Earning -->
-        <div class="flex flex-col gap-6">
-            <!-- Category Breakup Card -->
-            <div class="bakery-card flex-1">
-                <div class="bakery-card-body">
-                    <div class="flex items-center justify-between mb-2">
-                        <div>
-                            <h5 class="text-sm font-bold text-dark dark:text-white mb-0.5">Tỷ Trọng Doanh Thu</h5>
-                            <p class="text-xs text-bodytext mb-0">Tổng cộng: <strong class="text-dark dark:text-white">@($"{(stats.TotalCategoryRevenue / 1000000m):0.#} Tr")</strong></p>
+            <!-- 2. Top 4 KPI Metrics Cards (Chỉ dành cho Admin có quyền xem doanh thu) -->
+            <div class="bakery-kpi-grid">
+                <!-- Card 1: Doanh thu -->
+                <div class="bakery-kpi-card">
+                    <div class="bakery-kpi-content">
+                        <span class="bakery-kpi-label">Doanh thu hôm nay</span>
+                        <div class="bakery-kpi-val">@($"{stats.TodayRevenue:N0} đ")</div>
+                        <div class="bakery-kpi-subtext">
+                            <span class="bakery-badge bakery-badge-success text-[10px] py-0 px-1.5">
+                                <iconify-icon icon="solar:arrow-right-up-linear" class="text-xs"></iconify-icon> +@stats.TodayRevenueGrowthPercent%
+                            </span>
+                            <span>so với hôm qua</span>
                         </div>
-                        <span class="bakery-badge bakery-badge-success text-[10px] py-0.5 px-2">
-                            <iconify-icon icon="solar:arrow-right-up-linear"></iconify-icon> +12% vs 2025
-                        </span>
                     </div>
-
-                    <div class="my-2 flex justify-center items-center">
-                        <div id="breakup" style="min-height: 165px; width: 100%;"></div>
+                    <div class="bakery-kpi-iconbox bakery-kpi-blue">
+                        <iconify-icon icon="solar:wallet-money-bold"></iconify-icon>
                     </div>
+                </div>
 
-                    <div class="flex flex-wrap items-center justify-around gap-2 pt-3 border-t border-border dark:border-darkborder text-center">
-                        @if (stats.CategoryBreakups != null)
-                        {
-                            @foreach (var cat in stats.CategoryBreakups)
-                            {
-                                <div class="px-2">
-                                    <div class="flex items-center justify-center gap-1.5 text-[11px] text-bodytext">
-                                        <span style="width: 8px; height: 8px; border-radius: 50%; background-color: @cat.ColorHex; display: inline-block;"></span> @cat.CategoryName
-                                    </div>
-                                    <span class="font-bold text-dark dark:text-white text-xs">@cat.Percentage%</span>
-                                </div>
-                            }
-                        }
+                <!-- Card 2: Đơn hàng mới -->
+                <div class="bakery-kpi-card">
+                    <div class="bakery-kpi-content">
+                        <span class="bakery-kpi-label">Đơn đặt hàng hôm nay</span>
+                        <div class="bakery-kpi-val">@stats.TodayOrdersCount đơn</div>
+                        <div class="bakery-kpi-subtext">
+                            <span class="bakery-badge bakery-badge-primary text-[10px] py-0 px-1.5">@stats.BakingOrdersCount đang làm</span>
+                            <span>@stats.ShippingOrdersCount đang giao</span>
+                        </div>
+                    </div>
+                    <div class="bakery-kpi-iconbox bakery-kpi-purple">
+                        <iconify-icon icon="solar:bill-list-bold"></iconify-icon>
+                    </div>
+                </div>
+
+                <!-- Card 3: Menu & Sản phẩm -->
+                <div class="bakery-kpi-card">
+                    <div class="bakery-kpi-content">
+                        <span class="bakery-kpi-label">Sản phẩm kinh doanh</span>
+                        <div class="bakery-kpi-val">@stats.TotalProductsCount món</div>
+                        <div class="bakery-kpi-subtext">
+                            <span class="bakery-badge bakery-badge-secondary text-[10px] py-0 px-1.5">@stats.BestSellerProductsCount bán chạy</span>
+                            <span>@stats.CategoryBreakups.Count loại</span>
+                        </div>
+                    </div>
+                    <div class="bakery-kpi-iconbox bakery-kpi-green">
+                        <iconify-icon icon="solar:box-minimalistic-bold"></iconify-icon>
+                    </div>
+                </div>
+
+                <!-- Card 4: Khách hàng thân thiết -->
+                <div class="bakery-kpi-card">
+                    <div class="bakery-kpi-content">
+                        <span class="bakery-kpi-label">Khách hàng thành viên</span>
+                        <div class="bakery-kpi-val">@stats.TotalCustomersCount khách</div>
+                        <div class="bakery-kpi-subtext">
+                            <span class="bakery-badge bakery-badge-success text-[10px] py-0 px-1.5">+@stats.NewCustomersThisMonthCount mới</span>
+                            <span>trong tháng</span>
+                        </div>
+                    </div>
+                    <div class="bakery-kpi-iconbox bakery-kpi-amber">
+                        <iconify-icon icon="solar:users-group-two-rounded-bold"></iconify-icon>
                     </div>
                 </div>
             </div>
 
-            <!-- Weekly Earning Card -->
-            <div class="bakery-card flex-1">
-                <div class="bakery-card-body pb-0">
-                    <div class="flex justify-between items-start mb-2">
+            <!-- 3. Revenue Update & Category Breakups (Biểu đồ doanh thu tài chính) -->
+            <div class="bakery-grid-main">
+                <!-- Left: Revenue Updates Stacked Bar Chart -->
+                <div class="bakery-card">
+                    <div class="bakery-card-body">
+                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+                            <div>
+                                <h5 class="text-base font-bold text-dark dark:text-white mb-0.5">Báo Cáo Doanh Thu & Chi Phí</h5>
+                                <p class="text-xs text-bodytext mb-0">Biến động tài chính và lợi nhuận kinh doanh theo 12 tháng</p>
+                            </div>
+                            <div class="flex items-center gap-4 flex-wrap">
+                                <div class="flex items-center gap-3 text-xs">
+                                    <span class="flex items-center gap-1.5">
+                                        <span style="width: 10px; height: 10px; border-radius: 50%; background-color: #5d87ff; display: inline-block;"></span>
+                                        <span class="text-bodytext">Doanh thu</span>
+                                    </span>
+                                    <span class="flex items-center gap-1.5">
+                                        <span style="width: 10px; height: 10px; border-radius: 50%; background-color: #49beff; display: inline-block;"></span>
+                                        <span class="text-bodytext">Chi phí</span>
+                                    </span>
+                                </div>
+                                <select class="form-control text-xs py-1 px-2.5 w-auto border border-border dark:border-darkborder rounded-md bg-white dark:bg-dark">
+                                    <option selected>Năm 2026</option>
+                                    <option>Năm 2025</option>
+                                </select>
+                            </div>
+                        </div>
                         <div>
-                            <h5 class="text-sm font-bold text-dark dark:text-white mb-1">Doanh Số Tuần Này</h5>
-                            <h4 class="text-xl font-bold text-dark dark:text-white mb-1">68.2 Tr</h4>
-                            <div class="flex items-center gap-1.5">
-                                <span class="bakery-badge bakery-badge-success text-[10px] py-0.5 px-1.5">
-                                    <iconify-icon icon="solar:arrow-right-up-linear"></iconify-icon> +14%
+                            <div id="revenue-updates"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right: Category Breakup Donut & Weekly Earning -->
+                <div class="flex flex-col gap-6">
+                    <!-- Category Breakup Card -->
+                    <div class="bakery-card flex-1">
+                        <div class="bakery-card-body">
+                            <div class="flex items-center justify-between mb-2">
+                                <div>
+                                    <h5 class="text-sm font-bold text-dark dark:text-white mb-0.5">Tỷ Trọng Doanh Thu</h5>
+                                    <p class="text-xs text-bodytext mb-0">Tổng cộng: <strong class="text-dark dark:text-white">@($"{(stats.TotalCategoryRevenue / 1000000m):0.#} Tr")</strong></p>
+                                </div>
+                                <span class="bakery-badge bakery-badge-success text-[10px] py-0.5 px-2">
+                                    <iconify-icon icon="solar:arrow-right-up-linear"></iconify-icon> +12% vs 2025
                                 </span>
-                                <span class="text-[11px] text-bodytext">tuần trước</span>
                             </div>
-                        </div>
-                        <div class="bakery-kpi-iconbox bakery-kpi-blue">
-                            <iconify-icon icon="solar:dollar-bold" class="text-xl"></iconify-icon>
-                        </div>
-                    </div>
-                </div>
-                <div id="earning"></div>
-            </div>
-        </div>
-    </div>
 
-    <!-- 4. Operational Section: Timeline & Best Sellers Table -->
-    <div class="bakery-grid-ops">
-        <!-- Left: Timeline Activities (Connected to Database Orders) -->
-        <div class="bakery-card">
-            <div class="bakery-card-body">
-                <h5 class="text-base font-bold text-dark dark:text-white mb-0.5">Tiến Trình Hoạt Động</h5>
-                <p class="text-xs text-bodytext mb-4">Cập nhật thời gian thực từ bếp bánh & quầy thu ngân</p>
-
-                <div class="space-y-4">
-                    @if (stats.RecentActivities != null && stats.RecentActivities.Any())
-                    {
-                        @for (int i = 0; i < stats.RecentActivities.Count; i++)
-                        {
-                            var act = stats.RecentActivities[i];
-                            bool isLast = i == stats.RecentActivities.Count - 1;
-                            <div class="flex gap-3 items-start">
-                                <div class="w-16 text-end text-xs text-bodytext shrink-0 pt-0.5 font-medium">@act.TimeText</div>
-                                <div class="@(isLast ? "relative" : "relative after:absolute after:top-4 after:bottom-0 after:start-1.5 after:w-px after:bg-border dark:after:bg-darkborder")">
-                                    <div class="w-3.5 h-3.5 rounded-full bg-white dark:bg-dark border-2 border-@act.ColorType"></div>
-                                </div>
-                                <div class="grow @(isLast ? "" : "pb-3")">
-                                    <p class="text-xs font-semibold text-dark dark:text-white mb-0.5">@act.Title</p>
-                                    <span class="text-[11px] @(act.ColorType == "success" ? "text-success" : (act.ColorType == "primary" ? "text-primary" : "text-bodytext"))">@act.Detail</span>
-                                </div>
+                            <div class="my-2 flex justify-center items-center">
+                                <div id="breakup" style="min-height: 165px; width: 100%;"></div>
                             </div>
-                        }
-                    }
-                    else
-                    {
-                        <p class="text-xs text-bodytext italic">Chưa có hoạt động mới nào trong ngày.</p>
-                    }
-                </div>
-            </div>
-        </div>
 
-        <!-- Right: Best Selling Products Table (Connected to Database Top Products) -->
-        <div class="bakery-card">
-            <div class="bakery-card-body">
-                <div class="flex items-center justify-between mb-4">
-                    <div>
-                        <h5 class="text-base font-bold text-dark dark:text-white mb-0.5">Top Món Bánh Bán Chạy Nhất</h5>
-                        <p class="text-xs text-bodytext mb-0">Hiệu suất và doanh số bán bánh thực tế từ hệ thống</p>
-                    </div>
-                    <a href="products" class="text-xs font-semibold text-primary hover:underline flex items-center gap-1">
-                        Xem toàn bộ menu <iconify-icon icon="solar:alt-arrow-right-linear"></iconify-icon>
-                    </a>
-                </div>
-
-                <div class="bakery-table-responsive">
-                    <table class="bakery-table">
-                        <thead>
-                            <tr>
-                                <th style="width: 50px;">Hạng</th>
-                                <th>Tên món bánh</th>
-                                <th>Loại sản phẩm</th>
-                                <th class="text-center" style="width: 110px;">Đánh giá</th>
-                                <th class="text-right" style="width: 120px;">Doanh số</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @if (stats.TopSellingProducts != null && stats.TopSellingProducts.Any())
-                            {
-                                @foreach (var prod in stats.TopSellingProducts)
+                            <div class="flex flex-wrap items-center justify-around gap-2 pt-3 border-t border-border dark:border-darkborder text-center">
+                                @if (stats.CategoryBreakups != null)
                                 {
-                                    <tr>
-                                        <td>
-                                            <span class="inline-flex items-center justify-center w-6 h-6 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-semibold">
-                                                @prod.Rank.ToString("D2")
-                                            </span>
-                                        </td>
-                                        <td class="font-medium text-slate-900 dark:text-white">
-                                            @prod.ProductName
-                                        </td>
-                                        <td class="text-xs text-slate-500">
-                                            @prod.CategoryName
-                                        </td>
-                                        <td class="text-center">
-                                            <span class="bakery-badge @(prod.Rank == 1 ? "bakery-badge-success" : (prod.Rank == 2 ? "bakery-badge-primary" : "bakery-badge-secondary")) text-[11px]">
-                                                @prod.LevelBadge
-                                            </span>
-                                        </td>
-                                        <td class="text-right font-semibold text-slate-900 dark:text-white">
-                                            @(prod.TotalRevenue >= 1000000m ? $"{(prod.TotalRevenue / 1000000m):0.#} Tr" : $"{prod.TotalRevenue:N0} đ")
-                                        </td>
-                                    </tr>
+                                    @foreach (var cat in stats.CategoryBreakups)
+                                    {
+                                        <div class="px-2">
+                                            <div class="flex items-center justify-center gap-1.5 text-[11px] text-bodytext">
+                                                <span style="width: 8px; height: 8px; border-radius: 50%; background-color: @cat.ColorHex; display: inline-block;"></span> @cat.CategoryName
+                                            </div>
+                                            <span class="font-bold text-dark dark:text-white text-xs">@cat.Percentage%</span>
+                                        </div>
+                                    }
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Weekly Earning Card -->
+                    <div class="bakery-card flex-1">
+                        <div class="bakery-card-body pb-0">
+                            <div class="flex justify-between items-start mb-2">
+                                <div>
+                                    <h5 class="text-sm font-bold text-dark dark:text-white mb-1">Doanh Số Tuần Này</h5>
+                                    <h4 class="text-xl font-bold text-dark dark:text-white mb-1">68.2 Tr</h4>
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="bakery-badge bakery-badge-success text-[10px] py-0.5 px-1.5">
+                                            <iconify-icon icon="solar:arrow-right-up-linear"></iconify-icon> +14%
+                                        </span>
+                                        <span class="text-[11px] text-bodytext">tuần trước</span>
+                                    </div>
+                                </div>
+                                <div class="bakery-kpi-iconbox bakery-kpi-blue">
+                                    <iconify-icon icon="solar:dollar-bold" class="text-xl"></iconify-icon>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="earning"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. Operational Section: Timeline & Best Sellers Table -->
+            <div class="bakery-grid-ops">
+                <!-- Left: Timeline Activities (Connected to Database Orders) -->
+                <div class="bakery-card">
+                    <div class="bakery-card-body">
+                        <h5 class="text-base font-bold text-dark dark:text-white mb-0.5">Tiến Trình Hoạt Động</h5>
+                        <p class="text-xs text-bodytext mb-4">Cập nhật thời gian thực từ bếp bánh & quầy thu ngân</p>
+
+                        <div class="space-y-4">
+                            @if (stats.RecentActivities != null && stats.RecentActivities.Any())
+                            {
+                                @for (int i = 0; i < stats.RecentActivities.Count; i++)
+                                {
+                                    var act = stats.RecentActivities[i];
+                                    bool isLast = i == stats.RecentActivities.Count - 1;
+                                    <div class="flex gap-3 items-start">
+                                        <div class="w-16 text-end text-xs text-bodytext shrink-0 pt-0.5 font-medium">@act.TimeText</div>
+                                        <div class="@(isLast ? "relative" : "relative after:absolute after:top-4 after:bottom-0 after:start-1.5 after:w-px after:bg-border dark:after:bg-darkborder")">
+                                            <div class="w-3.5 h-3.5 rounded-full bg-white dark:bg-dark border-2 border-@act.ColorType"></div>
+                                        </div>
+                                        <div class="grow @(isLast ? "" : "pb-3")">
+                                            <p class="text-xs font-semibold text-dark dark:text-white mb-0.5">@act.Title</p>
+                                            <span class="text-[11px] @(act.ColorType == "success" ? "text-success" : (act.ColorType == "primary" ? "text-primary" : "text-bodytext"))">@act.Detail</span>
+                                        </div>
+                                    </div>
                                 }
                             }
                             else
                             {
-                                <tr>
-                                    <td colspan="5" class="text-center py-4 text-xs text-bodytext italic">Chưa có dữ liệu bán hàng.</td>
-                                </tr>
+                                <p class="text-xs text-bodytext italic">Chưa có hoạt động mới nào trong ngày.</p>
                             }
-                        </tbody>
-                    </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right: Best Selling Products Table (Admin Full View) -->
+                <div class="bakery-card">
+                    <div class="bakery-card-body">
+                        <div class="flex items-center justify-between mb-4">
+                            <div>
+                                <h5 class="text-base font-bold text-dark dark:text-white mb-0.5">Top Món Bánh Bán Chạy Nhất</h5>
+                                <p class="text-xs text-bodytext mb-0">Hiệu suất và doanh số bán bánh thực tế từ hệ thống</p>
+                            </div>
+                            <a href="products" class="text-xs font-semibold text-primary hover:underline flex items-center gap-1">
+                                Xem toàn bộ menu <iconify-icon icon="solar:alt-arrow-right-linear"></iconify-icon>
+                            </a>
+                        </div>
+
+                        <div class="bakery-table-responsive">
+                            <table class="bakery-table">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 50px;">Hạng</th>
+                                        <th>Tên món bánh</th>
+                                        <th>Loại sản phẩm</th>
+                                        <th class="text-center" style="width: 110px;">Đánh giá</th>
+                                        <th class="text-right" style="width: 120px;">Doanh số</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @if (stats.TopSellingProducts != null && stats.TopSellingProducts.Any())
+                                    {
+                                        @foreach (var prod in stats.TopSellingProducts)
+                                        {
+                                            <tr>
+                                                <td>
+                                                    <span class="inline-flex items-center justify-center w-6 h-6 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-semibold">
+                                                        @prod.Rank.ToString("D2")
+                                                    </span>
+                                                </td>
+                                                <td class="font-medium text-slate-900 dark:text-white">
+                                                    @prod.ProductName
+                                                </td>
+                                                <td class="text-xs text-slate-500">
+                                                    @prod.CategoryName
+                                                </td>
+                                                <td class="text-center">
+                                                    <span class="bakery-badge @(prod.Rank == 1 ? "bakery-badge-success" : (prod.Rank == 2 ? "bakery-badge-primary" : "bakery-badge-secondary")) text-[11px]">
+                                                        @prod.LevelBadge
+                                                    </span>
+                                                </td>
+                                                <td class="text-right font-semibold text-slate-900 dark:text-white">
+                                                    @(prod.TotalRevenue >= 1000000m ? $"{(prod.TotalRevenue / 1000000m):0.#} Tr" : $"{prod.TotalRevenue:N0} đ")
+                                                </td>
+                                            </tr>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <tr>
+                                            <td colspan="5" class="text-center py-4 text-xs text-bodytext italic">Chưa có dữ liệu bán hàng.</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
-    </div>
+        </Authorized>
+    </AuthorizeView>
+
+    <AuthorizeView Roles="Employee">
+        <Authorized>
+            <!-- ========================================================
+                 BẢNG ĐIỀU KHIỂN DÀNH CHO NHÂN VIÊN (CA TRỰC BÁN HÀNG)
+                 Chỉ hiển thị thông tin ca trực: Số đơn đang làm, đơn đang giao, lối tắt bán hàng POS, tra cứu menu
+                 TUYỆT ĐỐI KHÔNG HIỂN THỊ DOANH THU HOẶC LỢI NHUẬN CỦA CHỦ TIỆM
+                 ======================================================== -->
+            <div class="bakery-page-header pb-3 border-b border-border dark:border-darkborder">
+                <div>
+                    <h2 class="text-lg sm:text-xl font-semibold text-dark dark:text-white mb-0.5">Bảng Điều Khiển Ca Trực Bán Hàng</h2>
+                    <p class="text-xs text-slate-500 mb-0">Chào bạn! Chúc bạn một ngày làm việc hiệu quả &bull; Ca trực: @DateTime.Today.ToString("dd/MM/yyyy")</p>
+                </div>
+                <div class="bakery-page-actions">
+                    <a href="pos" class="bakery-btn bakery-btn-primary bakery-btn-sm shadow-sm inline-flex items-center gap-1.5">
+                        <iconify-icon icon="solar:cart-large-minimalistic-bold" class="text-base"></iconify-icon>
+                        <span>Mở Bán Hàng (POS)</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Thẻ nhiệm vụ ca trực (3 thẻ trọng tâm) -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 my-4">
+                <div class="bakery-card p-4 flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-blue-600 flex items-center justify-center shrink-0">
+                        <iconify-icon icon="solar:chef-hat-minimalistic-bold" class="text-2xl"></iconify-icon>
+                    </div>
+                    <div>
+                        <span class="text-xs text-slate-500 font-medium block">Bếp đang làm bánh</span>
+                        <div class="text-xl font-bold text-slate-900 dark:text-white">@stats.BakingOrdersCount đơn hàng</div>
+                        <span class="text-[11px] text-blue-600">Cần theo dõi chuẩn bị</span>
+                    </div>
+                </div>
+
+                <div class="bakery-card p-4 flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 flex items-center justify-center shrink-0">
+                        <iconify-icon icon="solar:delivery-bold" class="text-2xl"></iconify-icon>
+                    </div>
+                    <div>
+                        <span class="text-xs text-slate-500 font-medium block">Đang giao cho khách</span>
+                        <div class="text-xl font-bold text-slate-900 dark:text-white">@stats.ShippingOrdersCount đơn hàng</div>
+                        <span class="text-[11px] text-emerald-600">Shipper đang vận chuyển</span>
+                    </div>
+                </div>
+
+                <div class="bakery-card p-4 flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-600 flex items-center justify-center shrink-0">
+                        <iconify-icon icon="solar:bag-5-bold" class="text-2xl"></iconify-icon>
+                    </div>
+                    <div>
+                        <span class="text-xs text-slate-500 font-medium block">Món bánh sẵn sàng bán</span>
+                        <div class="text-xl font-bold text-slate-900 dark:text-white">@stats.TotalProductsCount món bánh</div>
+                        <span class="text-[11px] text-amber-600">Kiểm tra giá & tồn kho</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2 Lối tắt hành động nhanh cho nhân viên -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 my-4">
+                <a href="pos" class="bakery-card p-5 hover:border-primary transition-all group block">
+                    <div class="flex items-start justify-between">
+                        <div>
+                            <span class="bakery-badge bakery-badge-primary text-[10px] uppercase font-bold tracking-wide mb-2 inline-block">Nghiệp vụ chính</span>
+                            <h3 class="text-base font-bold text-slate-900 dark:text-white group-hover:text-primary transition-colors mb-1">
+                                Màn hình Bán hàng tại quầy (POS)
+                            </h3>
+                            <p class="text-xs text-slate-500 mb-0">
+                                Chọn bánh theo thực đơn, tính tiền nhanh, áp mã ưu đãi và in hóa đơn cho khách tại quầy.
+                            </p>
+                        </div>
+                        <div class="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-all shrink-0">
+                            <iconify-icon icon="solar:arrow-right-linear" class="text-lg"></iconify-icon>
+                        </div>
+                    </div>
+                </a>
+
+                <a href="orders" class="bakery-card p-5 hover:border-primary transition-all group block">
+                    <div class="flex items-start justify-between">
+                        <div>
+                            <span class="bakery-badge bakery-badge-success text-[10px] uppercase font-bold tracking-wide mb-2 inline-block">Xử lý đơn</span>
+                            <h3 class="text-base font-bold text-slate-900 dark:text-white group-hover:text-primary transition-colors mb-1">
+                                Quản lý Đơn đặt hàng
+                            </h3>
+                            <p class="text-xs text-slate-500 mb-0">
+                                Tiếp nhận đơn online từ khách, chuyển trạng thái duyệt đơn, làm bánh và xuất giao hàng.
+                            </p>
+                        </div>
+                        <div class="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-all shrink-0">
+                            <iconify-icon icon="solar:arrow-right-linear" class="text-lg"></iconify-icon>
+                        </div>
+                    </div>
+                </a>
+            </div>
+
+            <!-- Danh sách Top món bánh bán chạy (để nhân viên tư vấn khách) -->
+            <div class="bakery-card my-4">
+                <div class="bakery-card-body">
+                    <div class="flex items-center justify-between mb-3">
+                        <div>
+                            <h5 class="text-sm font-bold text-dark dark:text-white mb-0.5">Món Bánh Được Yêu Thích Nhất (Gợi ý tư vấn khách)</h5>
+                            <p class="text-xs text-bodytext mb-0">Danh sách các món bánh bán chạy nhất tiệm để nhân viên giới thiệu cho khách mua bánh</p>
+                        </div>
+                        <a href="products" class="text-xs font-semibold text-primary hover:underline flex items-center gap-1">
+                            Tra cứu bảng giá <iconify-icon icon="solar:alt-arrow-right-linear"></iconify-icon>
+                        </a>
+                    </div>
+
+                    <div class="bakery-table-responsive">
+                        <table class="bakery-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 50px;">Hạng</th>
+                                    <th>Tên món bánh</th>
+                                    <th>Loại sản phẩm</th>
+                                    <th class="text-center" style="width: 120px;">Trạng thái</th>
+                                    <th class="text-center" style="width: 100px;">Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (stats.TopSellingProducts != null && stats.TopSellingProducts.Any())
+                                {
+                                    @foreach (var prod in stats.TopSellingProducts)
+                                    {
+                                        <tr>
+                                            <td>
+                                                <span class="inline-flex items-center justify-center w-6 h-6 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-semibold">
+                                                    @prod.Rank.ToString("D2")
+                                                </span>
+                                            </td>
+                                            <td class="font-medium text-slate-900 dark:text-white">
+                                                @prod.ProductName
+                                            </td>
+                                            <td class="text-xs text-slate-500">
+                                                @prod.CategoryName
+                                            </td>
+                                            <td class="text-center">
+                                                <span class="bakery-badge bakery-badge-success text-[11px]">
+                                                    @prod.LevelBadge
+                                                </span>
+                                            </td>
+                                            <td class="text-center">
+                                                <a href="pos" class="text-xs text-primary font-medium hover:underline">
+                                                    Bán ngay
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </Authorized>
+    </AuthorizeView>
 }
 
 @code {
@@ -299,7 +465,11 @@ else
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (stats != null)
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        bool isAdmin = authState.User.IsInRole("Admin");
+
+        // Chỉ khởi tạo biểu đồ ApexCharts khi người dùng là Admin (các container DOM mới tồn tại)
+        if (isAdmin && stats != null)
         {
             var series = stats.CategoryBreakups.Select(c => c.Percentage).ToArray();
             var labels = stats.CategoryBreakups.Select(c => c.CategoryName).ToArray();

@@ -1,5 +1,6 @@
 @page "/categories"
 @rendermode InteractiveServer
+@attribute [Authorize(Roles = "Admin")]
 @inject IProductService ProductService
 @inject NavigationManager Navigation
 

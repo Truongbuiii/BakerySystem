@@ -30,14 +30,18 @@
                 <iconify-icon icon="solar:restart-linear" class="text-base"></iconify-icon>
                 <span>Làm mới</span>
             </button>
-            <button class="bakery-btn bakery-btn-outline bakery-btn-sm" @onclick="OpenCreateCategoryModal">
-                <iconify-icon icon="solar:folder-with-files-linear" class="text-base"></iconify-icon>
-                <span>+ Thêm loại sản phẩm</span>
-            </button>
-            <button class="bakery-btn bakery-btn-primary bakery-btn-sm shadow-sm" @onclick="OpenCreateProductModal">
-                <iconify-icon icon="solar:add-circle-linear" class="text-base"></iconify-icon>
-                <span>+ Thêm món mới</span>
-            </button>
+            <AuthorizeView Roles="Admin">
+                <Authorized>
+                    <button class="bakery-btn bakery-btn-outline bakery-btn-sm" @onclick="OpenCreateCategoryModal">
+                        <iconify-icon icon="solar:folder-with-files-linear" class="text-base"></iconify-icon>
+                        <span>+ Thêm loại sản phẩm</span>
+                    </button>
+                    <button class="bakery-btn bakery-btn-primary bakery-btn-sm shadow-sm" @onclick="OpenCreateProductModal">
+                        <iconify-icon icon="solar:add-circle-linear" class="text-base"></iconify-icon>
+                        <span>+ Thêm món mới</span>
+                    </button>
+                </Authorized>
+            </AuthorizeView>
         </div>
     </div>
 
@@ -211,7 +215,11 @@
                             <th class="text-center" style="width: 140px;">Tồn Kho</th>
                             <th class="text-right" style="width: 100px;">Đã Bán</th>
                             <th class="text-center" style="width: 130px;">Trạng Thái</th>
-                            <th class="text-right" style="width: 110px;">Thao Tác</th>
+                            <AuthorizeView Roles="Admin">
+                                <Authorized>
+                                    <th class="text-right" style="width: 110px;">Thao Tác</th>
+                                </Authorized>
+                            </AuthorizeView>
                         </tr>
                     </thead>
                     <tbody>
@@ -292,31 +300,44 @@
 
                                 <!-- Active toggle switch -->
                                 <td class="text-center">
-                                    <button type="button" 
-                                            class="bakery-toggle-pill @(item.IsActive ? "active" : "inactive")"
-                                            title="Bấm để bật/tắt trạng thái kinh doanh"
-                                            @onclick="() => ToggleStatusAsync(item)">
-                                        <span class="bakery-toggle-dot"></span>
-                                        <span>@(item.IsActive ? "Đang bán" : "Tạm ngưng")</span>
-                                    </button>
+                                    <AuthorizeView Roles="Admin">
+                                        <Authorized Context="authCtx">
+                                            <button type="button" 
+                                                    class="bakery-toggle-pill @(item.IsActive ? "active" : "inactive")"
+                                                    title="Bấm để bật/tắt trạng thái kinh doanh"
+                                                    @onclick="() => ToggleStatusAsync(item)">
+                                                <span class="bakery-toggle-dot"></span>
+                                                <span>@(item.IsActive ? "Đang bán" : "Tạm ngưng")</span>
+                                            </button>
+                                        </Authorized>
+                                        <NotAuthorized Context="authCtx">
+                                            <span class="bakery-badge @(item.IsActive ? "bakery-badge-success" : "bakery-badge-secondary") text-xs">
+                                                @(item.IsActive ? "Đang bán" : "Tạm ngưng")
+                                            </span>
+                                        </NotAuthorized>
+                                    </AuthorizeView>
                                 </td>
 
-                                <!-- Action Buttons -->
-                                <td class="text-right">
-                                    <div class="bakery-action-group">
-                                        <button class="bakery-action-btn" 
-                                                title="Chỉnh sửa thông tin món"
-                                                @onclick="() => OpenEditProductModal(item)">
-                                            <iconify-icon icon="solar:pen-linear"></iconify-icon>
-                                        </button>
+                                <!-- Action Buttons: Chỉ dành cho Admin -->
+                                <AuthorizeView Roles="Admin">
+                                    <Authorized Context="authCtx">
+                                        <td class="text-right">
+                                            <div class="bakery-action-group">
+                                                <button class="bakery-action-btn" 
+                                                        title="Chỉnh sửa thông tin món"
+                                                        @onclick="() => OpenEditProductModal(item)">
+                                                    <iconify-icon icon="solar:pen-linear"></iconify-icon>
+                                                </button>
 
-                                        <button class="bakery-action-btn bakery-action-btn-danger" 
-                                                title="Xóa hoặc ngừng bán"
-                                                @onclick="() => OpenDeleteConfirmModal(item)">
-                                            <iconify-icon icon="solar:trash-bin-trash-linear"></iconify-icon>
-                                        </button>
-                                    </div>
-                                </td>
+                                                <button class="bakery-action-btn bakery-action-btn-danger" 
+                                                        title="Xóa hoặc ngừng bán"
+                                                        @onclick="() => OpenDeleteConfirmModal(item)">
+                                                    <iconify-icon icon="solar:trash-bin-trash-linear"></iconify-icon>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </Authorized>
+                                </AuthorizeView>
                             </tr>
                         }
                     </tbody>
