@@ -8,13 +8,16 @@ public interface IProductService
 {
     Task<List<ProductDto>> GetProductsAsync(string? search = null, int? categoryId = null, bool? isActive = null, string? stockStatus = null, CancellationToken cancellationToken = default);
     Task<ProductStatsDto> GetProductStatsAsync(CancellationToken cancellationToken = default);
-    Task<List<CategoryDto>> GetCategoriesAsync(CancellationToken cancellationToken = default);
+    Task<List<CategoryDto>> GetCategoriesAsync(bool? isActive = null, CancellationToken cancellationToken = default);
     Task<ProductDto?> GetProductByIdAsync(int id, CancellationToken cancellationToken = default);
     Task<ProductDto> CreateProductAsync(CreateProductDto dto, CancellationToken cancellationToken = default);
     Task<bool> UpdateProductAsync(UpdateProductDto dto, CancellationToken cancellationToken = default);
     Task<bool> ToggleProductStatusAsync(int id, CancellationToken cancellationToken = default);
     Task<(bool Success, string Message)> DeleteOrArchiveProductAsync(int id, CancellationToken cancellationToken = default);
     Task<CategoryDto> CreateCategoryAsync(string categoryName, CancellationToken cancellationToken = default);
+    Task<(bool Success, string Message)> UpdateCategoryAsync(int categoryId, string categoryName, CancellationToken cancellationToken = default);
+    Task<(bool Success, string Message)> ToggleCategoryStatusAsync(int categoryId, CancellationToken cancellationToken = default);
+    Task<(bool Success, string Message)> DeleteOrArchiveCategoryAsync(int categoryId, CancellationToken cancellationToken = default);
 }
 
 public class ProductService : IProductService
@@ -114,16 +117,22 @@ public class ProductService : IProductService
         };
     }
 
-    public async Task<List<CategoryDto>> GetCategoriesAsync(CancellationToken cancellationToken = default)
+    public async Task<List<CategoryDto>> GetCategoriesAsync(bool? isActive = null, CancellationToken cancellationToken = default)
     {
-        return await _context.Categories
-            .AsNoTracking()
+        var query = _context.Categories.AsNoTracking();
+        if (isActive.HasValue)
+        {
+            query = query.Where(c => c.IsActive == isActive.Value);
+        }
+
+        return await query
             .OrderBy(c => c.CategoryName)
             .Select(c => new CategoryDto
             {
                 CategoryID = c.CategoryID,
                 CategoryName = c.CategoryName,
-                ProductCount = c.Products.Count
+                ProductCount = c.Products.Count,
+                IsActive = c.IsActive
             })
             .ToListAsync(cancellationToken);
     }
@@ -267,7 +276,101 @@ public class ProductService : IProductService
         {
             CategoryID = category.CategoryID,
             CategoryName = category.CategoryName,
-            ProductCount = 0
+            ProductCount = 0,
+            IsActive = true
         };
+    }
+
+    public async Task<(bool Success, string Message)> UpdateCategoryAsync(int categoryId, string categoryName, CancellationToken cancellationToken = default)
+    {
+        var trimmed = categoryName?.Trim();
+        if (string.IsNullOrWhiteSpace(trimmed))
+        {
+            return (false, "Tên loại sản phẩm không được để trống.");
+        }
+
+        var category = await _context.Categories.FindAsync(new object[] { categoryId }, cancellationToken);
+        if (category == null)
+        {
+            return (false, "Không tìm thấy loại sản phẩm cần cập nhật.");
+        }
+
+        // Kiểm tra xem tên mới có trùng với loại sản phẩm khác không
+        var duplicate = await _context.Categories
+            .AnyAsync(c => c.CategoryID != categoryId && c.CategoryName.ToLower() == trimmed.ToLower(), cancellationToken);
+        if (duplicate)
+        {
+            return (false, $"Tên loại sản phẩm '{trimmed}' đã tồn tại trong hệ thống.");
+        }
+
+        category.CategoryName = trimmed;
+        await _context.SaveChangesAsync(cancellationToken);
+        return (true, $"Đã cập nhật tên loại sản phẩm thành '{trimmed}'.");
+    }
+
+    public async Task<(bool Success, string Message)> ToggleCategoryStatusAsync(int categoryId, CancellationToken cancellationToken = default)
+    {
+        var category = await _context.Categories
+            .Include(c => c.Products)
+            .FirstOrDefaultAsync(c => c.CategoryID == categoryId, cancellationToken);
+
+        if (category == null)
+        {
+            return (false, "Không tìm thấy loại sản phẩm.");
+        }
+
+        category.IsActive = !category.IsActive;
+
+        // ĐỒNG BỘ: Khi ẩn loại sản phẩm, ngưng hoạt động luôn toàn bộ sản phẩm thuộc loại đó
+        // Khi mở lại loại sản phẩm, kích hoạt lại toàn bộ sản phẩm thuộc loại đó
+        int affectedCount = 0;
+        if (category.Products != null && category.Products.Any())
+        {
+            foreach (var p in category.Products)
+            {
+                p.IsActive = category.IsActive;
+            }
+            affectedCount = category.Products.Count;
+        }
+
+        await _context.SaveChangesAsync(cancellationToken);
+
+        if (!category.IsActive)
+        {
+            return (true, $"Đã ẩn loại '{category.CategoryName}' và ngưng hoạt động đồng bộ {affectedCount} món bánh thuộc nhóm này.");
+        }
+        else
+        {
+            return (true, $"Đã kích hoạt lại loại '{category.CategoryName}' và mở lại {affectedCount} món bánh trong thực đơn.");
+        }
+    }
+
+    public async Task<(bool Success, string Message)> DeleteOrArchiveCategoryAsync(int categoryId, CancellationToken cancellationToken = default)
+    {
+        var category = await _context.Categories
+            .Include(c => c.Products)
+            .FirstOrDefaultAsync(c => c.CategoryID == categoryId, cancellationToken);
+
+        if (category == null)
+        {
+            return (false, "Không tìm thấy loại sản phẩm.");
+        }
+
+        // LUẬT: Nếu loại sản phẩm đã có sản phẩm thuộc nhóm này -> Không xóa, chuyển sang ẨN và NGƯNG HOẠT ĐỘNG TOÀN BỘ SẢN PHẨM LIÊN QUAN
+        if (category.Products.Any())
+        {
+            category.IsActive = false;
+            foreach (var p in category.Products)
+            {
+                p.IsActive = false;
+            }
+            await _context.SaveChangesAsync(cancellationToken);
+            return (true, $"Loại sản phẩm '{category.CategoryName}' đang có {category.Products.Count} món bánh thuộc nhóm này. Theo quy định, hệ thống đã chuyển loại sản phẩm và đồng thời ngưng hoạt động toàn bộ {category.Products.Count} món bánh để bảo toàn dữ liệu.");
+        }
+
+        // Nếu chưa có sản phẩm nào -> Được phép XÓA VĨNH VIỄN
+        _context.Categories.Remove(category);
+        await _context.SaveChangesAsync(cancellationToken);
+        return (true, $"Đã xóa vĩnh viễn loại sản phẩm '{category.CategoryName}' khỏi hệ thống thành công vì chưa có sản phẩm nào thuộc nhóm này.");
     }
 }

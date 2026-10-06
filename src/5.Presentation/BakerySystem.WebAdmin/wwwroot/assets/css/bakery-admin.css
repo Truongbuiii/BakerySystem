@@ -541,8 +541,8 @@ html.dark .bakery-kpi-subtext {
 .bakery-card {
     background-color: #ffffff;
     border: 1px solid var(--bakery-border);
-    border-radius: 12px;
-    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.02);
+    border-radius: 16px;
+    box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.05), 0 2px 6px -1px rgba(15, 23, 42, 0.02);
     overflow: hidden;
     display: flex;
     flex-direction: column;
@@ -574,10 +574,10 @@ html.dark .bakery-card {
 .bakery-filter-card {
     background-color: #ffffff !important;
     border: 1px solid var(--bakery-border) !important;
-    border-radius: 12px !important;
+    border-radius: 16px !important;
     padding: 1.125rem 1.35rem !important;
     margin-bottom: 2rem !important; /* Guaranteed 32px separation! Never sticks! */
-    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04) !important;
+    box-shadow: 0 4px 16px -2px rgba(15, 23, 42, 0.04) !important;
 }
 
 html.dark .bakery-filter-card {
@@ -695,11 +695,11 @@ html.dark .bakery-table tbody tr:hover {
 .bakery-badge {
     display: inline-flex;
     align-items: center;
-    gap: 0.25rem;
-    padding: 0.15rem 0.45rem;
-    border-radius: 4px;
-    font-size: 0.6875rem; /* 11px */
-    font-weight: 500;
+    gap: 0.35rem;
+    padding: 0.2rem 0.65rem;
+    border-radius: 9999px;
+    font-size: 0.72rem;
+    font-weight: 600;
     line-height: 1.3;
     border: 1px solid transparent;
     white-space: nowrap;
@@ -743,16 +743,21 @@ html.dark .bakery-table tbody tr:hover {
     align-items: center;
     justify-content: center;
     gap: 0.375rem;
-    height: 36px;
-    padding: 0 0.875rem;
+    height: 38px;
+    padding: 0 0.95rem;
     font-size: 0.8125rem; /* 13px */
-    font-weight: 500;
-    border-radius: 6px;
+    font-weight: 600;
+    border-radius: 10px;
     border: 1px solid transparent;
     cursor: pointer;
     text-decoration: none;
     box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-    transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.bakery-btn:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .bakery-btn:disabled {
@@ -762,8 +767,9 @@ html.dark .bakery-table tbody tr:hover {
 
 .bakery-btn-sm {
     height: 32px;
-    padding: 0 0.625rem;
+    padding: 0 0.75rem;
     font-size: 0.75rem; /* 12px */
+    border-radius: 8px;
 }
 
 .bakery-btn-primary {
@@ -815,10 +821,10 @@ html.dark .bakery-table tbody tr:hover {
 /* Forms */
 .bakery-input {
     width: 100%;
-    height: 36px;
-    padding: 0 0.75rem;
+    height: 38px;
+    padding: 0 0.85rem;
     font-size: 0.8125rem; /* 13px */
-    border-radius: 6px;
+    border-radius: 10px;
     border: 1px solid var(--bakery-border);
     background-color: #ffffff;
     color: #1e293b;
@@ -829,7 +835,7 @@ html.dark .bakery-table tbody tr:hover {
 
 .bakery-input:focus {
     border-color: var(--bakery-primary);
-    box-shadow: 0 0 0 2px rgba(30, 64, 175, 0.12);
+    box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.12);
 }
 
 html.dark .bakery-input {
@@ -861,8 +867,8 @@ html.dark .bakery-label {
     height: 100vh !important;
     z-index: 9999 !important;
     background-color: rgba(15, 23, 42, 0.65) !important;
-    backdrop-filter: blur(5px) !important;
-    -webkit-backdrop-filter: blur(5px) !important;
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
@@ -871,13 +877,13 @@ html.dark .bakery-label {
 
 .bakery-modal-card {
     background-color: #ffffff;
-    border-radius: 8px;
+    border-radius: 20px;
     width: 100%;
     max-width: 600px;
     max-height: 90vh;
     display: flex;
     flex-direction: column;
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.05);
     border: 1px solid var(--bakery-border);
     overflow: hidden;
 }
@@ -1152,12 +1158,168 @@ html.dark .bakery-sold-count {
 }
 
 /* ========================================================
-   10. CATEGORY GRID & MODERN CATEGORY CARDS
+   10. CATEGORY MANAGEMENT: STATS, FILTER BAR & MODERN SQUARE CARDS
    ======================================================== */
+.bakery-stats-grid {
+    display: grid !important;
+    grid-template-columns: repeat(1, minmax(0, 1fr)) !important;
+    gap: 1rem !important;
+    margin-bottom: 1.5rem !important;
+}
+
+@media (min-width: 640px) {
+    .bakery-stats-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+}
+
+@media (min-width: 1024px) {
+    .bakery-stats-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    }
+}
+
+.bakery-stat-card {
+    background-color: #ffffff !important;
+    border: 1px solid rgba(226, 232, 240, 0.9) !important;
+    border-radius: 18px !important;
+    padding: 1.25rem 1.4rem !important;
+    box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.05) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    position: relative !important;
+    overflow: hidden !important;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.bakery-stat-card:hover {
+    transform: translateY(-3px) !important;
+    box-shadow: 0 12px 28px -4px rgba(15, 23, 42, 0.09) !important;
+    border-color: #cbd5e1 !important;
+}
+
+html.dark .bakery-stat-card {
+    background-color: var(--bakery-bg-dark) !important;
+    border-color: var(--bakery-border-dark) !important;
+}
+
+.bakery-stat-icon-wrapper {
+    width: 48px !important;
+    height: 48px !important;
+    border-radius: 14px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 1.4rem !important;
+    flex-shrink: 0 !important;
+    transition: transform 0.25s ease !important;
+}
+
+.bakery-stat-card:hover .bakery-stat-icon-wrapper {
+    transform: scale(1.08) !important;
+}
+
+/* Modern Filter & Search Bar */
+.bakery-filter-toolbar {
+    background-color: #ffffff !important;
+    border: 1px solid rgba(226, 232, 240, 0.9) !important;
+    border-radius: 18px !important;
+    padding: 0.875rem 1.25rem !important;
+    margin-bottom: 1.5rem !important;
+    box-shadow: 0 4px 18px -2px rgba(15, 23, 42, 0.04) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0.875rem !important;
+}
+
+@media (min-width: 640px) {
+    .bakery-filter-toolbar {
+        flex-direction: row !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+    }
+}
+
+html.dark .bakery-filter-toolbar {
+    background-color: var(--bakery-bg-dark) !important;
+    border-color: var(--bakery-border-dark) !important;
+}
+
+.bakery-filter-search-box {
+    position: relative !important;
+    flex: 1 !important;
+    max-width: 420px !important;
+}
+
+.bakery-filter-search-box input {
+    height: 40px !important;
+    border-radius: 12px !important;
+    background-color: #f8fafc !important;
+    border: 1px solid #e2e8f0 !important;
+    padding-left: 2.5rem !important;
+    font-size: 0.8125rem !important;
+    transition: all 0.2s ease !important;
+}
+
+.bakery-filter-search-box input:focus {
+    background-color: #ffffff !important;
+    border-color: var(--bakery-primary) !important;
+    box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.12) !important;
+}
+
+html.dark .bakery-filter-search-box input {
+    background-color: #1e293b !important;
+    border-color: #334155 !important;
+    color: #f8fafc !important;
+}
+
+.bakery-pill-tabs {
+    display: inline-flex !important;
+    background-color: #f1f5f9 !important;
+    border-radius: 12px !important;
+    padding: 4px !important;
+    gap: 4px !important;
+}
+
+html.dark .bakery-pill-tabs {
+    background-color: rgba(30, 41, 59, 0.8) !important;
+}
+
+.bakery-pill-tab {
+    padding: 6px 14px !important;
+    border-radius: 9px !important;
+    font-size: 0.75rem !important;
+    font-weight: 500 !important;
+    color: #64748b !important;
+    background: transparent !important;
+    border: none !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+    white-space: nowrap !important;
+}
+
+.bakery-pill-tab:hover {
+    color: #0f172a !important;
+}
+
+.bakery-pill-tab.active {
+    background-color: #ffffff !important;
+    color: #0f172a !important;
+    font-weight: 600 !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06) !important;
+}
+
+html.dark .bakery-pill-tab.active {
+    background-color: #334155 !important;
+    color: #ffffff !important;
+}
+
+/* Category Grid & Square Modern Cards */
 .bakery-category-grid {
     display: grid !important;
     grid-template-columns: repeat(1, minmax(0, 1fr)) !important;
-    gap: 1.25rem !important;
+    gap: 1.5rem !important;
     margin-top: 1rem !important;
 }
 
@@ -1173,33 +1335,189 @@ html.dark .bakery-sold-count {
     }
 }
 
-@media (min-width: 1280px) {
+@media (min-width: 1400px) {
     .bakery-category-grid {
         grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
     }
 }
 
 .bakery-category-card {
-    background-color: #ffffff;
-    border: 1px solid var(--bakery-border);
-    border-radius: 12px;
-    padding: 1.25rem 1.35rem;
-    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04);
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    transition: all 0.2s ease;
+    background-color: #ffffff !important;
+    border: 1px solid rgba(226, 232, 240, 0.9) !important;
+    border-radius: 20px !important; /* Bo góc tròn hiện đại, sang trọng */
+    padding: 1.35rem 1.4rem !important;
+    box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.04), 0 2px 6px -1px rgba(15, 23, 42, 0.02) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    min-height: 240px !important; /* Ô vuông vắn cân xứng */
+    position: relative !important;
+    overflow: hidden !important;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
-html.dark .bakery-category-card {
-    background-color: var(--bakery-bg-dark);
-    border-color: var(--bakery-border-dark);
+/* Top accent line */
+.bakery-category-card::before {
+    content: "" !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    height: 4px !important;
+    background: linear-gradient(90deg, #3b82f6, #6366f1) !important;
+    opacity: 0.95 !important;
+    transition: height 0.2s ease !important;
 }
 
 .bakery-category-card:hover {
-    border-color: #cbd5e1;
-    box-shadow: 0 6px 16px -2px rgba(0, 0, 0, 0.07);
-    transform: translateY(-2px);
+    border-color: #93c5fd !important;
+    box-shadow: 0 16px 32px -4px rgba(37, 99, 235, 0.1), 0 4px 12px -2px rgba(15, 23, 42, 0.04) !important;
+    transform: translateY(-4px) !important;
+}
+
+.bakery-category-card:hover::before {
+    height: 6px !important;
+}
+
+.bakery-category-card.is-inactive {
+    background-color: #f8fafc !important;
+    border-color: #e2e8f0 !important;
+    opacity: 0.88 !important;
+}
+
+.bakery-category-card.is-inactive::before {
+    background: linear-gradient(90deg, #94a3b8, #cbd5e1) !important;
+}
+
+.bakery-category-card.is-inactive:hover {
+    border-color: #cbd5e1 !important;
+    box-shadow: 0 10px 24px -4px rgba(15, 23, 42, 0.07) !important;
+}
+
+html.dark .bakery-category-card {
+    background-color: var(--bakery-bg-dark) !important;
+    border-color: var(--bakery-border-dark) !important;
+}
+
+html.dark .bakery-category-card.is-inactive {
+    background-color: rgba(15, 23, 42, 0.6) !important;
+    border-color: rgba(51, 65, 85, 0.6) !important;
+}
+
+/* Modern Icon Box */
+.bakery-cat-icon-box {
+    width: 48px !important;
+    height: 48px !important;
+    border-radius: 15px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 1.5rem !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04) !important;
+    transition: transform 0.25s ease !important;
+}
+
+.bakery-category-card:hover .bakery-cat-icon-box {
+    transform: scale(1.08) rotate(3deg) !important;
+}
+
+.bakery-cat-icon-box.active {
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
+    color: #2563eb !important;
+    border: 1px solid #bfdbfe !important;
+}
+
+.bakery-cat-icon-box.inactive {
+    background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%) !important;
+    color: #64748b !important;
+    border: 1px solid #cbd5e1 !important;
+}
+
+/* Category Action Button Pills */
+.bakery-cat-action-btn {
+    height: 32px !important;
+    border-radius: 10px !important;
+    font-size: 0.75rem !important;
+    font-weight: 600 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 0.35rem !important;
+    padding: 0 0.75rem !important;
+    border: 1px solid transparent !important;
+    background-color: #f8fafc !important;
+    color: #475569 !important;
+    cursor: pointer !important;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.bakery-cat-action-btn:hover {
+    transform: translateY(-1px) !important;
+}
+
+.bakery-cat-action-btn.edit {
+    background-color: #f1f5f9 !important;
+    color: #334155 !important;
+}
+
+.bakery-cat-action-btn.edit:hover {
+    background-color: #eff6ff !important;
+    color: #1d4ed8 !important;
+    border-color: #bfdbfe !important;
+}
+
+.bakery-cat-action-btn.hide {
+    background-color: #fffbeb !important;
+    color: #b45309 !important;
+    border-color: #fef3c7 !important;
+}
+
+.bakery-cat-action-btn.hide:hover {
+    background-color: #fef3c7 !important;
+    color: #92400e !important;
+    border-color: #fde68a !important;
+}
+
+.bakery-cat-action-btn.unhide {
+    background-color: #ecfdf5 !important;
+    color: #047857 !important;
+    border-color: #d1fae5 !important;
+}
+
+.bakery-cat-action-btn.unhide:hover {
+    background-color: #d1fae5 !important;
+    color: #065f46 !important;
+    border-color: #a7f3d0 !important;
+}
+
+.bakery-cat-action-btn.delete {
+    background-color: #fef2f2 !important;
+    color: #dc2626 !important;
+    border-color: #fee2e2 !important;
+}
+
+.bakery-cat-action-btn.delete:hover {
+    background-color: #fee2e2 !important;
+    color: #b91c1c !important;
+    border-color: #fecaca !important;
+}
+
+.bakery-cat-action-btn.archive-warning {
+    background-color: #f8fafc !important;
+    color: #64748b !important;
+    border-color: #e2e8f0 !important;
+}
+
+.bakery-cat-action-btn.archive-warning:hover {
+    background-color: #fffbeb !important;
+    color: #d97706 !important;
+    border-color: #fcd34d !important;
+}
+
+html.dark .bakery-cat-action-btn {
+    background-color: #1e293b !important;
+    color: #cbd5e1 !important;
+    border-color: #334155 !important;
 }
 
 /* ========================================================
@@ -1904,26 +2222,240 @@ html.dark .bakery-pos-cart-header {
 }
 
 /* Khung thông tin khách hàng - Hiện đại, bo góc, phân tách rõ */
-.bakery-pos-customer-banner {
-    background-color: #f8fafc !important;
-    border: 1px solid #e2e8f0 !important;
-    border-radius: 8px !important;
-    padding: 0.75rem 0.875rem !important;
+.bakery-pos-cust-container {
     display: flex !important;
     flex-direction: column !important;
-    gap: 0.35rem !important;
+    gap: 0.5rem !important;
 }
 
-html.dark .bakery-pos-customer-banner {
-    background-color: rgba(15, 23, 42, 0.6) !important;
+/* Thẻ Thành Viên (VIP Card) khi đã nhận diện SĐT */
+.bakery-pos-vip-card {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    padding: 0.75rem 0.875rem !important;
+    border-radius: 12px !important;
+    background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%) !important;
+    border: 1px solid #fde68a !important;
+    box-shadow: 0 1px 3px rgba(217, 119, 6, 0.08) !important;
+}
+
+html.dark .bakery-pos-vip-card {
+    background: linear-gradient(135deg, rgba(69, 26, 3, 0.35) 0%, rgba(120, 53, 15, 0.25) 100%) !important;
+    border-color: rgba(245, 158, 11, 0.3) !important;
+}
+
+.bakery-pos-vip-avatar {
+    width: 36px !important;
+    height: 36px !important;
+    border-radius: 10px !important;
+    background: #fef08a !important;
+    color: #b45309 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 1.15rem !important;
+    flex-shrink: 0 !important;
+    box-shadow: 0 1px 2px rgba(180, 83, 9, 0.15) !important;
+}
+
+html.dark .bakery-pos-vip-avatar {
+    background: rgba(245, 158, 11, 0.2) !important;
+    color: #fbbf24 !important;
+}
+
+.bakery-pos-vip-info {
+    flex: 1 !important;
+    min-width: 0 !important;
+    margin-left: 0.75rem !important;
+}
+
+.bakery-pos-vip-name-row {
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.375rem !important;
+}
+
+.bakery-pos-vip-name {
+    font-size: 0.8125rem !important;
+    font-weight: 700 !important;
+    color: #1e293b !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+}
+
+html.dark .bakery-pos-vip-name {
+    color: #f8fafc !important;
+}
+
+.bakery-pos-vip-badge {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 0.2rem !important;
+    font-size: 0.625rem !important;
+    font-weight: 700 !important;
+    padding: 0.125rem 0.45rem !important;
+    border-radius: 9999px !important;
+    background: #f59e0b !important;
+    color: #ffffff !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.02em !important;
+    flex-shrink: 0 !important;
+}
+
+.bakery-pos-vip-phone {
+    font-size: 0.72rem !important;
+    color: #78350f !important;
+    font-family: monospace !important;
+    font-weight: 600 !important;
+    margin-top: 0.15rem !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.25rem !important;
+}
+
+html.dark .bakery-pos-vip-phone {
+    color: #fde68a !important;
+}
+
+.bakery-pos-change-btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 0.25rem !important;
+    font-size: 0.72rem !important;
+    font-weight: 600 !important;
+    color: #dc2626 !important;
+    background: #fef2f2 !important;
+    border: 1px solid #fecaca !important;
+    border-radius: 8px !important;
+    padding: 0.3rem 0.6rem !important;
+    cursor: pointer !important;
+    transition: all 0.15s ease !important;
+    flex-shrink: 0 !important;
+}
+
+.bakery-pos-change-btn:hover {
+    background: #fee2e2 !important;
+    color: #b91c1c !important;
+    border-color: #f87171 !important;
+}
+
+html.dark .bakery-pos-change-btn {
+    background: rgba(153, 27, 27, 0.25) !important;
+    border-color: rgba(239, 68, 68, 0.4) !important;
+    color: #fca5a5 !important;
+}
+
+/* Thẻ Khách Vãng Lai & Tra cứu SĐT */
+.bakery-pos-guest-card {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0.5rem !important;
+    padding: 0.75rem 0.875rem !important;
+    border-radius: 12px !important;
+    background: #f8fafc !important;
+    border: 1px solid #e2e8f0 !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02) !important;
+}
+
+html.dark .bakery-pos-guest-card {
+    background: rgba(15, 23, 42, 0.5) !important;
     border-color: var(--bakery-border-dark) !important;
 }
 
-.bakery-pos-customer-row {
+.bakery-pos-guest-header {
     display: flex !important;
     align-items: center !important;
     justify-content: space-between !important;
     font-size: 0.75rem !important;
+}
+
+.bakery-pos-guest-title {
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.4rem !important;
+    font-weight: 700 !important;
+    color: #334155 !important;
+}
+
+html.dark .bakery-pos-guest-title {
+    color: #cbd5e1 !important;
+}
+
+.bakery-pos-search-group {
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.375rem !important;
+    width: 100% !important;
+}
+
+.bakery-pos-search-input-wrap {
+    position: relative !important;
+    flex: 1 !important;
+    display: flex !important;
+    align-items: center !important;
+}
+
+.bakery-pos-search-input-wrap iconify-icon {
+    position: absolute !important;
+    left: 0.65rem !important;
+    color: #94a3b8 !important;
+    font-size: 0.95rem !important;
+    pointer-events: none !important;
+}
+
+.bakery-pos-search-input {
+    width: 100% !important;
+    height: 34px !important;
+    padding-left: 2rem !important;
+    padding-right: 0.625rem !important;
+    font-size: 0.75rem !important;
+    border-radius: 8px !important;
+    border: 1px solid #cbd5e1 !important;
+    background: #ffffff !important;
+    color: #0f172a !important;
+    transition: all 0.15s ease !important;
+}
+
+.bakery-pos-search-input:focus {
+    border-color: #3b82f6 !important;
+    outline: none !important;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15) !important;
+}
+
+html.dark .bakery-pos-search-input {
+    background: #0f172a !important;
+    border-color: #334155 !important;
+    color: #f8fafc !important;
+}
+
+.bakery-pos-search-btn {
+    height: 34px !important;
+    padding: 0 0.75rem !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 0.3rem !important;
+    font-size: 0.75rem !important;
+    font-weight: 600 !important;
+    border-radius: 8px !important;
+    background: #f1f5f9 !important;
+    border: 1px solid #cbd5e1 !important;
+    color: #334155 !important;
+    cursor: pointer !important;
+    white-space: nowrap !important;
+    transition: all 0.15s ease !important;
+}
+
+.bakery-pos-search-btn:hover {
+    background: #e2e8f0 !important;
+    color: #0f172a !important;
+}
+
+html.dark .bakery-pos-search-btn {
+    background: #1e293b !important;
+    border-color: #334155 !important;
+    color: #cbd5e1 !important;
 }
 
 /* Danh sách món trong giỏ */
@@ -2054,19 +2586,77 @@ html.dark .bakery-pos-voucher-btn {
     color: #f1f5f9 !important;
 }
 
+/* Thẻ voucher đã áp dụng thành công */
+.bakery-pos-applied-ticket {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    padding: 0.625rem 0.875rem !important;
+    border-radius: 10px !important;
+    background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%) !important;
+    border: 1px solid #a7f3d0 !important;
+    box-shadow: 0 1px 3px rgba(16, 185, 129, 0.1) !important;
+}
+
+html.dark .bakery-pos-applied-ticket {
+    background: rgba(6, 78, 59, 0.35) !important;
+    border-color: rgba(16, 185, 129, 0.35) !important;
+}
+
+.bakery-pos-ticket-icon {
+    width: 32px !important;
+    height: 32px !important;
+    border-radius: 8px !important;
+    background: #10b981 !important;
+    color: #ffffff !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 1.1rem !important;
+    flex-shrink: 0 !important;
+}
+
+.bakery-pos-ticket-remove {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 0.25rem !important;
+    font-size: 0.72rem !important;
+    font-weight: 600 !important;
+    color: #dc2626 !important;
+    background: #fef2f2 !important;
+    border: 1px solid #fecaca !important;
+    border-radius: 6px !important;
+    padding: 0.25rem 0.5rem !important;
+    cursor: pointer !important;
+    transition: all 0.15s ease !important;
+    flex-shrink: 0 !important;
+}
+
+.bakery-pos-ticket-remove:hover {
+    background: #fee2e2 !important;
+    color: #b91c1c !important;
+}
+
+html.dark .bakery-pos-ticket-remove {
+    background: rgba(153, 27, 27, 0.25) !important;
+    border-color: rgba(239, 68, 68, 0.4) !important;
+    color: #fca5a5 !important;
+}
+
 /* Bảng tóm tắt tiền (Spacious, rõ ràng, hiện đại) */
 .bakery-pos-bill-summary {
     background: #f8fafc !important;
     border: 1px solid #e2e8f0 !important;
-    border-radius: 8px !important;
+    border-radius: 12px !important;
     padding: 0.875rem 1rem !important;
     display: flex !important;
     flex-direction: column !important;
     gap: 0.5rem !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02) !important;
 }
 
 html.dark .bakery-pos-bill-summary {
-    background: rgba(15, 23, 42, 0.5) !important;
+    background: rgba(15, 23, 42, 0.6) !important;
     border-color: var(--bakery-border-dark) !important;
 }
 
@@ -2074,7 +2664,7 @@ html.dark .bakery-pos-bill-summary {
     display: flex !important;
     align-items: center !important;
     justify-content: space-between !important;
-    font-size: 0.78125rem !important;
+    font-size: 0.8125rem !important;
     color: #64748b !important;
 }
 
@@ -2084,11 +2674,11 @@ html.dark .bakery-pos-summary-row {
 
 .bakery-pos-summary-divider {
     border-top: 1px dashed #cbd5e1 !important;
-    margin: 0.35rem 0 !important;
+    margin: 0.25rem 0 !important;
 }
 
 html.dark .bakery-pos-summary-divider {
-    border-top-color: #475569 !important;
+    border-top-color: #334155 !important;
 }
 
 .bakery-pos-summary-total {
@@ -2105,9 +2695,10 @@ html.dark .bakery-pos-summary-total {
 }
 
 .bakery-pos-summary-total-val {
-    font-size: 1.25rem !important;
+    font-size: 1.35rem !important;
     font-weight: 800 !important;
     color: #1e40af !important;
+    letter-spacing: -0.02em !important;
 }
 
 html.dark .bakery-pos-summary-total-val {
@@ -2138,9 +2729,9 @@ html.dark .bakery-pos-payment-label {
 }
 
 .bakery-pos-payment-btn {
-    height: 38px !important;
-    border-radius: 6px !important;
-    border: 1px solid #e2e8f0 !important;
+    height: 42px !important;
+    border-radius: 10px !important;
+    border: 1.5px solid #e2e8f0 !important;
     background: #ffffff !important;
     display: flex !important;
     align-items: center !important;
@@ -2150,18 +2741,21 @@ html.dark .bakery-pos-payment-label {
     font-weight: 600 !important;
     color: #475569 !important;
     cursor: pointer !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03) !important;
     transition: all 0.15s ease !important;
 }
 
 .bakery-pos-payment-btn:hover {
     background: #f8fafc !important;
+    border-color: #cbd5e1 !important;
 }
 
 .bakery-pos-payment-btn.active {
-    border-color: #1e40af !important;
+    border-color: #2563eb !important;
     background: #eff6ff !important;
-    color: #1e40af !important;
+    color: #1d4ed8 !important;
     font-weight: 700 !important;
+    box-shadow: 0 0 0 1px #2563eb, 0 2px 6px rgba(37, 99, 235, 0.15) !important;
 }
 
 html.dark .bakery-pos-payment-btn {
@@ -2172,16 +2766,17 @@ html.dark .bakery-pos-payment-btn {
 
 html.dark .bakery-pos-payment-btn.active {
     border-color: #3b82f6 !important;
-    background: rgba(30, 64, 175, 0.3) !important;
+    background: rgba(30, 64, 175, 0.35) !important;
     color: #93c5fd !important;
+    box-shadow: 0 0 0 1px #3b82f6, 0 2px 8px rgba(59, 130, 246, 0.25) !important;
 }
 
 /* Nút Checkout To Bản */
 .bakery-pos-checkout-btn {
     width: 100% !important;
-    height: 44px !important;
-    border-radius: 8px !important;
-    background: #1e40af !important;
+    height: 46px !important;
+    border-radius: 10px !important;
+    background: linear-gradient(135deg, #1e40af 0%, #1d4ed8 100%) !important;
     color: #ffffff !important;
     font-size: 0.875rem !important;
     font-weight: 700 !important;
@@ -2193,26 +2788,28 @@ html.dark .bakery-pos-payment-btn.active {
     align-items: center !important;
     justify-content: center !important;
     gap: 0.5rem !important;
-    box-shadow: 0 2px 6px rgba(30, 64, 175, 0.25) !important;
+    box-shadow: 0 3px 10px rgba(30, 64, 175, 0.28) !important;
     margin-top: 0.25rem !important;
     transition: all 0.15s ease !important;
 }
 
 .bakery-pos-checkout-btn:hover:not(:disabled) {
-    background: #1d4ed8 !important;
-    box-shadow: 0 4px 12px rgba(30, 64, 175, 0.35) !important;
+    background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%) !important;
+    box-shadow: 0 4px 14px rgba(30, 64, 175, 0.38) !important;
+    transform: translateY(-1px) !important;
 }
 
 .bakery-pos-checkout-btn:disabled {
-    background: #cbd5e1 !important;
-    color: #64748b !important;
+    background: #e2e8f0 !important;
+    color: #94a3b8 !important;
     cursor: not-allowed !important;
     box-shadow: none !important;
+    transform: none !important;
 }
 
 html.dark .bakery-pos-checkout-btn:disabled {
-    background: #334155 !important;
-    color: #94a3b8 !important;
+    background: #1e293b !important;
+    color: #64748b !important;
 }
 
 /* ========================================================
@@ -2773,3 +3370,195 @@ html.dark .bakery-bill-footer {
         display: none !important;
     }
 }
+
+/* ========================================================
+   13. UNIFIED POPUP & INFO BOX SYSTEM (NỀN NỔI BẬT + BO GÓC MỀM + VIỀN TINH TẾ)
+   ======================================================== */
+.bakery-info-box {
+    border-radius: 14px !important;
+    padding: 0.875rem 1.125rem !important;
+    font-size: 0.8125rem !important;
+    line-height: 1.5 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0.5rem !important;
+    border-width: 1px !important;
+    border-style: solid !important;
+    box-sizing: border-box !important;
+    transition: all 0.2s ease !important;
+}
+
+.bakery-info-box-neutral,
+.bakery-info-box.neutral {
+    background-color: #f8fafc !important;
+    border-color: #e2e8f0 !important;
+    color: #334155 !important;
+}
+html.dark .bakery-info-box-neutral,
+html.dark .bakery-info-box.neutral {
+    background-color: rgba(30, 41, 59, 0.7) !important;
+    border-color: #334155 !important;
+    color: #cbd5e1 !important;
+}
+
+.bakery-info-box-blue,
+.bakery-info-box.blue {
+    background-color: #eff6ff !important;
+    border-color: #bfdbfe !important;
+    color: #1e40af !important;
+}
+html.dark .bakery-info-box-blue,
+html.dark .bakery-info-box.blue {
+    background-color: rgba(30, 58, 138, 0.25) !important;
+    border-color: rgba(59, 130, 246, 0.4) !important;
+    color: #93c5fd !important;
+}
+
+.bakery-info-box-success,
+.bakery-info-box.success {
+    background-color: #ecfdf5 !important;
+    border-color: #a7f3d0 !important;
+    color: #065f46 !important;
+}
+html.dark .bakery-info-box-success,
+html.dark .bakery-info-box.success {
+    background-color: rgba(6, 78, 59, 0.25) !important;
+    border-color: rgba(16, 185, 129, 0.4) !important;
+    color: #6ee7b7 !important;
+}
+
+.bakery-info-box-warning,
+.bakery-info-box.warning {
+    background-color: #fffbeb !important;
+    border-color: #fde68a !important;
+    color: #92400e !important;
+}
+html.dark .bakery-info-box-warning,
+html.dark .bakery-info-box.warning {
+    background-color: rgba(120, 53, 15, 0.25) !important;
+    border-color: rgba(245, 158, 11, 0.4) !important;
+    color: #fcd34d !important;
+}
+
+.bakery-info-box-danger,
+.bakery-info-box.danger {
+    background-color: #fef2f2 !important;
+    border-color: #fecaca !important;
+    color: #991b1b !important;
+}
+html.dark .bakery-info-box-danger,
+html.dark .bakery-info-box.danger {
+    background-color: rgba(127, 29, 29, 0.25) !important;
+    border-color: rgba(239, 68, 68, 0.4) !important;
+    color: #fca5a5 !important;
+}
+
+/* Modal Header Icon Badges */
+.bakery-modal-icon-badge {
+    width: 44px !important;
+    height: 44px !important;
+    border-radius: 14px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 1.35rem !important;
+    flex-shrink: 0 !important;
+    border-width: 1px !important;
+    border-style: solid !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04) !important;
+}
+.bakery-modal-icon-badge.blue {
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
+    border-color: #bfdbfe !important;
+    color: #2563eb !important;
+}
+.bakery-modal-icon-badge.success {
+    background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%) !important;
+    border-color: #a7f3d0 !important;
+    color: #059669 !important;
+}
+.bakery-modal-icon-badge.warning {
+    background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%) !important;
+    border-color: #fde68a !important;
+    color: #d97706 !important;
+}
+.bakery-modal-icon-badge.danger {
+    background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%) !important;
+    border-color: #fecaca !important;
+    color: #dc2626 !important;
+}
+
+/* POS Voucher Ticket Chips */
+.bakery-voucher-list {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    align-items: center !important;
+    gap: 0.5rem !important;
+    margin-top: 0.45rem !important;
+}
+
+.bakery-voucher-chip {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 0.375rem !important;
+    padding: 0.35rem 0.65rem !important;
+    border-radius: 8px !important;
+    font-size: 0.72rem !important;
+    font-weight: 600 !important;
+    cursor: pointer !important;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    background: #f1f5f9 !important;
+    border: 1px solid #cbd5e1 !important;
+    color: #334155 !important;
+    text-decoration: none !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03) !important;
+}
+.bakery-voucher-chip:hover {
+    background: #eff6ff !important;
+    border-color: #93c5fd !important;
+    color: #1d4ed8 !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 2px 4px rgba(37, 99, 235, 0.1) !important;
+}
+.bakery-voucher-chip.active {
+    background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%) !important;
+    border: 1px solid #10b981 !important;
+    color: #047857 !important;
+    box-shadow: 0 2px 6px rgba(16, 185, 129, 0.2) !important;
+    font-weight: 700 !important;
+}
+html.dark .bakery-voucher-chip {
+    background: #1e293b !important;
+    border-color: #475569 !important;
+    color: #cbd5e1 !important;
+}
+html.dark .bakery-voucher-chip.active {
+    background: rgba(6, 78, 59, 0.45) !important;
+    border-color: #10b981 !important;
+    color: #6ee7b7 !important;
+}
+
+/* Global utility fallbacks - prevent naked black borders */
+.border {
+    border-color: #e2e8f0 !important;
+}
+html.dark .border {
+    border-color: #334155 !important;
+}
+.rounded-xl { border-radius: 14px !important; }
+.rounded-2xl { border-radius: 18px !important; }
+.rounded-lg { border-radius: 10px !important; }
+.bg-slate-50 { background-color: #f8fafc !important; }
+.bg-blue-50 { background-color: #eff6ff !important; }
+.bg-emerald-50 { background-color: #ecfdf5 !important; }
+.bg-amber-50 { background-color: #fffbeb !important; }
+.bg-rose-50 { background-color: #fef2f2 !important; }
+.border-slate-200 { border-color: #e2e8f0 !important; }
+.border-blue-100 { border-color: #dbeafe !important; }
+.border-blue-200 { border-color: #bfdbfe !important; }
+.border-emerald-200 { border-color: #a7f3d0 !important; }
+.border-amber-200 { border-color: #fde68a !important; }
+.border-rose-200 { border-color: #fecaca !important; }
+.p-3 { padding: 0.75rem !important; }
+.p-3\.5 { padding: 0.875rem !important; }
+.p-4 { padding: 1rem !important; }

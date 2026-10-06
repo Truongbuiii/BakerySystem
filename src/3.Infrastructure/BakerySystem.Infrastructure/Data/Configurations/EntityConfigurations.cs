@@ -77,6 +77,7 @@ public class CategoryConfiguration : IEntityTypeConfiguration<Category>
         builder.HasKey(c => c.CategoryID);
         builder.Property(c => c.CategoryName).HasMaxLength(100).IsRequired();
         builder.HasIndex(c => c.CategoryName).IsUnique();
+        builder.Property(c => c.IsActive).HasDefaultValue(true);
     }
 }
 

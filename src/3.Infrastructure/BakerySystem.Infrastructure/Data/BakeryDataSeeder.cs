@@ -90,13 +90,21 @@ public static class BakeryDataSeeder
 
             var cust3 = new Customer
             {
-                AccountID = null, // Khách vãng lai mua tại quầy
+                AccountID = null,
                 FullName = "Lê Tuấn Kiệt",
                 Phone = "0977889900",
                 Address = "789 Võ Văn Ngân, TP. Thủ Đức, TP.HCM"
             };
 
-            context.Customers.AddRange(cust1, cust2, cust3);
+            var custWalkIn = new Customer
+            {
+                AccountID = null, // Khách vãng lai mua tại quầy không có tài khoản
+                FullName = "Khách vãng lai",
+                Phone = null,
+                Address = "Mua trực tiếp tại tiệm bánh"
+            };
+
+            context.Customers.AddRange(cust1, cust2, cust3, custWalkIn);
             await context.SaveChangesAsync();
         }
         else

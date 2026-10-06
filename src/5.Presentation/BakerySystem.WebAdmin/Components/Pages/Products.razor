@@ -126,7 +126,7 @@
                     <option value="0">Tất cả loại sản phẩm (@categories.Count)</option>
                     @foreach (var cat in categories)
                     {
-                        <option value="@cat.CategoryID">@cat.CategoryName (@cat.ProductCount)</option>
+                        <option value="@cat.CategoryID">@cat.CategoryName (@cat.ProductCount)@(cat.IsActive ? "" : " [Ẩn]")</option>
                     }
                 </select>
             </div>
@@ -373,9 +373,9 @@
     <div class="bakery-modal-backdrop" @onclick="CloseModals">
         <div class="bakery-modal-card" @onclick:stopPropagation="true">
             <div class="bakery-modal-header">
-                <div class="flex items-center gap-2">
-                    <div class="w-8 h-8 rounded-lg bg-lightprimary text-primary flex items-center justify-center">
-                        <iconify-icon icon="solar:bag-5-bold" class="text-lg"></iconify-icon>
+                <div class="flex items-center gap-2.5">
+                    <div class="bakery-modal-icon-badge blue">
+                        <iconify-icon icon="solar:bag-5-bold"></iconify-icon>
                     </div>
                     <div>
                         <h4 class="text-base font-bold text-dark dark:text-white mb-0">Thêm Món Mới Vào Menu</h4>
@@ -390,7 +390,7 @@
             <div class="bakery-modal-body space-y-4">
                 @if (!string.IsNullOrEmpty(modalError))
                 {
-                    <div class="p-3 rounded-lg bg-rose-50 text-rose-600 text-xs font-medium flex items-center gap-2">
+                    <div class="bakery-info-box bakery-info-box-danger text-xs font-medium flex items-center gap-2">
                         <iconify-icon icon="solar:danger-circle-bold" class="text-base shrink-0"></iconify-icon>
                         <span>@modalError</span>
                     </div>
@@ -408,7 +408,7 @@
                         <label class="bakery-label">Loại sản phẩm <span class="text-rose-500">*</span></label>
                         <select class="bakery-input" @bind="newProduct.CategoryID">
                             <option value="0">-- Chọn loại sản phẩm --</option>
-                            @foreach (var cat in categories)
+                            @foreach (var cat in categories.Where(c => c.IsActive))
                             {
                                 <option value="@cat.CategoryID">@cat.CategoryName</option>
                             }
@@ -515,9 +515,9 @@
     <div class="bakery-modal-backdrop" @onclick="CloseModals">
         <div class="bakery-modal-card" @onclick:stopPropagation="true">
             <div class="bakery-modal-header">
-                <div class="flex items-center gap-2">
-                    <div class="w-8 h-8 rounded-lg bg-lightwarning text-warning flex items-center justify-center">
-                        <iconify-icon icon="solar:pen-bold" class="text-lg"></iconify-icon>
+                <div class="flex items-center gap-2.5">
+                    <div class="bakery-modal-icon-badge blue">
+                        <iconify-icon icon="solar:pen-bold"></iconify-icon>
                     </div>
                     <div>
                         <h4 class="text-base font-bold text-dark dark:text-white mb-0">Chỉnh Sửa Sản Phẩm #@editProduct.ProductID</h4>
@@ -532,7 +532,7 @@
             <div class="bakery-modal-body space-y-4">
                 @if (!string.IsNullOrEmpty(modalError))
                 {
-                    <div class="p-3 rounded-lg bg-rose-50 text-rose-600 text-xs font-medium flex items-center gap-2">
+                    <div class="bakery-info-box bakery-info-box-danger text-xs font-medium flex items-center gap-2">
                         <iconify-icon icon="solar:danger-circle-bold" class="text-base shrink-0"></iconify-icon>
                         <span>@modalError</span>
                     </div>
@@ -551,7 +551,7 @@
                         <select class="bakery-input" @bind="editProduct.CategoryID">
                             @foreach (var cat in categories)
                             {
-                                <option value="@cat.CategoryID">@cat.CategoryName</option>
+                                <option value="@cat.CategoryID">@cat.CategoryName@(cat.IsActive ? "" : " (Đang ẩn)")</option>
                             }
                         </select>
                     </div>
@@ -653,9 +653,9 @@
     <div class="bakery-modal-backdrop" @onclick="CloseModals">
         <div class="bakery-modal-card max-w-md" @onclick:stopPropagation="true">
             <div class="bakery-modal-header">
-                <div class="flex items-center gap-2">
-                    <div class="w-8 h-8 rounded-lg bg-lightsecondary text-secondary flex items-center justify-center">
-                        <iconify-icon icon="solar:folder-with-files-bold" class="text-lg"></iconify-icon>
+                <div class="flex items-center gap-2.5">
+                    <div class="bakery-modal-icon-badge blue">
+                        <iconify-icon icon="solar:folder-with-files-bold"></iconify-icon>
                     </div>
                     <div>
                         <h4 class="text-base font-bold text-dark dark:text-white mb-0">Thêm Loại Sản Phẩm Mới</h4>
@@ -670,7 +670,7 @@
             <div class="bakery-modal-body space-y-4">
                 @if (!string.IsNullOrEmpty(modalError))
                 {
-                    <div class="p-3 rounded-lg bg-rose-50 text-rose-600 text-xs font-medium flex items-center gap-2">
+                    <div class="bakery-info-box bakery-info-box-danger text-xs font-medium flex items-center gap-2">
                         <iconify-icon icon="solar:danger-circle-bold" class="text-base shrink-0"></iconify-icon>
                         <span>@modalError</span>
                     </div>
@@ -704,9 +704,9 @@
     <div class="bakery-modal-backdrop" @onclick="CloseModals">
         <div class="bakery-modal-card max-w-md" @onclick:stopPropagation="true">
             <div class="bakery-modal-header">
-                <div class="flex items-center gap-2">
-                    <div class="w-8 h-8 rounded-lg bg-rose-50 text-rose-500 flex items-center justify-center">
-                        <iconify-icon icon="solar:trash-bin-trash-bold" class="text-lg"></iconify-icon>
+                <div class="flex items-center gap-2.5">
+                    <div class="bakery-modal-icon-badge danger">
+                        <iconify-icon icon="solar:trash-bin-trash-bold"></iconify-icon>
                     </div>
                     <div>
                         <h4 class="text-base font-bold text-dark dark:text-white mb-0">Xác Nhận Xóa / Ngừng Bán</h4>
@@ -722,9 +722,11 @@
                 <p class="text-sm text-slate-700 dark:text-slate-300 mb-0">
                     Bạn có chắc chắn muốn xóa món <strong class="text-dark dark:text-white">"@targetProduct.ProductName"</strong> khỏi thực đơn?
                 </p>
-                <div class="p-3 rounded-lg bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 text-xs">
-                    <iconify-icon icon="solar:info-circle-bold" class="inline text-sm mr-1"></iconify-icon>
-                    Nếu món bánh này đã từng được đặt mua hoặc đã có phiếu nhập kho, hệ thống sẽ tự động chuyển sang trạng thái <strong>[Ngừng kinh doanh]</strong> để bảo toàn lịch sử doanh thu và báo cáo.
+                <div class="bakery-info-box bakery-info-box-warning text-xs">
+                    <div class="flex items-start gap-2">
+                        <iconify-icon icon="solar:info-circle-bold" class="text-base shrink-0 mt-0.5"></iconify-icon>
+                        <div>Nếu món bánh này đã từng được đặt mua hoặc đã có phiếu nhập kho, hệ thống sẽ tự động chuyển sang trạng thái <strong>[Ngừng kinh doanh]</strong> để bảo toàn lịch sử doanh thu và báo cáo.</div>
+                    </div>
                 </div>
             </div>
 
