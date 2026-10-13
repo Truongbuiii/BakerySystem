@@ -45,7 +45,7 @@ public class DashboardService : IDashboardService
         }
 
         var bakingOrdersCount = await _context.Orders
-            .Where(o => o.Status == OrderStatus.Confirmed)
+            .Where(o => o.Status == OrderStatus.InProgress)
             .CountAsync(cancellationToken);
 
         var shippingOrdersCount = await _context.Orders
@@ -135,6 +135,7 @@ public class DashboardService : IDashboardService
                 OrderStatus.Completed => "success",
                 OrderStatus.Shipping => "primary",
                 OrderStatus.Confirmed => "secondary",
+                OrderStatus.InProgress => "warning",
                 _ => "warning"
             };
 
@@ -142,7 +143,8 @@ public class DashboardService : IDashboardService
             {
                 OrderStatus.Completed => $"Hoàn tất giao đơn #{order.OrderID}",
                 OrderStatus.Shipping => $"Đang giao đơn #{order.OrderID} cho khách",
-                OrderStatus.Confirmed => $"Thợ bánh nướng đơn #{order.OrderID}",
+                OrderStatus.Confirmed => $"Đã duyệt đơn #{order.OrderID}",
+                OrderStatus.InProgress => $"Thợ bánh đang làm đơn #{order.OrderID}",
                 _ => $"Đơn đặt bánh mới #{order.OrderID}"
             };
 

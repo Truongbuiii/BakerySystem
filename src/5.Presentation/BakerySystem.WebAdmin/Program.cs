@@ -156,6 +156,27 @@ app.MapPost("/api/auth/logout", async (HttpContext httpContext) =>
     return Results.Ok();
 }).DisableAntiforgery();
 
+// Mobile polls this endpoint so its order badges use the same database as WebAdmin.
+app.MapPost("/api/mobile/orders/status", async (
+    int[] orderIds,
+    BakeryDbContext context,
+    CancellationToken cancellationToken) =>
+{
+    var ids = orderIds.Distinct().Take(100).ToArray();
+    var statuses = await context.Orders
+        .AsNoTracking()
+        .Where(order => ids.Contains(order.OrderID))
+        .Select(order => new
+        {
+            OrderId = order.OrderID,
+            order.Status,
+            order.PaymentStatus
+        })
+        .ToListAsync(cancellationToken);
+
+    return Results.Ok(statuses);
+}).DisableAntiforgery();
+
 app.MapGet("/api/auth/logout", async (HttpContext httpContext) =>
 {
     await httpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);

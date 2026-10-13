@@ -239,7 +239,7 @@ CREATE TABLE Orders (
     CONSTRAINT CK_Orders_FinalAmount CHECK (FinalAmount >= 0),
     CONSTRAINT CK_Orders_Discount_Not_Exceed_Total CHECK (DiscountAmount <= TotalAmount),
     CONSTRAINT CK_Orders_PaymentStatus CHECK (PaymentStatus IN ('Unpaid', 'Paid', 'Refunded')),
-    CONSTRAINT CK_Orders_Status CHECK (Status IN ('Pending', 'Confirmed', 'Shipping', 'Completed', 'Cancelled'))
+    CONSTRAINT CK_Orders_Status CHECK (Status IN ('Pending', 'Confirmed', 'InProgress', 'Shipping', 'Completed', 'Cancelled'))
 );
 GO
 

@@ -110,6 +110,13 @@ public static class BakeryDataSeeder
                 BEGIN
                     ALTER TABLE [Orders] ADD CONSTRAINT [FK_Orders_Promotion] FOREIGN KEY ([PromotionID]) REFERENCES [Promotion] ([PromotionID]) ON DELETE SET NULL;
                 END;
+
+                IF OBJECT_ID(N'[CK_Orders_Status]', N'C') IS NOT NULL
+                BEGIN
+                    ALTER TABLE [Orders] DROP CONSTRAINT [CK_Orders_Status];
+                END;
+                ALTER TABLE [Orders] ADD CONSTRAINT [CK_Orders_Status]
+                    CHECK ([Status] IN ('Pending', 'Confirmed', 'InProgress', 'Shipping', 'Completed', 'Cancelled'));
             ");
         }
         catch { }

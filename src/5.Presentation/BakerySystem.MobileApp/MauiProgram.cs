@@ -24,11 +24,12 @@ public static class MauiProgram
 
 		builder.Services.AddMauiBlazorWebView();
 
-		// Tự động phát hiện instance SQL Server đang chạy (hỗ trợ cả máy XIAOXIN (local) và máy Thanh Tuyền .\SQLEXPRESS)
+		// Giữ cùng thứ tự ưu tiên với WebAdmin/Infrastructure để hai ứng dụng
+		// không vô tình đọc hai database BakerySystem trên các SQL instance khác nhau.
 		string[] candidateServers = [
+			"(local)",
 			".\\SQLEXPRESS",
 			"(local)\\SQLEXPRESS",
-			"(local)",
 			".",
 			"localhost"
 		];
@@ -55,6 +56,7 @@ public static class MauiProgram
 
 		builder.Services.AddScoped<IBakeryDbContext>(sp => sp.GetRequiredService<BakeryDbContext>());
 		builder.Services.AddScoped<CartService>();
+		builder.Services.AddScoped(_ => new HttpClient());
 		builder.Services.AddApplicationServices();
 
 #if DEBUG

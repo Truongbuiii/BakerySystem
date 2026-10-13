@@ -711,6 +711,8 @@ body, html {
 
 .status-pending { background: #FEF3C7; color: #D97706; }
 .status-confirmed { background: #E0E7FF; color: #4F46E5; }
+.status-preparing { background: #FFEDD5; color: #C2410C; }
+.status-cancelled { background: #FEE2E2; color: #B91C1C; }
 .status-shipping { background: #E0F2FE; color: #0284C7; }
 .status-completed { background: #DCFCE7; color: #16A34A; }
 
