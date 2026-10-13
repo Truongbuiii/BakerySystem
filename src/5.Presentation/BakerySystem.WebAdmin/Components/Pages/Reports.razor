@@ -152,6 +152,17 @@
         </div>
     </div>
 
+    @if (hasError)
+    {
+        <div class="p-4 rounded-xl border border-rose-200 bg-rose-50 dark:bg-rose-950/20 dark:border-rose-800 flex items-start gap-3">
+            <iconify-icon icon="solar:danger-triangle-bold" class="text-rose-500 text-xl shrink-0 mt-0.5"></iconify-icon>
+            <div>
+                <p class="text-sm font-bold text-rose-800 dark:text-rose-300 mb-0.5">Lỗi tải dữ liệu báo cáo</p>
+                <p class="text-xs text-rose-600 dark:text-rose-400 mb-0">@errorMessage</p>
+            </div>
+        </div>
+    }
+
     <!-- 3. Khu Vực Biểu Đồ Thống Kê (ApexCharts) -->
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
         <!-- Cột Trái (8 Cols): So sánh Doanh thu thực thu vs Chi phí vốn -->
@@ -384,6 +395,8 @@
 @code {
     private string filterPeriod = "month";
     private bool isLoading = true;
+    private bool hasError = false;
+    private string errorMessage = "";
 
     // KPI Metrics
     private decimal totalRevenue = 0;
@@ -436,6 +449,9 @@
     private async Task LoadReportDataAsync()
     {
         isLoading = true;
+        hasError = false;
+        errorMessage = "";
+        StateHasChanged();
 
         try
         {
@@ -502,7 +518,7 @@
                 .Where(d => validOrderIds.Contains(d.OrderID));
 
             var groupedDetails = await detailsQuery
-                .GroupBy(d => new { d.ProductID, d.Product.ProductName, d.Product.Price, CategoryName = d.Product.Category.CategoryName })
+                .GroupBy(d => new { d.ProductID, d.Product.ProductName, d.Product.Price, CategoryName = d.Product.Category != null ? d.Product.Category.CategoryName : "Không rõ" })
                 .Select(g => new TopSellerItem
                 {
                     ProductID = g.Key.ProductID,
@@ -521,13 +537,13 @@
             // 4. Cảnh Báo Tồn Kho (<= 10 cái)
             lowStockProducts = await Context.Products
                 .Include(p => p.Category)
-                .Where(p => p.Quantity <= 10)
+                .Where(p => p.Quantity <= 10 && p.IsActive)
                 .OrderBy(p => p.Quantity)
                 .ToListAsync();
 
             // 5. Cơ Cấu Doanh Thu Theo Loại Bánh
             var categoryData = await detailsQuery
-                .GroupBy(d => d.Product.Category.CategoryName)
+                .GroupBy(d => d.Product.Category != null ? d.Product.Category.CategoryName : "Không rõ")
                 .Select(g => new
                 {
                     CategoryName = g.Key,
@@ -550,11 +566,14 @@
         }
         catch (Exception ex)
         {
-            Console.WriteLine("Lỗi nạp báo cáo: " + ex.Message);
+            hasError = true;
+            errorMessage = ex.Message;
+            Console.WriteLine("Lỗi nạp báo cáo: " + ex);
         }
         finally
         {
             isLoading = false;
+            StateHasChanged();
         }
 
         // Kích hoạt render lại biểu đồ ApexCharts
@@ -570,12 +589,13 @@
         if (filterPeriod == "today")
         {
             // Chia theo các khung giờ trong ngày (8h, 11h, 14h, 17h, 20h)
+            // Mỗi khung 3 tiếng: 6-9h, 9-12h, 12-15h, 15-18h, 18-21h
             var hours = new[] { 8, 11, 14, 17, 20 };
             foreach (var h in hours)
             {
                 chartLabels.Add($"{h}:00");
-                var rev = validOrders.Where(o => o.OrderDate.Hour >= h - 2 && o.OrderDate.Hour <= h + 1).Sum(o => o.FinalAmount);
-                var cost = imports.Where(i => i.ReceiptDate.Hour >= h - 2 && i.ReceiptDate.Hour <= h + 1).Sum(i => i.TotalAmount);
+                var rev = validOrders.Where(o => o.OrderDate.Hour >= h - 2 && o.OrderDate.Hour < h + 1).Sum(o => o.FinalAmount);
+                var cost = imports.Where(i => i.ReceiptDate.Hour >= h - 2 && i.ReceiptDate.Hour < h + 1).Sum(i => i.TotalAmount);
                 chartRevenueSeries.Add(rev);
                 chartCostSeries.Add(cost);
             }
@@ -627,13 +647,27 @@
         try
         {
             await Task.Delay(100);
-            var donutSeries = categoryShares.Select(c => c.Revenue).ToArray();
+            var donutSeries = categoryShares.Select(c => (double)c.Revenue).ToArray();
             var donutLabels = categoryShares.Select(c => c.CategoryName).ToArray();
-            await JS.InvokeVoidAsync("initBakeryReportsCharts", chartLabels.ToArray(), chartRevenueSeries.ToArray(), chartCostSeries.ToArray(), donutSeries, donutLabels);
+            var revSeries = chartRevenueSeries.Select(x => (double)x).ToArray();
+            var costSeries = chartCostSeries.Select(x => (double)x).ToArray();
+
+            await JS.InvokeVoidAsync(
+                "initBakeryReportsCharts",
+                chartLabels.ToArray(),
+                revSeries,
+                costSeries,
+                donutSeries,
+                donutLabels
+            );
         }
-        catch
+        catch (Exception ex) when (ex is JSDisconnectedException || ex is TaskCanceledException)
         {
             // Silently ignore navigation disconnects
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Lỗi render biểu đồ: " + ex.Message);
         }
     }
 

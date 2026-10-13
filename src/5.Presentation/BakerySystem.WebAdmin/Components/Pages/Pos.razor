@@ -611,9 +611,14 @@
             .OrderBy(p => p.ProductName)
             .ToListAsync();
 
+        var now = DateTime.Today;
         availablePromotions = await Context.Promotions
             .Include(p => p.PromotionInvoice)
-            .Where(p => p.Status == PromotionStatus.Active && p.PromotionInvoice != null)
+            .Where(p => p.Status == PromotionStatus.Active 
+                     && p.PromotionInvoice != null
+                     && p.StartDate <= now
+                     && p.EndDate >= now
+                     && (p.PromotionInvoice.UsageLimit == null || p.PromotionInvoice.UsedCount < p.PromotionInvoice.UsageLimit))
             .OrderByDescending(p => p.PromotionInvoice!.DiscountPercent)
             .ToListAsync();
     }

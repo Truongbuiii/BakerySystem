@@ -137,9 +137,14 @@ public class CartService
     {
         if (string.IsNullOrWhiteSpace(code)) return false;
 
+        var now = DateTime.Today;
         var promo = await _context.Promotions
             .Include(p => p.PromotionInvoice)
-            .FirstOrDefaultAsync(p => p.PromotionCode.ToUpper() == code.Trim().ToUpper() && p.Status == PromotionStatus.Active);
+            .FirstOrDefaultAsync(p => p.PromotionCode.ToUpper() == code.Trim().ToUpper() 
+                                 && p.Status == PromotionStatus.Active
+                                 && p.StartDate <= now
+                                 && p.EndDate >= now
+                                 && (p.PromotionInvoice.UsageLimit == null || p.PromotionInvoice.UsedCount < p.PromotionInvoice.UsageLimit));
 
         if (promo?.PromotionInvoice != null)
         {

@@ -963,10 +963,14 @@
                 .Where(p => p.IsActive)
                 .ToListAsync();
 
+            var now = DateTime.Today;
             // Tải danh sách voucher & chương trình khuyến mãi
             promotions = await DbContext.Promotions
                 .Include(p => p.PromotionInvoice)
-                .Where(p => p.Status == PromotionStatus.Active)
+                .Where(p => p.Status == PromotionStatus.Active
+                         && p.StartDate <= now
+                         && p.EndDate >= now
+                         && (p.PromotionInvoice == null || p.PromotionInvoice.UsageLimit == null || p.PromotionInvoice.UsedCount < p.PromotionInvoice.UsageLimit))
                 .OrderByDescending(p => p.PromotionInvoice != null ? p.PromotionInvoice.DiscountPercent : 0)
                 .ToListAsync();
 
