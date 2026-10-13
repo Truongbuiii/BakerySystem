@@ -333,6 +333,72 @@ window.initBakeryReportsCharts = function (categories, revenueSeries, costSeries
         const donutChart = new ApexCharts(donutEl, donutOptions);
         donutChart.render();
     }
+
+    // 3. Compact Donut Chart (for side-by-side layout)
+    const compactDonutEl = document.querySelector("#reports-category-donut-compact");
+    if (compactDonutEl) {
+        compactDonutEl.innerHTML = "";
+        const compactDonutOptions = {
+            series: catDonutSeries && catDonutSeries.length > 0 ? catDonutSeries : [1],
+            labels: catDonutLabels && catDonutLabels.length > 0 ? catDonutLabels : ['Chưa có dữ liệu'],
+            chart: {
+                type: 'donut',
+                height: 260,
+                fontFamily: "inherit"
+            },
+            colors: ['#2563eb', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4'],
+            dataLabels: { enabled: false },
+            legend: {
+                position: 'bottom',
+                fontSize: '10px',
+                labels: {
+                    colors: isDark ? '#cbd5e1' : '#475569'
+                }
+            },
+            plotOptions: {
+                pie: {
+                    donut: {
+                        size: '65%',
+                        labels: {
+                            show: true,
+                            name: { fontSize: '11px', color: isDark ? '#cbd5e1' : '#64748b' },
+                            value: {
+                                fontSize: '14px',
+                                fontWeight: 700,
+                                color: isDark ? '#f8fafc' : '#0f172a',
+                                formatter: function (val) {
+                                    return new Intl.NumberFormat('vi-VN').format(val) + ' đ';
+                                }
+                            },
+                            total: {
+                                show: true,
+                                label: 'Tổng doanh thu',
+                                color: isDark ? '#cbd5e1' : '#64748b',
+                                formatter: function (w) {
+                                    const total = w.globals.seriesTotals.reduce((a, b) => a + b, 0);
+                                    return new Intl.NumberFormat('vi-VN').format(total) + ' đ';
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            stroke: {
+                colors: [isDark ? '#1e293b' : '#ffffff'],
+                width: 2
+            },
+            tooltip: {
+                theme: isDark ? 'dark' : 'light',
+                y: {
+                    formatter: function (val) {
+                        return new Intl.NumberFormat('vi-VN').format(val) + ' đ';
+                    }
+                }
+            }
+        };
+        const compactDonutChart = new ApexCharts(compactDonutEl, compactDonutOptions);
+        compactDonutChart.render();
+    }
 };
 
 // Auto-run when DOM is loaded or after Blazor navigation

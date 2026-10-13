@@ -163,107 +163,106 @@
         </div>
     }
 
-    <!-- 3. Khu Vực Biểu Đồ Thống Kê (ApexCharts) -->
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
-        <!-- Cột Trái (8 Cols): So sánh Doanh thu thực thu vs Chi phí vốn -->
-        <div class="lg:col-span-8 bakery-card p-5">
-            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4 pb-3 border-b border-slate-100 dark:border-slate-800">
-                <div>
-                    <h3 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2 mb-0.5">
-                        <iconify-icon icon="solar:chart-square-bold" class="text-primary text-base"></iconify-icon>
-                        So Sánh Doanh Thu Thực Thu vs Chi Phí Vốn Nhập Hàng
-                    </h3>
-                    <p class="text-xs text-slate-500 mb-0">Biểu đồ so sánh trực quan dòng tiền theo chu kỳ @GetPeriodDisplayName()</p>
-                </div>
-                <div class="flex items-center gap-3 text-xs font-semibold">
-                    <div class="flex items-center gap-1.5">
-                        <span class="w-3 h-3 rounded-full bg-blue-600 inline-block"></span>
-                        <span class="text-slate-600 dark:text-slate-300">Doanh thu bán bánh</span>
-                    </div>
-                    <div class="flex items-center gap-1.5">
-                        <span class="w-3 h-3 rounded-full bg-amber-500 inline-block"></span>
-                        <span class="text-slate-600 dark:text-slate-300">Chi phí vốn nhập</span>
-                    </div>
-                </div>
+    <!-- 3. Biểu đồ So sánh Doanh thu vs Chi phí (Full width) -->
+    <div class="bakery-card p-5 mb-5">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4 pb-3 border-b border-slate-100 dark:border-slate-800">
+            <div>
+                <h3 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2 mb-0.5">
+                    <iconify-icon icon="solar:chart-square-bold" class="text-primary text-base"></iconify-icon>
+                    So Sánh Doanh Thu Thực Thu vs Chi Phí Vốn Nhập Hàng
+                </h3>
+                <p class="text-xs text-slate-500 mb-0">Biểu đồ so sánh trực quan dòng tiền theo chu kỳ @GetPeriodDisplayName()</p>
             </div>
-
-            <!-- DOM Container cho ApexCharts -->
-            <div id="reports-financial-chart" style="min-height: 320px;">
-                @if (isLoading)
-                {
-                    <div class="flex items-center justify-center h-72">
-                        <span class="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin"></span>
-                    </div>
-                }
+            <div class="flex items-center gap-3 text-xs font-semibold">
+                <div class="flex items-center gap-1.5">
+                    <span class="w-3 h-3 rounded-full bg-blue-600 inline-block"></span>
+                    <span class="text-slate-600 dark:text-slate-300">Doanh thu bán bánh</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                    <span class="w-3 h-3 rounded-full bg-amber-500 inline-block"></span>
+                    <span class="text-slate-600 dark:text-slate-300">Chi phí vốn nhập</span>
+                </div>
             </div>
         </div>
 
-        <!-- Cột Phải (4 Cols): Cơ Cấu Doanh Thu Theo Loại Bánh (Donut) -->
-        <div class="lg:col-span-4 bakery-card p-5">
-            <div class="mb-3 pb-3 border-b border-slate-100 dark:border-slate-800">
-                <h3 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2 mb-0.5">
-                    <iconify-icon icon="solar:pie-chart-2-bold" class="text-emerald-600 text-base"></iconify-icon>
-                    Cơ Cấu Doanh Thu Theo Loại Bánh
-                </h3>
-                <p class="text-xs text-slate-500 mb-0">Tỷ lệ đóng góp doanh thu của từng phân loại</p>
-            </div>
-
-            <!-- DOM Container cho Donut Chart -->
-            <div id="reports-category-donut" style="min-height: 280px;"></div>
-
-            <!-- Chi tiết % từng loại -->
-            <div class="mt-2 space-y-2 text-xs">
-                @foreach (var cat in categoryShares.Take(4))
-                {
-                    <div class="flex items-center justify-between py-1 border-b border-slate-100 dark:border-slate-800/60 last:border-b-0">
-                        <div class="flex items-center gap-2 min-w-0">
-                            <span class="w-2.5 h-2.5 rounded-full shrink-0" style="background-color: @cat.ColorHex;"></span>
-                            <span class="font-medium text-slate-700 dark:text-slate-300 truncate">@cat.CategoryName</span>
-                        </div>
-                        <div class="flex items-center gap-2 shrink-0 font-mono font-semibold">
-                            <span class="text-slate-900 dark:text-white">@($"{cat.Revenue:N0}đ")</span>
-                            <span class="text-[10px] text-slate-400">(@($"{cat.Percentage:F1}%"))</span>
-                        </div>
-                    </div>
-                }
-            </div>
+        <!-- DOM Container cho ApexCharts -->
+        <div id="reports-financial-chart" style="min-height: 320px;">
+            @if (isLoading)
+            {
+                <div class="flex items-center justify-center h-72">
+                    <span class="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin"></span>
+                </div>
+            }
         </div>
     </div>
 
-    <!-- 4. Hai Bảng Phân Tích Cốt Lõi: Top 5 Bán Chạy & Cảnh Báo Tồn Kho -->
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
-        <!-- Bảng 1: Top 5 Món Bánh Bán Chạy Nhất (Best Sellers) (7 Cols) -->
-        <div class="lg:col-span-7 bakery-card p-5">
-            <div class="flex items-center justify-between mb-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+    <!-- 4. Hàng ngang: Donut (Cơ cấu) + Top 5 Bán Chạy -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 mb-5">
+        <!-- Cột Trái (5 Cols): Cơ Cấu Doanh Thu Theo Loại Bánh (Donut) - COMPACT -->
+        <div class="lg:col-span-5 bakery-card p-3 h-full flex flex-col min-h-0">
+            <div class="mb-2 pb-2 border-b border-slate-100 dark:border-slate-800 flex-shrink-0">
+                <h3 class="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5 mb-0">
+                    <iconify-icon icon="solar:pie-chart-2-bold" class="text-emerald-600 text-sm"></iconify-icon>
+                    Cơ Cấu Doanh Thu Theo Loại Bánh
+                </h3>
+                <p class="text-[10px] text-slate-500 mb-0">Tỷ lệ đóng góp doanh thu</p>
+            </div>
+
+            <!-- Donut Chart - max-height 200px -->
+            <div class="flex-1 flex items-center justify-center min-h-0" style="max-height: 200px;">
+                <div id="reports-category-donut" style="width: 100%; height: 100%; max-height: 200px;"></div>
+            </div>
+
+            <!-- Chi tiết % - ultra compact -->
+            <div class="mt-2 space-y-1 text-[10px] flex-shrink-0 max-h-32 overflow-y-auto pr-1">
+                @foreach (var cat in categoryShares.Take(5))
+                {
+                    <div class="flex items-center justify-between py-0.5 px-1.5 rounded bg-slate-50/50 dark:bg-slate-800/50">
+                        <div class="flex items-center gap-1.5 min-w-0">
+                            <span class="w-2 h-2 rounded-full shrink-0" style="background-color: @cat.ColorHex;"></span>
+                            <span class="font-medium text-slate-700 dark:text-slate-300 truncate">@cat.CategoryName</span>
+                        </div>
+                        <div class="flex items-center gap-1.5 shrink-0 font-mono font-semibold text-right">
+                            <span class="text-slate-900 dark:text-white">@($"{cat.Revenue:N0}đ")</span>
+                            <span class="text-[9px] text-slate-400">(@($"{cat.Percentage:F1}%"))</span>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Cột Phải (7 Cols): Top 5 Món Bánh Bán Chạy Nhất - COMPACT -->
+        <div class="lg:col-span-7 bakery-card p-3 h-full flex flex-col min-h-0">
+            <div class="flex items-center justify-between mb-2 pb-2 border-b border-slate-100 dark:border-slate-800 flex-shrink-0">
                 <div>
-                    <h3 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2 mb-0.5">
-                        <iconify-icon icon="solar:cup-star-bold" class="text-amber-500 text-lg"></iconify-icon>
-                        Top 5 Món Bánh Bán Chạy Nhất (Best Sellers)
+                    <h3 class="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5 mb-0">
+                        <iconify-icon icon="solar:cup-star-bold" class="text-amber-500 text-sm"></iconify-icon>
+                        Top 5 Bán Chạy Nhất
                     </h3>
-                    <p class="text-xs text-slate-500 mb-0">Xếp hạng theo số lượng cái bán ra từ các đơn hàng hoàn tất</p>
+                    <p class="text-[10px] text-slate-500 mb-0">Số lượng bán từ đơn hoàn tất</p>
                 </div>
-                <a href="/products" class="text-xs font-semibold text-primary hover:underline flex items-center gap-1">
-                    Xem thực đơn <iconify-icon icon="solar:arrow-right-linear"></iconify-icon>
+                <a href="/products" class="text-[10px] font-semibold text-primary hover:underline flex items-center gap-1">
+                    Xem tất cả <iconify-icon icon="solar:arrow-right-linear" class="text-xs"></iconify-icon>
                 </a>
             </div>
 
-            <div class="bakery-table-responsive">
+            <div class="flex-1 min-h-0 bakery-table-responsive overflow-hidden">
                 <table class="bakery-table">
-                    <thead>
+                    <thead class="sticky top-0 bg-white dark:bg-slate-900 z-10">
                         <tr>
-                            <th class="w-12 text-center">Hạng</th>
-                            <th>Món bánh</th>
-                            <th>Loại bánh</th>
-                            <th class="text-center">Số lượng bán</th>
-                            <th class="text-right">Tổng doanh thu</th>
+                            <th class="w-8 text-center py-1 px-1.5">Hạng</th>
+                            <th class="py-1 px-1.5">Món bánh</th>
+                            <th class="py-1 px-1.5 hidden md:table-cell">Loại</th>
+                            <th class="text-center py-1 px-1.5 w-20">SL</th>
+                            <th class="text-right py-1 px-1.5 w-28">Doanh thu</th>
                         </tr>
                     </thead>
                     <tbody>
                         @if (!topSellingProducts.Any())
                         {
                             <tr>
-                                <td colspan="5" class="text-center py-6 text-xs text-slate-400">
-                                    Chưa có đơn hàng phát sinh trong giai đoạn này.
+                                <td colspan="5" class="text-center py-4 text-[10px] text-slate-400">
+                                    Chưa có đơn hàng trong kỳ này.
                                 </td>
                             </tr>
                         }
@@ -273,52 +272,38 @@
                             {
                                 var item = topSellingProducts[i];
                                 var rank = i + 1;
-                                <tr>
-                                    <td class="text-center">
+                                <tr class="border-t border-slate-100 dark:border-slate-800 hover:bg-slate-50/50 dark:hover:bg-slate-800/50">
+                                    <td class="text-center py-1.5 px-1.5">
                                         @if (rank == 1)
                                         {
-                                            <span class="inline-flex items-center justify-center w-6 h-6 rounded-lg bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-300 font-extrabold text-xs shadow-xs">
-                                                🥇
-                                            </span>
+                                            <span class="inline-flex items-center justify-center w-4 h-4 rounded bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-300 font-bold text-[9px]">🥇</span>
                                         }
                                         else if (rank == 2)
                                         {
-                                            <span class="inline-flex items-center justify-center w-6 h-6 rounded-lg bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200 font-extrabold text-xs">
-                                                🥈
-                                            </span>
+                                            <span class="inline-flex items-center justify-center w-4 h-4 rounded bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200 font-bold text-[9px]">🥈</span>
                                         }
                                         else if (rank == 3)
                                         {
-                                            <span class="inline-flex items-center justify-center w-6 h-6 rounded-lg bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 font-extrabold text-xs border border-amber-200 dark:border-amber-800">
-                                                🥉
-                                            </span>
+                                            <span class="inline-flex items-center justify-center w-4 h-4 rounded bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 font-bold text-[9px] border border-amber-200">🥉</span>
                                         }
                                         else
                                         {
-                                            <span class="inline-flex items-center justify-center w-6 h-6 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-bold text-xs">
-                                                #@rank
-                                            </span>
+                                            <span class="inline-flex items-center justify-center w-4 h-4 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-bold text-[9px]">#@rank</span>
                                         }
                                     </td>
-                                    <td>
-                                        <div class="font-bold text-xs text-slate-900 dark:text-white">
+                                    <td class="py-1.5 px-1.5">
+                                        <div class="font-bold text-xs text-slate-900 dark:text-white truncate max-w-xs" title="@item.ProductName">
                                             @item.ProductName
                                         </div>
-                                        <div class="text-[11px] text-slate-400 font-mono">
-                                            @($"{item.UnitPrice:N0} đ / cái")
-                                        </div>
+                                        <div class="text-[9px] text-slate-400 font-mono">@($"{item.UnitPrice:N0}đ")</div>
                                     </td>
-                                    <td class="text-xs text-slate-600 dark:text-slate-400">
-                                        <span class="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-[11px] font-medium">
-                                            @item.CategoryName
-                                        </span>
+                                    <td class="py-1.5 px-1.5 hidden md:table-cell text-[10px] text-slate-600 dark:text-slate-400">
+                                        <span class="px-1 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-[9px] font-medium whitespace-nowrap">@item.CategoryName</span>
                                     </td>
-                                    <td class="text-center font-bold text-xs text-slate-800 dark:text-white">
-                                        @item.SoldQuantity <span class="text-[11px] font-normal text-slate-400">cái</span>
+                                    <td class="text-center py-1.5 px-1.5 font-bold text-xs text-slate-800 dark:text-white">
+                                        @item.SoldQuantity <span class="text-[9px] font-normal text-slate-400">cái</span>
                                     </td>
-                                    <td class="text-right font-bold text-xs text-blue-600 dark:text-blue-400 font-mono">
-                                        @($"{item.TotalRevenue:N0} đ")
-                                    </td>
+                                    <td class="text-right py-1.5 px-1.5 font-bold text-xs text-blue-600 dark:text-blue-400 font-mono whitespace-nowrap">@($"{item.TotalRevenue:N0}đ")</td>
                                 </tr>
                             }
                         }
@@ -326,9 +311,10 @@
                 </table>
             </div>
         </div>
+    </div>
 
-        <!-- Bảng 2: Cảnh Báo Tồn Kho Bánh (Stock Alert: <= 10 cái) (5 Cols) -->
-        <div class="lg:col-span-5 bakery-card p-5">
+    <!-- 5. Cảnh Báo Tồn Kho (Full width) -->
+    <div class="bakery-card p-5">
             <div class="flex items-center justify-between mb-3 pb-3 border-b border-slate-100 dark:border-slate-800">
                 <div>
                     <h3 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2 mb-0.5">
@@ -390,7 +376,6 @@
             }
         </div>
     </div>
-</div>
 
 @code {
     private string filterPeriod = "month";
