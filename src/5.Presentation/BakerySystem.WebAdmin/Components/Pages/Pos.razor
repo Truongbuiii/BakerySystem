@@ -518,13 +518,22 @@
                     </div>
                 </div>
 
-                <div>
-                    <label class="bakery-label">Họ và tên khách hàng <span class="text-rose-500">*</span></label>
-                    <input type="text" 
-                           class="bakery-input" 
-                           placeholder="Ví dụ: Chị Lan, Anh Nam, Cô Mai..." 
-                           @bind="newCustomerName" 
-                           @onkeydown="@(async e => { if (e.Key == "Enter") await SaveQuickCustomer(); })" />
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="bakery-label">Họ & tên đệm</label>
+                        <input type="text" 
+                               class="bakery-input" 
+                               placeholder="Ví dụ: Nguyễn Văn, Chị..." 
+                               @bind="newCustomerLastName" />
+                    </div>
+                    <div>
+                        <label class="bakery-label">Tên khách hàng <span class="text-rose-500">*</span></label>
+                        <input type="text" 
+                               class="bakery-input" 
+                               placeholder="Ví dụ: Lan, Nam, Mai..." 
+                               @bind="newCustomerFirstName" 
+                               @onkeydown="@(async e => { if (e.Key == "Enter") await SaveQuickCustomer(); })" />
+                    </div>
                 </div>
             </div>
 
@@ -563,7 +572,8 @@
     private string searchPhoneInput = "";
     private string? customerSearchMessage;
     private bool showQuickCreateCustomer = false;
-    private string newCustomerName = "";
+    private string newCustomerLastName = "";
+    private string newCustomerFirstName = "";
     private bool isQuickCustomerModalOpen = false;
     private bool isSearchingCustomer = false;
     private string lastCustomerName = "Khách vãng lai";
@@ -603,8 +613,8 @@
 
         availablePromotions = await Context.Promotions
             .Include(p => p.PromotionInvoice)
-            .Where(p => p.Status == PromotionStatus.Active)
-            .OrderByDescending(p => p.PromotionInvoice != null ? p.PromotionInvoice.DiscountPercent : 0)
+            .Where(p => p.Status == PromotionStatus.Active && p.PromotionInvoice != null)
+            .OrderByDescending(p => p.PromotionInvoice!.DiscountPercent)
             .ToListAsync();
     }
 
@@ -720,12 +730,14 @@
         searchPhoneInput = "";
         customerSearchMessage = null;
         showQuickCreateCustomer = false;
-        newCustomerName = "";
+        newCustomerLastName = "";
+        newCustomerFirstName = "";
     }
 
     private void OpenQuickCustomerModal()
     {
-        newCustomerName = "";
+        newCustomerLastName = "";
+        newCustomerFirstName = "";
         isQuickCustomerModalOpen = true;
     }
 
@@ -734,11 +746,13 @@
         if (string.IsNullOrWhiteSpace(searchPhoneInput)) return;
 
         var cleanPhone = searchPhoneInput.Trim();
-        var name = string.IsNullOrWhiteSpace(newCustomerName) ? "Khách tại quầy" : newCustomerName.Trim();
+        var lastName = newCustomerLastName.Trim();
+        var firstName = string.IsNullOrWhiteSpace(newCustomerFirstName) ? "Khách tại quầy" : newCustomerFirstName.Trim();
 
         var newCust = new Customer
         {
-            FullName = name,
+            LastName = lastName,
+            FirstName = firstName,
             Phone = cleanPhone,
             Address = "Mua trực tiếp tại tiệm bánh",
             AccountID = null
@@ -842,13 +856,14 @@
             }
             else
             {
-                // Tìm khách vãng lai trong DB (FullName == "Khách vãng lai" và AccountID == null)
-                var walkIn = await Context.Customers.FirstOrDefaultAsync(c => c.FullName == "Khách vãng lai" && c.AccountID == null);
+                // Tìm khách vãng lai trong DB (AccountID == null và Phone == null)
+                var walkIn = await Context.Customers.FirstOrDefaultAsync(c => c.AccountID == null && c.Phone == null);
                 if (walkIn == null)
                 {
                     walkIn = new Customer
                     {
-                        FullName = "Khách vãng lai",
+                        LastName = "Khách",
+                        FirstName = "vãng lai",
                         Phone = null,
                         Address = "Mua trực tiếp tại tiệm bánh",
                         AccountID = null
@@ -929,7 +944,8 @@
         }
         catch (Exception ex)
         {
-            await JS.InvokeVoidAsync("alert", "Lỗi trong quá trình thanh toán: " + ex.Message);
+            var msg = ex.InnerException != null ? $"{ex.Message} -> {ex.InnerException.Message}" : ex.Message;
+            await JS.InvokeVoidAsync("alert", "Lỗi trong quá trình thanh toán: " + msg);
         }
         finally
         {

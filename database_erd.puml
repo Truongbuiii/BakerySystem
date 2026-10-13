@@ -1,0 +1,270 @@
+@startuml database_erd
+
+!define TABLE(x) class x << (T,#FFAAAA) >>
+!define PK(x) <b><color:Green>#PK</color></b> x
+!define FK(x) <color:Blue>#FK</color> x
+!define UK(x) <color:Purple>#UK</color> x
+!define CK(x) <color:Orange>#CK</color> x
+
+' =========================================================
+' 1. ACCOUNT
+' =========================================================
+TABLE(Account) {
+  PK(AccountID) : INT IDENTITY(1,1)
+  Username : VARCHAR(50) NOT NULL
+  Password : VARCHAR(255) NOT NULL
+  Role : VARCHAR(20) NOT NULL
+  Status : VARCHAR(20) NOT NULL DEFAULT 'Active'
+  UK(Username)
+  CK(Role IN ('Admin','Employee','Customer'))
+  CK(Status IN ('Active','Inactive'))
+}
+
+' =========================================================
+' 2. CUSTOMER
+' =========================================================
+TABLE(Customer) {
+  PK(CustomerID) : INT IDENTITY(1,1)
+  FK(AccountID) : INT NULL
+  LastName : NVARCHAR(100) NOT NULL
+  FirstName : NVARCHAR(50) NOT NULL
+  Phone : VARCHAR(20)
+  Address : NVARCHAR(255)
+  UK(AccountID)
+}
+
+' =========================================================
+' 3. EMPLOYEE
+' =========================================================
+TABLE(Employee) {
+  PK(EmployeeID) : INT IDENTITY(1,1)
+  FK(AccountID) : INT NOT NULL
+  FullName : NVARCHAR(100) NOT NULL
+  Phone : VARCHAR(20)
+  UK(AccountID)
+}
+
+' =========================================================
+' 4. SUPPLIER
+' =========================================================
+TABLE(Supplier) {
+  PK(SupplierID) : INT IDENTITY(1,1)
+  SupplierName : NVARCHAR(150) NOT NULL
+  Phone : VARCHAR(20)
+  Address : NVARCHAR(255)
+}
+
+' =========================================================
+' 5. CATEGORY
+' =========================================================
+TABLE(Category) {
+  PK(CategoryID) : INT IDENTITY(1,1)
+  CategoryName : NVARCHAR(100) NOT NULL
+  IsActive : BIT NOT NULL DEFAULT 1
+  UK(CategoryName)
+}
+
+' =========================================================
+' 6. PRODUCT
+' =========================================================
+TABLE(Product) {
+  PK(ProductID) : INT IDENTITY(1,1)
+  FK(CategoryID) : INT NOT NULL
+  ProductName : NVARCHAR(150) NOT NULL
+  Description : NVARCHAR(500)
+  Price : DECIMAL(18,2) NOT NULL
+  Quantity : INT NOT NULL DEFAULT 0
+  ImageURL : VARCHAR(500)
+  IsActive : BIT NOT NULL DEFAULT 1
+  CK(Price >= 0)
+  CK(Quantity >= 0)
+}
+
+' =========================================================
+' 7. PROMOTION (Bảng cha chứa thông tin chung)
+' =========================================================
+TABLE(Promotion) {
+  PK(PromotionID) : INT IDENTITY(1,1)
+  PromotionCode : VARCHAR(50) NOT NULL
+  PromotionName : NVARCHAR(200) NOT NULL
+  PromotionType : VARCHAR(30) NOT NULL DEFAULT 'Invoice'
+  StartDate : DATE NOT NULL
+  EndDate : DATE NOT NULL
+  Description : NVARCHAR(500)
+  Status : VARCHAR(20) NOT NULL DEFAULT 'Active'
+  UK(PromotionCode)
+  CK(PromotionType IN ('Product','OrderTier','Invoice'))
+  CK(EndDate >= StartDate)
+  CK(Status IN ('Active','Inactive'))
+}
+
+' =========================================================
+' 8. PROMOTION INVOICE (Loại 1: Mã Voucher nhập tay)
+' =========================================================
+TABLE(PromotionInvoice) {
+  PK(FK(PromotionID)) : INT
+  VoucherCode : VARCHAR(50)
+  MinOrderAmount : DECIMAL(18,2) NOT NULL DEFAULT 0
+  DiscountPercent : DECIMAL(5,2) NOT NULL DEFAULT 0
+  DiscountAmount : DECIMAL(18,2)
+  MaxDiscountAmount : DECIMAL(18,2)
+  UsageLimit : INT
+  UsedCount : INT NOT NULL DEFAULT 0
+  CK(MinOrderAmount >= 0)
+  CK(DiscountPercent >= 0 AND DiscountPercent <= 100)
+  CK(DiscountAmount IS NULL OR DiscountAmount >= 0)
+  CK(MaxDiscountAmount IS NULL OR MaxDiscountAmount >= 0)
+}
+
+' =========================================================
+' 9. PROMOTION ORDER TIER (Loại 2: Giảm tự động theo mốc tiền đơn hàng)
+' =========================================================
+TABLE(PromotionOrderTier) {
+  PK(FK(PromotionID)) : INT
+  MinOrderAmount : DECIMAL(18,2) NOT NULL
+  DiscountPercent : DECIMAL(5,2) NOT NULL DEFAULT 0
+  DiscountAmount : DECIMAL(18,2)
+  MaxDiscountAmount : DECIMAL(18,2)
+  CK(MinOrderAmount >= 0)
+  CK(DiscountPercent >= 0 AND DiscountPercent <= 100)
+  CK(DiscountAmount IS NULL OR DiscountAmount >= 0)
+  CK(MaxDiscountAmount IS NULL OR MaxDiscountAmount >= 0)
+}
+
+' =========================================================
+' 10. PROMOTION PRODUCT (Loại 3: Giảm giá theo sản phẩm cụ thể)
+' =========================================================
+TABLE(PromotionProduct) {
+  PK(FK(PromotionID)) : INT NOT NULL
+  PK(FK(ProductID)) : INT NOT NULL
+  DiscountPercent : DECIMAL(5,2) NOT NULL DEFAULT 0
+  DiscountAmount : DECIMAL(18,2)
+  MaxDiscountAmount : DECIMAL(18,2)
+  CK(DiscountPercent >= 0 AND DiscountPercent <= 100)
+  CK(DiscountAmount IS NULL OR DiscountAmount >= 0)
+  CK(MaxDiscountAmount IS NULL OR MaxDiscountAmount >= 0)
+}
+
+' =========================================================
+' 11. IMPORT RECEIPT
+' =========================================================
+TABLE(ImportReceipt) {
+  PK(ReceiptID) : INT IDENTITY(1,1)
+  FK(SupplierID) : INT NOT NULL
+  FK(EmployeeID) : INT NOT NULL
+  ReceiptDate : DATETIME NOT NULL DEFAULT GETDATE()
+  TotalAmount : DECIMAL(18,2) NOT NULL DEFAULT 0
+  Note : NVARCHAR(500)
+  CK(TotalAmount >= 0)
+}
+
+' =========================================================
+' 12. IMPORT RECEIPT DETAIL
+' =========================================================
+TABLE(ImportReceiptDetail) {
+  PK(FK(ReceiptID)) : INT NOT NULL
+  PK(FK(ProductID)) : INT NOT NULL
+  Quantity : INT NOT NULL
+  UnitPrice : DECIMAL(18,2) NOT NULL
+  SubTotal : DECIMAL(18,2) NOT NULL
+  CK(Quantity > 0)
+  CK(UnitPrice >= 0)
+  CK(SubTotal >= 0)
+}
+
+' =========================================================
+' 13. ORDERS
+' =========================================================
+TABLE(Orders) {
+  PK(OrderID) : INT IDENTITY(1,1)
+  FK(CustomerID) : INT NOT NULL
+  FK(EmployeeID) : INT NULL
+  FK(PromotionID) : INT NULL
+  OrderDate : DATETIME NOT NULL DEFAULT GETDATE()
+  TotalAmount : DECIMAL(18,2) NOT NULL DEFAULT 0
+  DiscountAmount : DECIMAL(18,2) NOT NULL DEFAULT 0
+  FinalAmount : DECIMAL(18,2) NOT NULL DEFAULT 0
+  ReceiverName : NVARCHAR(100)
+  ReceiverPhone : VARCHAR(20)
+  ShippingAddress : NVARCHAR(255)
+  Note : NVARCHAR(500)
+  PaymentMethod : VARCHAR(30) NOT NULL DEFAULT 'COD'
+  PaymentStatus : VARCHAR(20) NOT NULL DEFAULT 'Unpaid'
+  Status : VARCHAR(20) NOT NULL DEFAULT 'Pending'
+  CK(TotalAmount >= 0)
+  CK(DiscountAmount >= 0)
+  CK(FinalAmount >= 0)
+  CK(DiscountAmount <= TotalAmount)
+  CK(PaymentStatus IN ('Unpaid','Paid','Refunded'))
+  CK(Status IN ('Pending','Confirmed','Shipping','Completed','Cancelled'))
+}
+
+' =========================================================
+' 14. ORDER DETAIL
+' =========================================================
+TABLE(OrderDetail) {
+  PK(FK(OrderID)) : INT NOT NULL
+  PK(FK(ProductID)) : INT NOT NULL
+  Quantity : INT NOT NULL
+  UnitPrice : DECIMAL(18,2) NOT NULL
+  DiscountAmount : DECIMAL(18,2) NOT NULL DEFAULT 0
+  SubTotal : DECIMAL(18,2) NOT NULL
+  CK(Quantity > 0)
+  CK(UnitPrice >= 0)
+  CK(DiscountAmount >= 0)
+  CK(SubTotal >= 0)
+}
+
+' =========================================================
+' RELATIONSHIPS
+' =========================================================
+
+' Account - Customer (1:0..1)
+Account "1" --> "0..1" Customer : AccountID
+
+' Account - Employee (1:1)
+Account "1" --> "1" Employee : AccountID
+
+' Category - Product (1:N)
+Category "1" --> "N" Product : CategoryID
+
+' Product - PromotionProduct (1:N)
+Product "1" --> "N" PromotionProduct : ProductID
+
+' Promotion - PromotionProduct (1:N)
+Promotion "1" --> "N" PromotionProduct : PromotionID
+
+' Promotion - PromotionInvoice (1:0..1)
+Promotion "1" --> "0..1" PromotionInvoice : PromotionID
+
+' Promotion - PromotionOrderTier (1:0..1)
+Promotion "1" --> "0..1" PromotionOrderTier : PromotionID
+
+' Supplier - ImportReceipt (1:N)
+Supplier "1" --> "N" ImportReceipt : SupplierID
+
+' Employee - ImportReceipt (1:N)
+Employee "1" --> "N" ImportReceipt : EmployeeID
+
+' ImportReceipt - ImportReceiptDetail (1:N)
+ImportReceipt "1" --> "N" ImportReceiptDetail : ReceiptID
+
+' Product - ImportReceiptDetail (1:N)
+Product "1" --> "N" ImportReceiptDetail : ProductID
+
+' Customer - Orders (1:N)
+Customer "1" --> "N" Orders : CustomerID
+
+' Employee - Orders (0..1:N)
+Employee "0..1" --> "N" Orders : EmployeeID
+
+' Promotion - Orders (0..1:N)
+Promotion "0..1" --> "N" Orders : PromotionID
+
+' Orders - OrderDetail (1:N)
+Orders "1" --> "N" OrderDetail : OrderID
+
+' Product - OrderDetail (1:N)
+Product "1" --> "N" OrderDetail : ProductID
+
+@enduml

@@ -42,3 +42,11 @@ public static class PromotionStatus
     public const string Active = "Active";
     public const string Inactive = "Inactive";
 }
+
+public static class PromotionType
+{
+    public const string Product = "Product";         // 1. Giảm trực tiếp theo món bánh (PromotionProduct)
+    public const string OrderTier = "OrderTier";     // 2. Giảm tự động theo mức tiền hóa đơn đạt được (PromotionOrderTier)
+    public const string Invoice = "Invoice";         // 3. Giảm theo mã Voucher hóa đơn (PromotionInvoice)
+}
+

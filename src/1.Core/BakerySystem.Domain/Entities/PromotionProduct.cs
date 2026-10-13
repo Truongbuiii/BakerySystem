@@ -5,6 +5,7 @@ public class PromotionProduct
     public int PromotionID { get; set; }
     public int ProductID { get; set; }
     public decimal DiscountPercent { get; set; }
+    public decimal? DiscountAmount { get; set; }
     public decimal? MaxDiscountAmount { get; set; }
 
     // Navigation Properties

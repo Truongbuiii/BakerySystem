@@ -24,7 +24,9 @@ public class CustomerConfiguration : IEntityTypeConfiguration<Customer>
     {
         builder.ToTable("Customer");
         builder.HasKey(c => c.CustomerID);
-        builder.Property(c => c.FullName).HasMaxLength(100).IsRequired();
+        builder.Property(c => c.LastName).HasMaxLength(100).IsRequired();
+        builder.Property(c => c.FirstName).HasMaxLength(50).IsRequired();
+        builder.Ignore(c => c.FullName);
         builder.Property(c => c.Phone).HasMaxLength(20).IsUnicode(false);
         builder.Property(c => c.Address).HasMaxLength(255);
 
@@ -110,6 +112,7 @@ public class PromotionConfiguration : IEntityTypeConfiguration<Promotion>
         builder.Property(p => p.PromotionCode).HasMaxLength(50).IsRequired().IsUnicode(false);
         builder.HasIndex(p => p.PromotionCode).IsUnique();
         builder.Property(p => p.PromotionName).HasMaxLength(200).IsRequired();
+        builder.Property(p => p.PromotionType).HasMaxLength(30).IsRequired().IsUnicode(false).HasDefaultValue("Invoice");
         builder.Property(p => p.StartDate).HasColumnType("date").IsRequired();
         builder.Property(p => p.EndDate).HasColumnType("date").IsRequired();
         builder.Property(p => p.Description).HasMaxLength(500);
@@ -124,13 +127,36 @@ public class PromotionInvoiceConfiguration : IEntityTypeConfiguration<PromotionI
         builder.ToTable("PromotionInvoice");
         builder.HasKey(pi => pi.PromotionID);
         builder.Property(pi => pi.PromotionID).ValueGeneratedNever();
+        builder.Property(pi => pi.VoucherCode).HasMaxLength(50).IsUnicode(false);
         builder.Property(pi => pi.MinOrderAmount).HasPrecision(18, 2).HasDefaultValue(0);
         builder.Property(pi => pi.DiscountPercent).HasPrecision(5, 2).IsRequired();
+        builder.Property(pi => pi.DiscountAmount).HasPrecision(18, 2);
         builder.Property(pi => pi.MaxDiscountAmount).HasPrecision(18, 2);
+        builder.Property(pi => pi.UsageLimit);
+        builder.Property(pi => pi.UsedCount).HasDefaultValue(0);
 
         builder.HasOne(pi => pi.Promotion)
                .WithOne(p => p.PromotionInvoice)
                .HasForeignKey<PromotionInvoice>(pi => pi.PromotionID)
+               .OnDelete(DeleteBehavior.Cascade);
+    }
+}
+
+public class PromotionOrderTierConfiguration : IEntityTypeConfiguration<PromotionOrderTier>
+{
+    public void Configure(EntityTypeBuilder<PromotionOrderTier> builder)
+    {
+        builder.ToTable("PromotionOrderTier");
+        builder.HasKey(pot => pot.PromotionID);
+        builder.Property(pot => pot.PromotionID).ValueGeneratedNever();
+        builder.Property(pot => pot.MinOrderAmount).HasPrecision(18, 2).IsRequired();
+        builder.Property(pot => pot.DiscountPercent).HasPrecision(5, 2).HasDefaultValue(0);
+        builder.Property(pot => pot.DiscountAmount).HasPrecision(18, 2);
+        builder.Property(pot => pot.MaxDiscountAmount).HasPrecision(18, 2);
+
+        builder.HasOne(pot => pot.Promotion)
+               .WithOne(p => p.PromotionOrderTier)
+               .HasForeignKey<PromotionOrderTier>(pot => pot.PromotionID)
                .OnDelete(DeleteBehavior.Cascade);
     }
 }
@@ -142,6 +168,7 @@ public class PromotionProductConfiguration : IEntityTypeConfiguration<PromotionP
         builder.ToTable("PromotionProduct");
         builder.HasKey(pp => new { pp.PromotionID, pp.ProductID });
         builder.Property(pp => pp.DiscountPercent).HasPrecision(5, 2).IsRequired();
+        builder.Property(pp => pp.DiscountAmount).HasPrecision(18, 2);
         builder.Property(pp => pp.MaxDiscountAmount).HasPrecision(18, 2);
 
         builder.HasOne(pp => pp.Promotion)

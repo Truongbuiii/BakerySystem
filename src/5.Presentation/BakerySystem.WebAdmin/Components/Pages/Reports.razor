@@ -1,0 +1,671 @@
+@page "/reports"
+@rendermode InteractiveServer
+@attribute [Authorize(Roles = "Admin")]
+@inject IBakeryDbContext Context
+@inject IJSRuntime JS
+@inject NavigationManager Navigation
+
+<PageTitle>Báo Cáo Doanh Thu & Thống Kê | BakeryAdmin</PageTitle>
+
+<div class="space-y-5">
+    <!-- 1. Header Trang & Bộ lọc thời gian -->
+    <div class="bakery-page-header pb-2 border-b border-border dark:border-darkborder flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+        <div>
+            <div class="flex items-center gap-2 text-xs text-slate-500 mb-1">
+                <a href="/" class="hover:text-primary transition-colors flex items-center gap-1">
+                    <iconify-icon icon="solar:home-2-linear" class="text-sm"></iconify-icon>
+                    Trang chủ
+                </a>
+                <span>/</span>
+                <span class="text-slate-800 dark:text-slate-200 font-semibold">Báo cáo & Thống kê</span>
+            </div>
+            <h2 class="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2.5 mb-1">
+                <span class="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800 flex items-center justify-center shrink-0">
+                    <iconify-icon icon="solar:chart-2-bold" class="text-xl"></iconify-icon>
+                </span>
+                Báo Cáo Doanh Thu, Tồn Kho & Hiệu Suất (Module 7)
+            </h2>
+            <p class="text-xs sm:text-sm text-slate-500 mb-0">
+                Tổng hợp doanh thu thực tế, chi phí vốn nhập kho, phân tích lợi nhuận gộp và cảnh báo mức tồn an toàn.
+            </p>
+        </div>
+
+        <!-- Bộ lọc thời gian & Nút chức năng -->
+        <div class="flex flex-wrap items-center gap-2">
+            <div class="inline-flex rounded-xl p-1 bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700">
+                <button type="button" 
+                        class="px-3 py-1.5 text-xs font-semibold rounded-lg transition-all @(filterPeriod == "today" ? "bg-white dark:bg-slate-700 text-primary shadow-sm" : "text-slate-600 dark:text-slate-400 hover:text-slate-900")"
+                        @onclick='() => ChangePeriod("today")'>
+                    Hôm nay
+                </button>
+                <button type="button" 
+                        class="px-3 py-1.5 text-xs font-semibold rounded-lg transition-all @(filterPeriod == "week" ? "bg-white dark:bg-slate-700 text-primary shadow-sm" : "text-slate-600 dark:text-slate-400 hover:text-slate-900")"
+                        @onclick='() => ChangePeriod("week")'>
+                    7 ngày
+                </button>
+                <button type="button" 
+                        class="px-3 py-1.5 text-xs font-semibold rounded-lg transition-all @(filterPeriod == "month" ? "bg-white dark:bg-slate-700 text-primary shadow-sm" : "text-slate-600 dark:text-slate-400 hover:text-slate-900")"
+                        @onclick='() => ChangePeriod("month")'>
+                    Tháng này
+                </button>
+                <button type="button" 
+                        class="px-3 py-1.5 text-xs font-semibold rounded-lg transition-all @(filterPeriod == "year" ? "bg-white dark:bg-slate-700 text-primary shadow-sm" : "text-slate-600 dark:text-slate-400 hover:text-slate-900")"
+                        @onclick='() => ChangePeriod("year")'>
+                    Năm nay
+                </button>
+                <button type="button" 
+                        class="px-3 py-1.5 text-xs font-semibold rounded-lg transition-all @(filterPeriod == "all" ? "bg-white dark:bg-slate-700 text-primary shadow-sm" : "text-slate-600 dark:text-slate-400 hover:text-slate-900")"
+                        @onclick='() => ChangePeriod("all")'>
+                    Tất cả
+                </button>
+            </div>
+
+            <button type="button" 
+                    class="bakery-btn bakery-btn-outline bakery-btn-sm"
+                    @onclick="LoadReportDataAsync"
+                    disabled="@isLoading"
+                    title="Tải lại dữ liệu">
+                <iconify-icon icon="solar:restart-linear" class="text-base @(isLoading ? "animate-spin" : "")"></iconify-icon>
+                <span>Tải lại</span>
+            </button>
+
+            <button type="button" 
+                    class="bakery-btn bakery-btn-secondary bakery-btn-sm"
+                    @onclick="PrintReport"
+                    title="In bảng báo cáo này">
+                <iconify-icon icon="solar:printer-linear" class="text-base"></iconify-icon>
+                <span>In báo cáo</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- 2. Top 4 KPI Metric Cards (Đồng bộ thiết kế hiện đại) -->
+    <div class="bakery-kpi-grid">
+        <!-- Card 1: Doanh Thu Thực Thu -->
+        <div class="bakery-kpi-card">
+            <div class="bakery-kpi-content">
+                <span class="bakery-kpi-label">Doanh thu thực thu</span>
+                <div class="bakery-kpi-val text-blue-700 dark:text-blue-400">@($"{totalRevenue:N0} đ")</div>
+                <div class="bakery-kpi-subtext">
+                    <span class="bakery-badge bakery-badge-success text-[10px] py-0 px-1.5 font-bold">
+                        @completedOrdersCount đơn
+                    </span>
+                    <span class="truncate">Đã giảm voucher: @($"{totalDiscountAmount:N0} đ")</span>
+                </div>
+            </div>
+            <div class="bakery-kpi-iconbox bakery-kpi-blue">
+                <iconify-icon icon="solar:wallet-money-bold"></iconify-icon>
+            </div>
+        </div>
+
+        <!-- Card 2: Chi Phí Vốn Nhập Kho -->
+        <div class="bakery-kpi-card">
+            <div class="bakery-kpi-content">
+                <span class="bakery-kpi-label">Chi phí vốn nguyên liệu</span>
+                <div class="bakery-kpi-val text-amber-700 dark:text-amber-400">@($"{totalImportCost:N0} đ")</div>
+                <div class="bakery-kpi-subtext">
+                    <span class="bakery-badge bakery-badge-secondary text-[10px] py-0 px-1.5 font-bold">
+                        @importReceiptsCount phiếu nhập
+                    </span>
+                    <span class="truncate">Từ @suppliersCount nhà cung cấp</span>
+                </div>
+            </div>
+            <div class="bakery-kpi-iconbox bakery-kpi-amber">
+                <iconify-icon icon="solar:box-minimalistic-bold"></iconify-icon>
+            </div>
+        </div>
+
+        <!-- Card 3: Lợi Nhuận Gộp -->
+        <div class="bakery-kpi-card">
+            <div class="bakery-kpi-content">
+                <span class="bakery-kpi-label">Lợi nhuận gộp (Doanh thu - Vốn)</span>
+                <div class="bakery-kpi-val @(grossProfit >= 0 ? "text-emerald-700 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400")">
+                    @($"{grossProfit:N0} đ")
+                </div>
+                <div class="bakery-kpi-subtext">
+                    <span class="bakery-badge @(profitMargin >= 0 ? "bakery-badge-success" : "bakery-badge-danger") text-[10px] py-0 px-1.5 font-bold">
+                        @(profitMargin.ToString("F1"))% Margin
+                    </span>
+                    <span>Tỷ suất lợi nhuận</span>
+                </div>
+            </div>
+            <div class="bakery-kpi-iconbox bakery-kpi-green">
+                <iconify-icon icon="solar:graph-up-bold"></iconify-icon>
+            </div>
+        </div>
+
+        <!-- Card 4: Hiệu Suất Đơn Hàng -->
+        <div class="bakery-kpi-card">
+            <div class="bakery-kpi-content">
+                <span class="bakery-kpi-label">Hiệu suất đơn hàng</span>
+                <div class="bakery-kpi-val text-purple-700 dark:text-purple-400">@completedOrdersCount / @totalOrdersCount đơn</div>
+                <div class="bakery-kpi-subtext">
+                    <span class="bakery-badge bakery-badge-primary text-[10px] py-0 px-1.5 font-bold">
+                        @(orderSuccessRate.ToString("F1"))% Thành công
+                    </span>
+                    <span>Đã hủy: @cancelledOrdersCount</span>
+                </div>
+            </div>
+            <div class="bakery-kpi-iconbox bakery-kpi-purple">
+                <iconify-icon icon="solar:bill-check-bold"></iconify-icon>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Khu Vực Biểu Đồ Thống Kê (ApexCharts) -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+        <!-- Cột Trái (8 Cols): So sánh Doanh thu thực thu vs Chi phí vốn -->
+        <div class="lg:col-span-8 bakery-card p-5">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4 pb-3 border-b border-slate-100 dark:border-slate-800">
+                <div>
+                    <h3 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2 mb-0.5">
+                        <iconify-icon icon="solar:chart-square-bold" class="text-primary text-base"></iconify-icon>
+                        So Sánh Doanh Thu Thực Thu vs Chi Phí Vốn Nhập Hàng
+                    </h3>
+                    <p class="text-xs text-slate-500 mb-0">Biểu đồ so sánh trực quan dòng tiền theo chu kỳ @GetPeriodDisplayName()</p>
+                </div>
+                <div class="flex items-center gap-3 text-xs font-semibold">
+                    <div class="flex items-center gap-1.5">
+                        <span class="w-3 h-3 rounded-full bg-blue-600 inline-block"></span>
+                        <span class="text-slate-600 dark:text-slate-300">Doanh thu bán bánh</span>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <span class="w-3 h-3 rounded-full bg-amber-500 inline-block"></span>
+                        <span class="text-slate-600 dark:text-slate-300">Chi phí vốn nhập</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- DOM Container cho ApexCharts -->
+            <div id="reports-financial-chart" style="min-height: 320px;">
+                @if (isLoading)
+                {
+                    <div class="flex items-center justify-center h-72">
+                        <span class="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin"></span>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Cột Phải (4 Cols): Cơ Cấu Doanh Thu Theo Loại Bánh (Donut) -->
+        <div class="lg:col-span-4 bakery-card p-5">
+            <div class="mb-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+                <h3 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2 mb-0.5">
+                    <iconify-icon icon="solar:pie-chart-2-bold" class="text-emerald-600 text-base"></iconify-icon>
+                    Cơ Cấu Doanh Thu Theo Loại Bánh
+                </h3>
+                <p class="text-xs text-slate-500 mb-0">Tỷ lệ đóng góp doanh thu của từng phân loại</p>
+            </div>
+
+            <!-- DOM Container cho Donut Chart -->
+            <div id="reports-category-donut" style="min-height: 280px;"></div>
+
+            <!-- Chi tiết % từng loại -->
+            <div class="mt-2 space-y-2 text-xs">
+                @foreach (var cat in categoryShares.Take(4))
+                {
+                    <div class="flex items-center justify-between py-1 border-b border-slate-100 dark:border-slate-800/60 last:border-b-0">
+                        <div class="flex items-center gap-2 min-w-0">
+                            <span class="w-2.5 h-2.5 rounded-full shrink-0" style="background-color: @cat.ColorHex;"></span>
+                            <span class="font-medium text-slate-700 dark:text-slate-300 truncate">@cat.CategoryName</span>
+                        </div>
+                        <div class="flex items-center gap-2 shrink-0 font-mono font-semibold">
+                            <span class="text-slate-900 dark:text-white">@($"{cat.Revenue:N0}đ")</span>
+                            <span class="text-[10px] text-slate-400">(@($"{cat.Percentage:F1}%"))</span>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. Hai Bảng Phân Tích Cốt Lõi: Top 5 Bán Chạy & Cảnh Báo Tồn Kho -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+        <!-- Bảng 1: Top 5 Món Bánh Bán Chạy Nhất (Best Sellers) (7 Cols) -->
+        <div class="lg:col-span-7 bakery-card p-5">
+            <div class="flex items-center justify-between mb-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+                <div>
+                    <h3 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2 mb-0.5">
+                        <iconify-icon icon="solar:cup-star-bold" class="text-amber-500 text-lg"></iconify-icon>
+                        Top 5 Món Bánh Bán Chạy Nhất (Best Sellers)
+                    </h3>
+                    <p class="text-xs text-slate-500 mb-0">Xếp hạng theo số lượng cái bán ra từ các đơn hàng hoàn tất</p>
+                </div>
+                <a href="/products" class="text-xs font-semibold text-primary hover:underline flex items-center gap-1">
+                    Xem thực đơn <iconify-icon icon="solar:arrow-right-linear"></iconify-icon>
+                </a>
+            </div>
+
+            <div class="bakery-table-responsive">
+                <table class="bakery-table">
+                    <thead>
+                        <tr>
+                            <th class="w-12 text-center">Hạng</th>
+                            <th>Món bánh</th>
+                            <th>Loại bánh</th>
+                            <th class="text-center">Số lượng bán</th>
+                            <th class="text-right">Tổng doanh thu</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (!topSellingProducts.Any())
+                        {
+                            <tr>
+                                <td colspan="5" class="text-center py-6 text-xs text-slate-400">
+                                    Chưa có đơn hàng phát sinh trong giai đoạn này.
+                                </td>
+                            </tr>
+                        }
+                        else
+                        {
+                            @for (int i = 0; i < topSellingProducts.Count; i++)
+                            {
+                                var item = topSellingProducts[i];
+                                var rank = i + 1;
+                                <tr>
+                                    <td class="text-center">
+                                        @if (rank == 1)
+                                        {
+                                            <span class="inline-flex items-center justify-center w-6 h-6 rounded-lg bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-300 font-extrabold text-xs shadow-xs">
+                                                🥇
+                                            </span>
+                                        }
+                                        else if (rank == 2)
+                                        {
+                                            <span class="inline-flex items-center justify-center w-6 h-6 rounded-lg bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200 font-extrabold text-xs">
+                                                🥈
+                                            </span>
+                                        }
+                                        else if (rank == 3)
+                                        {
+                                            <span class="inline-flex items-center justify-center w-6 h-6 rounded-lg bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 font-extrabold text-xs border border-amber-200 dark:border-amber-800">
+                                                🥉
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="inline-flex items-center justify-center w-6 h-6 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-bold text-xs">
+                                                #@rank
+                                            </span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <div class="font-bold text-xs text-slate-900 dark:text-white">
+                                            @item.ProductName
+                                        </div>
+                                        <div class="text-[11px] text-slate-400 font-mono">
+                                            @($"{item.UnitPrice:N0} đ / cái")
+                                        </div>
+                                    </td>
+                                    <td class="text-xs text-slate-600 dark:text-slate-400">
+                                        <span class="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-[11px] font-medium">
+                                            @item.CategoryName
+                                        </span>
+                                    </td>
+                                    <td class="text-center font-bold text-xs text-slate-800 dark:text-white">
+                                        @item.SoldQuantity <span class="text-[11px] font-normal text-slate-400">cái</span>
+                                    </td>
+                                    <td class="text-right font-bold text-xs text-blue-600 dark:text-blue-400 font-mono">
+                                        @($"{item.TotalRevenue:N0} đ")
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Bảng 2: Cảnh Báo Tồn Kho Bánh (Stock Alert: <= 10 cái) (5 Cols) -->
+        <div class="lg:col-span-5 bakery-card p-5">
+            <div class="flex items-center justify-between mb-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+                <div>
+                    <h3 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2 mb-0.5">
+                        <iconify-icon icon="solar:danger-triangle-bold" class="text-rose-500 text-lg"></iconify-icon>
+                        Cảnh Báo Tồn Kho Bánh (Ngưỡng &le; 10 cái)
+                    </h3>
+                    <p class="text-xs text-slate-500 mb-0">Cảnh báo tự động các món hết hàng hoặc sắp hết để thợ bánh nướng bổ sung</p>
+                </div>
+                <span class="bakery-badge bakery-badge-danger text-[10px] font-bold">
+                    @lowStockProducts.Count món báo động
+                </span>
+            </div>
+
+            @if (!lowStockProducts.Any())
+            {
+                <div class="p-5 text-center bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800/40 rounded-xl my-4">
+                    <iconify-icon icon="solar:check-circle-bold" class="text-emerald-500 text-3xl mb-1"></iconify-icon>
+                    <p class="text-xs font-bold text-emerald-800 dark:text-emerald-300 mb-0.5">Tồn kho đang ở mức an toàn!</p>
+                    <p class="text-[11px] text-emerald-600 dark:text-emerald-400 mb-0">Tất cả món bánh đều có số lượng tồn kho trên 10 cái.</p>
+                </div>
+            }
+            else
+            {
+                <div class="space-y-2.5 max-h-[340px] overflow-y-auto scrollbar-thin pr-1">
+                    @foreach (var prod in lowStockProducts)
+                    {
+                        var isOutOfStock = prod.Quantity <= 0;
+                        <div class="p-3 rounded-xl border flex items-center justify-between gap-3 @(isOutOfStock ? "bg-rose-50/70 border-rose-200 dark:bg-rose-950/30 dark:border-rose-900/50" : "bg-amber-50/70 border-amber-200 dark:bg-amber-950/30 dark:border-amber-900/50")">
+                            <div class="min-w-0 flex-1">
+                                <div class="flex items-center gap-2 mb-0.5">
+                                    <span class="text-xs font-bold text-slate-900 dark:text-white truncate" title="@prod.ProductName">
+                                        @prod.ProductName
+                                    </span>
+                                </div>
+                                <div class="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-2">
+                                    <span>Loại: @prod.Category?.CategoryName</span>
+                                    <span>&bull;</span>
+                                    <span class="font-mono">@($"{prod.Price:N0}đ")</span>
+                                </div>
+                            </div>
+
+                            <div class="text-right shrink-0">
+                                @if (isOutOfStock)
+                                {
+                                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-extrabold uppercase bg-rose-600 text-white shadow-xs">
+                                        <iconify-icon icon="solar:close-circle-bold"></iconify-icon> HẾT HÀNG (0)
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold bg-amber-500 text-white shadow-xs">
+                                        <iconify-icon icon="solar:danger-triangle-bold"></iconify-icon> Còn @prod.Quantity cái
+                                    </span>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private string filterPeriod = "month";
+    private bool isLoading = true;
+
+    // KPI Metrics
+    private decimal totalRevenue = 0;
+    private decimal totalImportCost = 0;
+    private decimal grossProfit => totalRevenue - totalImportCost;
+    private decimal profitMargin => totalRevenue > 0 ? (grossProfit / totalRevenue) * 100m : 0m;
+    private decimal totalDiscountAmount = 0;
+    private int totalOrdersCount = 0;
+    private int completedOrdersCount = 0;
+    private int cancelledOrdersCount = 0;
+    private decimal orderSuccessRate => totalOrdersCount > 0 ? ((decimal)completedOrdersCount / totalOrdersCount) * 100m : 0m;
+
+    private int importReceiptsCount = 0;
+    private int suppliersCount = 0;
+
+    // Top Selling Products
+    private List<TopSellerItem> topSellingProducts = new();
+
+    // Low Stock Alert
+    private List<Product> lowStockProducts = new();
+
+    // Category Breakdown
+    private List<CategoryShareItem> categoryShares = new();
+
+    // Chart Time Series Data
+    private List<string> chartLabels = new();
+    private List<decimal> chartRevenueSeries = new();
+    private List<decimal> chartCostSeries = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadReportDataAsync();
+    }
+
+    private async Task ChangePeriod(string period)
+    {
+        filterPeriod = period;
+        await LoadReportDataAsync();
+    }
+
+    private string GetPeriodDisplayName() => filterPeriod switch
+    {
+        "today" => "Hôm nay",
+        "week" => "7 ngày gần nhất",
+        "month" => "Tháng này",
+        "year" => "Năm này",
+        _ => "Toàn bộ thời gian"
+    };
+
+    private async Task LoadReportDataAsync()
+    {
+        isLoading = true;
+
+        try
+        {
+            DateTime? startDate = null;
+            DateTime? endDate = null;
+            var now = DateTime.Now;
+
+            switch (filterPeriod)
+            {
+                case "today":
+                    startDate = now.Date;
+                    endDate = now.Date.AddDays(1).AddTicks(-1);
+                    break;
+                case "week":
+                    startDate = now.Date.AddDays(-6);
+                    endDate = now.Date.AddDays(1).AddTicks(-1);
+                    break;
+                case "month":
+                    startDate = new DateTime(now.Year, now.Month, 1);
+                    endDate = startDate.Value.AddMonths(1).AddTicks(-1);
+                    break;
+                case "year":
+                    startDate = new DateTime(now.Year, 1, 1);
+                    endDate = startDate.Value.AddYears(1).AddTicks(-1);
+                    break;
+                default:
+                    // "all" - không lọc ngày
+                    break;
+            }
+
+            // 1. Lọc Đơn Hàng trong kỳ
+            var ordersQuery = Context.Orders.AsQueryable();
+            if (startDate.HasValue && endDate.HasValue)
+            {
+                ordersQuery = ordersQuery.Where(o => o.OrderDate >= startDate.Value && o.OrderDate <= endDate.Value);
+            }
+
+            var orders = await ordersQuery.ToListAsync();
+            totalOrdersCount = orders.Count;
+            completedOrdersCount = orders.Count(o => o.Status == OrderStatus.Completed);
+            cancelledOrdersCount = orders.Count(o => o.Status == OrderStatus.Cancelled);
+
+            // Doanh thu chỉ tính đơn không hủy (chủ yếu là Completed)
+            var validOrders = orders.Where(o => o.Status != OrderStatus.Cancelled).ToList();
+            totalRevenue = validOrders.Sum(o => o.FinalAmount);
+            totalDiscountAmount = validOrders.Sum(o => o.DiscountAmount);
+
+            // 2. Lọc Chi Phí Nhập Kho trong kỳ
+            var importQuery = Context.ImportReceipts.AsQueryable();
+            if (startDate.HasValue && endDate.HasValue)
+            {
+                importQuery = importQuery.Where(i => i.ReceiptDate >= startDate.Value && i.ReceiptDate <= endDate.Value);
+            }
+            var imports = await importQuery.ToListAsync();
+            totalImportCost = imports.Sum(i => i.TotalAmount);
+            importReceiptsCount = imports.Count;
+            suppliersCount = await Context.Suppliers.CountAsync();
+
+            // 3. Top 5 Món Bánh Bán Chạy Nhất (Best Sellers)
+            var validOrderIds = validOrders.Select(o => o.OrderID).ToList();
+            var detailsQuery = Context.OrderDetails
+                .Include(d => d.Product)
+                .ThenInclude(p => p.Category)
+                .Where(d => validOrderIds.Contains(d.OrderID));
+
+            var groupedDetails = await detailsQuery
+                .GroupBy(d => new { d.ProductID, d.Product.ProductName, d.Product.Price, CategoryName = d.Product.Category.CategoryName })
+                .Select(g => new TopSellerItem
+                {
+                    ProductID = g.Key.ProductID,
+                    ProductName = g.Key.ProductName,
+                    CategoryName = g.Key.CategoryName,
+                    UnitPrice = g.Key.Price,
+                    SoldQuantity = g.Sum(x => x.Quantity),
+                    TotalRevenue = g.Sum(x => x.SubTotal)
+                })
+                .OrderByDescending(x => x.SoldQuantity)
+                .Take(5)
+                .ToListAsync();
+
+            topSellingProducts = groupedDetails;
+
+            // 4. Cảnh Báo Tồn Kho (<= 10 cái)
+            lowStockProducts = await Context.Products
+                .Include(p => p.Category)
+                .Where(p => p.Quantity <= 10)
+                .OrderBy(p => p.Quantity)
+                .ToListAsync();
+
+            // 5. Cơ Cấu Doanh Thu Theo Loại Bánh
+            var categoryData = await detailsQuery
+                .GroupBy(d => d.Product.Category.CategoryName)
+                .Select(g => new
+                {
+                    CategoryName = g.Key,
+                    Revenue = g.Sum(x => x.SubTotal)
+                })
+                .ToListAsync();
+
+            var totalCatRev = categoryData.Sum(c => c.Revenue);
+            var colorPalette = new[] { "#2563eb", "#10b981", "#f59e0b", "#8b5cf6", "#ec4899", "#06b6d4" };
+            categoryShares = categoryData.Select((c, idx) => new CategoryShareItem
+            {
+                CategoryName = c.CategoryName,
+                Revenue = c.Revenue,
+                Percentage = totalCatRev > 0 ? (c.Revenue / totalCatRev) * 100m : 0m,
+                ColorHex = colorPalette[idx % colorPalette.Length]
+            }).OrderByDescending(c => c.Revenue).ToList();
+
+            // 6. Xây dựng dữ liệu Chart Time Series
+            BuildChartSeries(validOrders, imports, startDate, endDate);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Lỗi nạp báo cáo: " + ex.Message);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+
+        // Kích hoạt render lại biểu đồ ApexCharts
+        await TriggerChartsRenderAsync();
+    }
+
+    private void BuildChartSeries(List<Order> validOrders, List<ImportReceipt> imports, DateTime? start, DateTime? end)
+    {
+        chartLabels.Clear();
+        chartRevenueSeries.Clear();
+        chartCostSeries.Clear();
+
+        if (filterPeriod == "today")
+        {
+            // Chia theo các khung giờ trong ngày (8h, 11h, 14h, 17h, 20h)
+            var hours = new[] { 8, 11, 14, 17, 20 };
+            foreach (var h in hours)
+            {
+                chartLabels.Add($"{h}:00");
+                var rev = validOrders.Where(o => o.OrderDate.Hour >= h - 2 && o.OrderDate.Hour <= h + 1).Sum(o => o.FinalAmount);
+                var cost = imports.Where(i => i.ReceiptDate.Hour >= h - 2 && i.ReceiptDate.Hour <= h + 1).Sum(i => i.TotalAmount);
+                chartRevenueSeries.Add(rev);
+                chartCostSeries.Add(cost);
+            }
+        }
+        else if (filterPeriod == "week")
+        {
+            // 7 ngày gần nhất
+            for (int i = 6; i >= 0; i--)
+            {
+                var d = DateTime.Today.AddDays(-i);
+                chartLabels.Add(d.ToString("dd/MM"));
+                var rev = validOrders.Where(o => o.OrderDate.Date == d.Date).Sum(o => o.FinalAmount);
+                var cost = imports.Where(i => i.ReceiptDate.Date == d.Date).Sum(i => i.TotalAmount);
+                chartRevenueSeries.Add(rev);
+                chartCostSeries.Add(cost);
+            }
+        }
+        else if (filterPeriod == "month")
+        {
+            // Chia theo 4 tuần trong tháng (Tuần 1, Tuần 2, Tuần 3, Tuần 4)
+            chartLabels.AddRange(new[] { "Tuần 1", "Tuần 2", "Tuần 3", "Tuần 4" });
+            for (int w = 1; w <= 4; w++)
+            {
+                int dayStart = (w - 1) * 7 + 1;
+                int dayEnd = w == 4 ? 31 : w * 7;
+                var rev = validOrders.Where(o => o.OrderDate.Day >= dayStart && o.OrderDate.Day <= dayEnd).Sum(o => o.FinalAmount);
+                var cost = imports.Where(i => i.ReceiptDate.Day >= dayStart && i.ReceiptDate.Day <= dayEnd).Sum(i => i.TotalAmount);
+                chartRevenueSeries.Add(rev);
+                chartCostSeries.Add(cost);
+            }
+        }
+        else
+        {
+            // Theo 6 tháng gần nhất
+            for (int m = 5; m >= 0; m--)
+            {
+                var targetMonth = DateTime.Today.AddMonths(-m);
+                chartLabels.Add($"T{targetMonth.Month}/{targetMonth.Year}");
+                var rev = validOrders.Where(o => o.OrderDate.Month == targetMonth.Month && o.OrderDate.Year == targetMonth.Year).Sum(o => o.FinalAmount);
+                var cost = imports.Where(i => i.ReceiptDate.Month == targetMonth.Month && i.ReceiptDate.Year == targetMonth.Year).Sum(i => i.TotalAmount);
+                chartRevenueSeries.Add(rev);
+                chartCostSeries.Add(cost);
+            }
+        }
+    }
+
+    private async Task TriggerChartsRenderAsync()
+    {
+        try
+        {
+            await Task.Delay(100);
+            var donutSeries = categoryShares.Select(c => c.Revenue).ToArray();
+            var donutLabels = categoryShares.Select(c => c.CategoryName).ToArray();
+            await JS.InvokeVoidAsync("initBakeryReportsCharts", chartLabels.ToArray(), chartRevenueSeries.ToArray(), chartCostSeries.ToArray(), donutSeries, donutLabels);
+        }
+        catch
+        {
+            // Silently ignore navigation disconnects
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await TriggerChartsRenderAsync();
+        }
+    }
+
+    private async Task PrintReport()
+    {
+        await JS.InvokeVoidAsync("window.print");
+    }
+
+    public class TopSellerItem
+    {
+        public int ProductID { get; set; }
+        public string ProductName { get; set; } = "";
+        public string CategoryName { get; set; } = "";
+        public decimal UnitPrice { get; set; }
+        public int SoldQuantity { get; set; }
+        public decimal TotalRevenue { get; set; }
+    }
+
+    public class CategoryShareItem
+    {
+        public string CategoryName { get; set; } = "";
+        public decimal Revenue { get; set; }
+        public decimal Percentage { get; set; }
+        public string ColorHex { get; set; } = "#2563eb";
+    }
+}
+

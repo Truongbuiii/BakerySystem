@@ -19,6 +19,7 @@ public class BakeryDbContext : DbContext, IBakeryDbContext
     public DbSet<Product> Products => Set<Product>();
     public DbSet<Promotion> Promotions => Set<Promotion>();
     public DbSet<PromotionInvoice> PromotionInvoices => Set<PromotionInvoice>();
+    public DbSet<PromotionOrderTier> PromotionOrderTiers => Set<PromotionOrderTier>();
     public DbSet<PromotionProduct> PromotionProducts => Set<PromotionProduct>();
     public DbSet<ImportReceipt> ImportReceipts => Set<ImportReceipt>();
     public DbSet<ImportReceiptDetail> ImportReceiptDetails => Set<ImportReceiptDetail>();

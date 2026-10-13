@@ -13,6 +13,7 @@ public interface IBakeryDbContext
     DbSet<Product> Products { get; }
     DbSet<Promotion> Promotions { get; }
     DbSet<PromotionInvoice> PromotionInvoices { get; }
+    DbSet<PromotionOrderTier> PromotionOrderTiers { get; }
     DbSet<PromotionProduct> PromotionProducts { get; }
     DbSet<ImportReceipt> ImportReceipts { get; }
     DbSet<ImportReceiptDetail> ImportReceiptDetails { get; }
