@@ -471,6 +471,62 @@ public static class BakeryDataSeeder
         }
         else
         {
+            // Bổ sung các mã voucher hóa đơn (SWEETLOVE, TIEMBANH20, BANHTUOI8) nếu DB cũ chỉ mới có BAKERY2026
+            var vouchersToSeed = new (string Code, string Name, string Desc, int StartOffset, int EndOffset, decimal MinAmount, decimal DiscountPct, decimal MaxDiscount, int Limit, int Used)[]
+            {
+                ("SWEETLOVE", "Tín Đồ Bánh Ngọt & Mousse", "Mã voucher giảm 15% cho đơn hàng từ 300.000đ", -10, 90, 300000m, 15m, 60000m, 150, 8),
+                ("TIEMBANH20", "Tiệc Sinh Nhật & Sự Kiện", "Mã voucher giảm 20% cho đơn bánh từ 500.000đ", -10, 120, 500000m, 20m, 150000m, 100, 5),
+                ("BANHTUOI8", "Bánh Tươi Mỗi Ngày", "Mã voucher giảm 8% cho mọi đơn hàng từ 100.000đ", -15, 180, 100000m, 8m, 30000m, 300, 20)
+            };
+
+            foreach (var v in vouchersToSeed)
+            {
+                var existingPromo = await context.Promotions
+                    .Include(p => p.PromotionInvoice)
+                    .FirstOrDefaultAsync(p => p.PromotionCode == v.Code);
+
+                if (existingPromo == null)
+                {
+                    existingPromo = new Promotion
+                    {
+                        PromotionCode = v.Code,
+                        PromotionName = v.Name,
+                        PromotionType = PromotionType.Invoice,
+                        StartDate = DateTime.Today.AddDays(v.StartOffset),
+                        EndDate = DateTime.Today.AddDays(v.EndOffset),
+                        Description = v.Desc,
+                        Status = PromotionStatus.Active
+                    };
+                    context.Promotions.Add(existingPromo);
+                    await context.SaveChangesAsync();
+                }
+
+                if (existingPromo.PromotionInvoice == null)
+                {
+                    context.PromotionInvoices.Add(new PromotionInvoice
+                    {
+                        PromotionID = existingPromo.PromotionID,
+                        VoucherCode = existingPromo.PromotionCode,
+                        MinOrderAmount = v.MinAmount,
+                        DiscountPercent = v.DiscountPct,
+                        MaxDiscountAmount = v.MaxDiscount,
+                        UsageLimit = v.Limit,
+                        UsedCount = v.Used
+                    });
+                    await context.SaveChangesAsync();
+                }
+            }
+
+            // Đồng bộ VoucherCode cho BAKERY2026 nếu đang trống
+            var bakery2026 = await context.Promotions
+                .Include(p => p.PromotionInvoice)
+                .FirstOrDefaultAsync(p => p.PromotionCode == "BAKERY2026");
+            if (bakery2026?.PromotionInvoice != null && string.IsNullOrWhiteSpace(bakery2026.PromotionInvoice.VoucherCode))
+            {
+                bakery2026.PromotionInvoice.VoucherCode = bakery2026.PromotionCode;
+                await context.SaveChangesAsync();
+            }
+
             // Bổ sung dữ liệu mẫu cho PromotionOrderTier và PromotionProduct nếu DB cũ chưa có
             if (!await context.PromotionOrderTiers.AnyAsync())
             {
