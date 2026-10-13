@@ -21,12 +21,14 @@ CREATE TABLE Account (
 GO
 
 /* =========================================================
-   2. CUSTOMER
+   2. CUSTOMER (Đã tách LastName và FirstName)
    ========================================================= */
 CREATE TABLE Customer (
     CustomerID INT IDENTITY(1,1) PRIMARY KEY,
     AccountID INT NULL, -- Cho phép NULL nếu khách vãng lai hoặc không đăng ký tài khoản
-    FullName NVARCHAR(100) NOT NULL,
+    LastName NVARCHAR(100) NOT NULL,
+    FirstName NVARCHAR(50) NOT NULL,
+    FullName NVARCHAR(100) NULL,
     Phone VARCHAR(20),
     Address NVARCHAR(255),
 
@@ -61,11 +63,12 @@ CREATE TABLE Supplier (
 GO
 
 /* =========================================================
-   5. CATEGORY
+   5. CATEGORY (Đã có IsActive)
    ========================================================= */
 CREATE TABLE Category (
     CategoryID INT IDENTITY(1,1) PRIMARY KEY,
     CategoryName NVARCHAR(100) NOT NULL,
+    IsActive BIT NOT NULL DEFAULT 1,
 
     CONSTRAINT UQ_Category_CategoryName UNIQUE (CategoryName)
 );
@@ -91,58 +94,85 @@ CREATE TABLE Product (
 GO
 
 /* =========================================================
-   7. PROMOTION (Đã đồng bộ sang tiếng Anh & thêm PromotionCode)
+   7. PROMOTION (Bảng cha chứa thông tin chung & PromotionType)
    ========================================================= */
 CREATE TABLE Promotion (
     PromotionID INT IDENTITY(1,1) PRIMARY KEY,
-    PromotionCode VARCHAR(50) NOT NULL, -- Mã voucher nhập khi thanh toán
+    PromotionCode VARCHAR(50) NOT NULL,
     PromotionName NVARCHAR(200) NOT NULL,
+    PromotionType VARCHAR(30) NOT NULL DEFAULT 'Invoice',
     StartDate DATE NOT NULL,
     EndDate DATE NOT NULL,
     Description NVARCHAR(500),
     Status VARCHAR(20) NOT NULL DEFAULT 'Active',
 
     CONSTRAINT UQ_Promotion_PromotionCode UNIQUE (PromotionCode),
+    CONSTRAINT CK_Promotion_Type CHECK (PromotionType IN ('Product', 'OrderTier', 'Invoice')),
     CONSTRAINT CK_Promotion_Date CHECK (EndDate >= StartDate),
     CONSTRAINT CK_Promotion_Status CHECK (Status IN ('Active', 'Inactive'))
 );
 GO
 
 /* =========================================================
-   8. PROMOTION INVOICE (Khuyến mãi trên tổng hóa đơn)
+   8. PROMOTION ORDER TIER (Loại 1: Giảm tự động theo mốc tiền đơn hàng)
+   ========================================================= */
+CREATE TABLE PromotionOrderTier (
+    PromotionID INT PRIMARY KEY,
+    MinOrderAmount DECIMAL(18,2) NOT NULL,
+    DiscountPercent DECIMAL(5,2) NOT NULL DEFAULT 0,
+    DiscountAmount DECIMAL(18,2),
+    MaxDiscountAmount DECIMAL(18,2),
+
+    CONSTRAINT FK_PromotionOrderTier_Promotion FOREIGN KEY (PromotionID) REFERENCES Promotion(PromotionID) ON DELETE CASCADE,
+    CONSTRAINT CK_PromotionOrderTier_MinOrderAmount CHECK (MinOrderAmount >= 0),
+    CONSTRAINT CK_PromotionOrderTier_DiscountPercent CHECK (DiscountPercent >= 0 AND DiscountPercent <= 100),
+    CONSTRAINT CK_PromotionOrderTier_DiscountAmount CHECK (DiscountAmount IS NULL OR DiscountAmount >= 0),
+    CONSTRAINT CK_PromotionOrderTier_MaxDiscount CHECK (MaxDiscountAmount IS NULL OR MaxDiscountAmount >= 0)
+);
+GO
+
+/* =========================================================
+   9. PROMOTION INVOICE (Loại 2: Mã Voucher nhập tay)
    ========================================================= */
 CREATE TABLE PromotionInvoice (
     PromotionID INT PRIMARY KEY,
+    VoucherCode VARCHAR(50),
     MinOrderAmount DECIMAL(18,2) NOT NULL DEFAULT 0,
-    DiscountPercent DECIMAL(5,2) NOT NULL,
+    DiscountPercent DECIMAL(5,2) NOT NULL DEFAULT 0,
+    DiscountAmount DECIMAL(18,2),
     MaxDiscountAmount DECIMAL(18,2),
+    UsageLimit INT,
+    UsedCount INT NOT NULL DEFAULT 0,
 
-    CONSTRAINT FK_PromotionInvoice_Promotion FOREIGN KEY (PromotionID) REFERENCES Promotion(PromotionID),
+    CONSTRAINT FK_PromotionInvoice_Promotion FOREIGN KEY (PromotionID) REFERENCES Promotion(PromotionID) ON DELETE CASCADE,
     CONSTRAINT CK_PromotionInvoice_MinOrderAmount CHECK (MinOrderAmount >= 0),
-    CONSTRAINT CK_PromotionInvoice_DiscountPercent CHECK (DiscountPercent > 0 AND DiscountPercent <= 100),
+    CONSTRAINT CK_PromotionInvoice_DiscountPercent CHECK (DiscountPercent >= 0 AND DiscountPercent <= 100),
+    CONSTRAINT CK_PromotionInvoice_DiscountAmount CHECK (DiscountAmount IS NULL OR DiscountAmount >= 0),
     CONSTRAINT CK_PromotionInvoice_MaxDiscount CHECK (MaxDiscountAmount IS NULL OR MaxDiscountAmount >= 0)
 );
 GO
 
 /* =========================================================
-   9. PROMOTION PRODUCT (Khuyến mãi theo từng món bánh)
+   10. PROMOTION PRODUCT (Loại 3: Giảm giá theo sản phẩm)
    ========================================================= */
 CREATE TABLE PromotionProduct (
     PromotionID INT NOT NULL,
     ProductID INT NOT NULL,
-    DiscountPercent DECIMAL(5,2) NOT NULL,
+    DiscountPercent DECIMAL(5,2) NOT NULL DEFAULT 0,
+    DiscountAmount DECIMAL(18,2),
     MaxDiscountAmount DECIMAL(18,2),
 
     CONSTRAINT PK_PromotionProduct PRIMARY KEY (PromotionID, ProductID),
-    CONSTRAINT FK_PromotionProduct_Promotion FOREIGN KEY (PromotionID) REFERENCES Promotion(PromotionID),
-    CONSTRAINT FK_PromotionProduct_Product FOREIGN KEY (ProductID) REFERENCES Product(ProductID),
-    CONSTRAINT CK_PromotionProduct_DiscountPercent CHECK (DiscountPercent > 0 AND DiscountPercent <= 100),
+    CONSTRAINT FK_PromotionProduct_Promotion FOREIGN KEY (PromotionID) REFERENCES Promotion(PromotionID) ON DELETE CASCADE,
+    CONSTRAINT FK_PromotionProduct_Product FOREIGN KEY (ProductID) REFERENCES Product(ProductID) ON DELETE CASCADE,
+    CONSTRAINT CK_PromotionProduct_DiscountPercent CHECK (DiscountPercent >= 0 AND DiscountPercent <= 100),
+    CONSTRAINT CK_PromotionProduct_DiscountAmount CHECK (DiscountAmount IS NULL OR DiscountAmount >= 0),
     CONSTRAINT CK_PromotionProduct_MaxDiscount CHECK (MaxDiscountAmount IS NULL OR MaxDiscountAmount >= 0)
 );
 GO
 
 /* =========================================================
-   10. IMPORT RECEIPT
+   11. IMPORT RECEIPT
    ========================================================= */
 CREATE TABLE ImportReceipt (
     ReceiptID INT IDENTITY(1,1) PRIMARY KEY,
@@ -159,7 +189,7 @@ CREATE TABLE ImportReceipt (
 GO
 
 /* =========================================================
-   11. IMPORT RECEIPT DETAIL
+   12. IMPORT RECEIPT DETAIL
    ========================================================= */
 CREATE TABLE ImportReceiptDetail (
     ReceiptID INT NOT NULL,
@@ -178,7 +208,7 @@ CREATE TABLE ImportReceiptDetail (
 GO
 
 /* =========================================================
-   12. ORDERS (Đã fix EmployeeID NULL & thêm thông tin giao hàng)
+   13. ORDERS
    ========================================================= */
 CREATE TABLE Orders (
     OrderID INT IDENTITY(1,1) PRIMARY KEY,
@@ -194,16 +224,16 @@ CREATE TABLE Orders (
     ReceiverName NVARCHAR(100),
     ReceiverPhone VARCHAR(20),
     ShippingAddress NVARCHAR(255),
-    Note NVARCHAR(500), -- Ví dụ: Ghi chữ lên bánh, thời gian giao bánh cụ thể
+    Note NVARCHAR(500),
     
     -- Thanh toán & Trạng thái
-    PaymentMethod VARCHAR(30) NOT NULL DEFAULT 'COD', -- 'COD', 'BankTransfer', 'VNPAY', etc.
-    PaymentStatus VARCHAR(20) NOT NULL DEFAULT 'Unpaid', -- 'Unpaid', 'Paid'
+    PaymentMethod VARCHAR(30) NOT NULL DEFAULT 'COD',
+    PaymentStatus VARCHAR(20) NOT NULL DEFAULT 'Unpaid',
     Status VARCHAR(20) NOT NULL DEFAULT 'Pending',
 
     CONSTRAINT FK_Orders_Customer FOREIGN KEY (CustomerID) REFERENCES Customer(CustomerID),
     CONSTRAINT FK_Orders_Employee FOREIGN KEY (EmployeeID) REFERENCES Employee(EmployeeID),
-    CONSTRAINT FK_Orders_PromotionInvoice FOREIGN KEY (PromotionID) REFERENCES PromotionInvoice(PromotionID),
+    CONSTRAINT FK_Orders_Promotion FOREIGN KEY (PromotionID) REFERENCES Promotion(PromotionID) ON DELETE SET NULL,
     CONSTRAINT CK_Orders_TotalAmount CHECK (TotalAmount >= 0),
     CONSTRAINT CK_Orders_DiscountAmount CHECK (DiscountAmount >= 0),
     CONSTRAINT CK_Orders_FinalAmount CHECK (FinalAmount >= 0),
@@ -214,7 +244,7 @@ CREATE TABLE Orders (
 GO
 
 /* =========================================================
-   13. ORDER DETAIL
+   14. ORDER DETAIL
    ========================================================= */
 CREATE TABLE OrderDetail (
     OrderID INT NOT NULL,

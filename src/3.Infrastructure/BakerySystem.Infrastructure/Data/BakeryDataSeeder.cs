@@ -6,8 +6,120 @@ namespace BakerySystem.Infrastructure.Data;
 
 public static class BakeryDataSeeder
 {
+    public static async Task EnsureDatabaseSchemaAsync(BakeryDbContext context)
+    {
+        try
+        {
+            await context.Database.ExecuteSqlRawAsync(@"
+                -- 1. Bổ sung cột IsActive cho Category nếu thiếu
+                IF COL_LENGTH('Category', 'IsActive') IS NULL
+                BEGIN
+                    ALTER TABLE [Category] ADD [IsActive] bit NOT NULL DEFAULT 1;
+                END;
+
+                -- 2. Bổ sung cột IsActive cho Product nếu thiếu
+                IF COL_LENGTH('Product', 'IsActive') IS NULL
+                BEGIN
+                    ALTER TABLE [Product] ADD [IsActive] bit NOT NULL DEFAULT 1;
+                END;
+
+                -- 3. Đảm bảo bảng PromotionOrderTier tồn tại
+                IF OBJECT_ID(N'[PromotionOrderTier]') IS NULL
+                BEGIN
+                    CREATE TABLE [PromotionOrderTier] (
+                        [PromotionID] int NOT NULL,
+                        [MinOrderAmount] decimal(18,2) NOT NULL,
+                        [DiscountPercent] decimal(5,2) NOT NULL DEFAULT 0,
+                        [DiscountAmount] decimal(18,2) NULL,
+                        [MaxDiscountAmount] decimal(18,2) NULL,
+                        CONSTRAINT [PK_PromotionOrderTier] PRIMARY KEY ([PromotionID]),
+                        CONSTRAINT [FK_PromotionOrderTier_Promotion_PromotionID] FOREIGN KEY ([PromotionID]) REFERENCES [Promotion] ([PromotionID]) ON DELETE CASCADE
+                    );
+                END;
+
+                -- 4. Bổ sung PromotionType cho Promotion
+                IF COL_LENGTH('Promotion', 'PromotionType') IS NULL
+                BEGIN
+                    ALTER TABLE [Promotion] ADD [PromotionType] varchar(30) NOT NULL DEFAULT 'Invoice';
+                END;
+
+                -- 5. Bổ sung các cột mới cho PromotionInvoice
+                IF COL_LENGTH('PromotionInvoice', 'VoucherCode') IS NULL
+                BEGIN
+                    ALTER TABLE [PromotionInvoice] ADD [VoucherCode] varchar(50) NULL;
+                END;
+
+                IF COL_LENGTH('PromotionInvoice', 'DiscountAmount') IS NULL
+                BEGIN
+                    ALTER TABLE [PromotionInvoice] ADD [DiscountAmount] decimal(18,2) NULL;
+                END;
+
+                IF COL_LENGTH('PromotionInvoice', 'UsageLimit') IS NULL
+                BEGIN
+                    ALTER TABLE [PromotionInvoice] ADD [UsageLimit] int NULL;
+                END;
+
+                IF COL_LENGTH('PromotionInvoice', 'UsedCount') IS NULL
+                BEGIN
+                    ALTER TABLE [PromotionInvoice] ADD [UsedCount] int NOT NULL DEFAULT 0;
+                END;
+
+                -- 6. Bổ sung DiscountAmount cho PromotionProduct
+                IF COL_LENGTH('PromotionProduct', 'DiscountAmount') IS NULL
+                BEGIN
+                    ALTER TABLE [PromotionProduct] ADD [DiscountAmount] decimal(18,2) NULL;
+                END;
+
+                -- 7. Tách cột LastName và FirstName cho Customer & cho phép FullName NULL
+                IF COL_LENGTH('Customer', 'LastName') IS NULL
+                BEGIN
+                    ALTER TABLE [Customer] ADD [LastName] nvarchar(100) NOT NULL DEFAULT N'';
+                END;
+
+                IF COL_LENGTH('Customer', 'FirstName') IS NULL
+                BEGIN
+                    ALTER TABLE [Customer] ADD [FirstName] nvarchar(50) NOT NULL DEFAULT N'';
+                END;
+
+                IF COL_LENGTH('Customer', 'FullName') IS NOT NULL
+                BEGIN
+                    ALTER TABLE [Customer] ALTER COLUMN [FullName] nvarchar(100) NULL;
+                    EXEC sp_executesql N'
+                        UPDATE [Customer] 
+                        SET [FirstName] = CASE 
+                                WHEN CHARINDEX('' '', REVERSE(LTRIM(RTRIM([FullName])))) > 0 
+                                THEN REVERSE(SUBSTRING(REVERSE(LTRIM(RTRIM([FullName]))), 1, CHARINDEX('' '', REVERSE(LTRIM(RTRIM([FullName])))) - 1))
+                                ELSE LTRIM(RTRIM([FullName]))
+                            END,
+                            [LastName] = CASE 
+                                WHEN CHARINDEX('' '', REVERSE(LTRIM(RTRIM([FullName])))) > 0 
+                                THEN LTRIM(RTRIM(SUBSTRING([FullName], 1, LEN([FullName]) - CHARINDEX('' '', REVERSE(LTRIM(RTRIM([FullName])))))))
+                                ELSE N''''
+                            END
+                        WHERE ([FirstName] IS NULL OR [FirstName] = N'''') AND [FullName] IS NOT NULL AND LTRIM(RTRIM([FullName])) <> N'''';
+                    ';
+                END;
+
+                -- 8. Chuyển khóa ngoại FK Promotion của Orders sang bảng Promotion
+                IF EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = 'FK_Orders_PromotionInvoice')
+                BEGIN
+                    ALTER TABLE [Orders] DROP CONSTRAINT [FK_Orders_PromotionInvoice];
+                END;
+
+                IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = 'FK_Orders_Promotion')
+                BEGIN
+                    ALTER TABLE [Orders] ADD CONSTRAINT [FK_Orders_Promotion] FOREIGN KEY ([PromotionID]) REFERENCES [Promotion] ([PromotionID]) ON DELETE SET NULL;
+                END;
+            ");
+        }
+        catch { }
+    }
+
     public static async Task SeedAsync(BakeryDbContext context)
     {
+        // Tự động đảm bảo schema DB đầy đủ các cột mới trước khi truy vấn bất kỳ bảng nào
+        await EnsureDatabaseSchemaAsync(context);
+
         // 1. Seed Accounts & Roles if empty
         if (!await context.Accounts.AnyAsync())
         {

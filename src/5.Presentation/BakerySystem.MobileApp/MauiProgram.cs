@@ -71,6 +71,7 @@ public static class MauiProgram
 			{
 				using var scope = app.Services.CreateScope();
 				var context = scope.ServiceProvider.GetRequiredService<BakeryDbContext>();
+				await BakeryDataSeeder.EnsureDatabaseSchemaAsync(context);
 				await context.Database.MigrateAsync();
 				await BakeryDataSeeder.SeedAsync(context);
 			}
