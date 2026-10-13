@@ -351,14 +351,20 @@
                                     @foreach (var promo in availablePromotions)
                                     {
                                         var discountPct = promo.PromotionInvoice?.DiscountPercent ?? 0;
-                                        <button type="button" 
-                                                class="bakery-voucher-chip" 
-                                                @onclick="() => SelectPromotion(promo)" 
-                                                title="Bấm để áp dụng mã @promo.PromotionCode">
-                                            <iconify-icon icon="solar:ticket-sale-bold" class="text-xs text-primary"></iconify-icon>
-                                            <span class="font-mono font-bold">@promo.PromotionCode</span>
-                                            <span class="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">(-@($"{discountPct:0}%"))</span>
-                                        </button>
+                                        <div class="bakery-voucher-chip">
+                                            <button type="button" class="inline-flex items-center gap-1.5 border-0 bg-transparent p-0 text-inherit"
+                                                    @onclick="() => SelectPromotion(promo)"
+                                                    title="Bấm để áp dụng mã @promo.PromotionCode">
+                                                <iconify-icon icon="solar:ticket-sale-bold" class="text-xs text-primary"></iconify-icon>
+                                                <span class="font-mono font-bold">@promo.PromotionCode</span>
+                                                <span class="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">(-@($"{discountPct:0}%"))</span>
+                                            </button>
+                                            <button type="button" class="inline-flex h-5 w-5 items-center justify-center rounded-full border border-slate-400 bg-white text-xs font-bold leading-none text-slate-700 hover:border-primary hover:text-primary dark:bg-slate-800 dark:text-slate-200"
+                                                    @onclick="() => ShowPromotionDetails(promo)"
+                                                    aria-label="Xem điều kiện mã @promo.PromotionCode"
+                                                    title="Xem điều kiện áp dụng">!
+                                            </button>
+                                        </div>
                                     }
                                 </div>
                             </div>
@@ -548,12 +554,60 @@
     </div>
 }
 
+@if (promotionDetails != null)
+{
+    var invoicePromo = promotionDetails.PromotionInvoice;
+    <div class="bakery-modal-backdrop" @onclick="() => promotionDetails = null">
+        <div class="bakery-modal-card max-w-md" @onclick:stopPropagation="true">
+            <div class="bakery-modal-header">
+                <div class="flex items-center gap-2.5">
+                    <div class="bakery-modal-icon-badge blue"><iconify-icon icon="solar:ticket-sale-bold"></iconify-icon></div>
+                    <div>
+                        <h4 class="text-base font-bold text-dark dark:text-white mb-0">Điều kiện ưu đãi</h4>
+                        <p class="text-xs text-slate-500 mb-0">Mã <strong class="font-mono">@promotionDetails.PromotionCode</strong></p>
+                    </div>
+                </div>
+                <button type="button" class="text-slate-400 hover:text-slate-600 text-lg" @onclick="() => promotionDetails = null" aria-label="Đóng">
+                    <iconify-icon icon="solar:close-circle-linear"></iconify-icon>
+                </button>
+            </div>
+            <div class="bakery-modal-body space-y-2 text-sm">
+                <div class="flex justify-between gap-3"><span class="text-slate-500">Tên chương trình</span><strong class="text-right">@promotionDetails.PromotionName</strong></div>
+                <div class="flex justify-between gap-3"><span class="text-slate-500">Mức giảm</span><strong>@(invoicePromo?.DiscountPercent.ToString("0.##") ?? "0")%</strong></div>
+                <div class="flex justify-between gap-3"><span class="text-slate-500">Đơn tối thiểu</span><strong>@($"{invoicePromo?.MinOrderAmount ?? 0:N0} đ")</strong></div>
+                @if (invoicePromo?.MaxDiscountAmount is > 0)
+                {
+                    <div class="flex justify-between gap-3"><span class="text-slate-500">Giảm tối đa</span><strong>@($"{invoicePromo.MaxDiscountAmount:N0} đ")</strong></div>
+                }
+                <div class="flex justify-between gap-3"><span class="text-slate-500">Thời hạn</span><strong class="text-right">@promotionDetails.StartDate.ToString("dd/MM/yyyy") – @promotionDetails.EndDate.ToString("dd/MM/yyyy")</strong></div>
+                @if (!string.IsNullOrWhiteSpace(promotionDetails.Description))
+                {
+                    <div class="border-t pt-2"><span class="text-slate-500">Ghi chú</span><p class="mb-0 mt-1">@promotionDetails.Description</p></div>
+                }
+                @if (invoicePromo?.UsageLimit is int usageLimit)
+                {
+                    <div class="flex justify-between gap-3"><span class="text-slate-500">Lượt sử dụng còn lại</span><strong>@(Math.Max(0, usageLimit - invoicePromo.UsedCount)) / @usageLimit</strong></div>
+                }
+                @if (invoicePromo?.MinOrderAmount > totalAmount)
+                {
+                    <div class="bakery-info-box bakery-info-box-blue text-xs mt-2">Giỏ hiện tại chưa đạt mức đơn tối thiểu (@($"{totalAmount:N0} / {invoicePromo.MinOrderAmount:N0} đ")).</div>
+                }
+            </div>
+            <div class="bakery-modal-footer">
+                <button type="button" class="bakery-btn bakery-btn-outline" @onclick="() => promotionDetails = null">Đóng</button>
+                <button type="button" class="bakery-btn bakery-btn-primary" @onclick="() => SelectPromotion(promotionDetails!)">Áp dụng mã</button>
+            </div>
+        </div>
+    </div>
+}
+
 @code {
     private List<Category> categories = new();
     private List<Product> products = new();
     private List<PosCartItem> cart = new();
     private List<Promotion> availablePromotions = new();
     private Promotion? appliedPromo;
+    private Promotion? promotionDetails;
 
     private string searchQuery = "";
     private int selectedCategoryId = 0;
@@ -775,9 +829,12 @@
 
     private async Task SelectPromotion(Promotion promo)
     {
+        promotionDetails = null;
         voucherCode = promo.PromotionCode;
         await ApplyVoucher();
     }
+
+    private void ShowPromotionDetails(Promotion promo) => promotionDetails = promo;
 
     private void RemoveVoucher()
     {
@@ -891,6 +948,20 @@
                 if (emp != null) employeeId = emp.EmployeeID;
             }
 
+            // Re-read authoritative quantities; cart quantities are only a UI snapshot.
+            var stockById = await Context.Products
+                .Where(p => cart.Select(i => i.Product.ProductID).Contains(p.ProductID))
+                .ToDictionaryAsync(p => p.ProductID);
+            foreach (var item in cart)
+            {
+                if (!stockById.TryGetValue(item.Product.ProductID, out var product) || product.Quantity < item.Quantity)
+                {
+                    await JS.InvokeVoidAsync("alert", $"Tồn kho món {item.Product.ProductName} vừa thay đổi. Vui lòng kiểm tra lại giỏ hàng.");
+                    await LoadDataAsync();
+                    return;
+                }
+            }
+
             // 3. Tạo Order
             var order = new Order
             {
@@ -910,31 +981,22 @@
                 Note = selectedCustomer != null ? $"Bán cho thành viên: {selectedCustomer.FullName}" : "Khách vãng lai mua lẻ tại quầy"
             };
 
-            Context.Orders.Add(order);
-            await Context.SaveChangesAsync();
-
-            // 4. Tạo OrderDetails & Trừ tồn kho
+            // Persist invoice, details and inventory updates in one SaveChanges transaction.
             foreach (var item in cart)
             {
                 var detail = new OrderDetail
                 {
-                    OrderID = order.OrderID,
                     ProductID = item.Product.ProductID,
                     Quantity = item.Quantity,
                     UnitPrice = item.Product.Price,
                     DiscountAmount = 0,
                     SubTotal = item.SubTotal
                 };
-                Context.OrderDetails.Add(detail);
-
-                // Trừ tồn kho
-                var dbProd = await Context.Products.FindAsync(item.Product.ProductID);
-                if (dbProd != null)
-                {
-                    dbProd.Quantity = Math.Max(0, dbProd.Quantity - item.Quantity);
-                }
+                order.OrderDetails.Add(detail);
+                stockById[item.Product.ProductID].Quantity -= item.Quantity;
             }
 
+            Context.Orders.Add(order);
             await Context.SaveChangesAsync();
 
             lastCreatedOrderId = order.OrderID;

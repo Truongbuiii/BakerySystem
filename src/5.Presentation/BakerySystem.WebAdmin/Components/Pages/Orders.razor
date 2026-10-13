@@ -664,6 +664,28 @@
 
     private async Task ChangeOrderStatus(Order order, string newStatus)
     {
+        if (order.Status is OrderStatus.Cancelled or OrderStatus.Completed) return;
+
+        // Online orders reserve inventory when accepted by the bakery. POS
+        // invoices are created Completed after stock was deducted at checkout.
+        if (order.Status == OrderStatus.Pending && newStatus == OrderStatus.Confirmed)
+        {
+            foreach (var detail in order.OrderDetails)
+            {
+                var product = await Context.Products.FirstOrDefaultAsync(p => p.ProductID == detail.ProductID);
+                if (product == null || product.Quantity < detail.Quantity)
+                {
+                    await JS.InvokeVoidAsync("alert", $"Không đủ tồn kho cho {detail.Product?.ProductName ?? $"sản phẩm #{detail.ProductID}"}.");
+                    return;
+                }
+            }
+            foreach (var detail in order.OrderDetails)
+            {
+                var product = await Context.Products.FirstAsync(p => p.ProductID == detail.ProductID);
+                product.Quantity -= detail.Quantity;
+            }
+        }
+
         order.Status = newStatus;
         if (newStatus == OrderStatus.Completed)
         {
@@ -686,13 +708,27 @@
 
     private async Task CancelOrder(Order order)
     {
+        if (order.Status == OrderStatus.Cancelled) return;
         bool confirmed = await JS.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn hủy đơn hàng #HD-{order.OrderID:D4}? Hệ thống sẽ tự động hoàn trả số lượng bánh vào kho.");
         if (!confirmed) return;
 
-        order.Status = OrderStatus.Cancelled;
+        var reason = await JS.InvokeAsync<string?>("prompt", "Nhập lý do hủy đơn hàng:");
+        if (reason == null) return;
+        reason = reason.Trim();
+        if (string.IsNullOrWhiteSpace(reason))
+        {
+            await JS.InvokeVoidAsync("alert", "Vui lòng nhập lý do hủy đơn.");
+            return;
+        }
 
-        // Hoàn trả số lượng vào kho
-        if (order.OrderDetails != null)
+        var shouldRestoreStock = order.Status is OrderStatus.Confirmed or OrderStatus.Shipping or OrderStatus.Completed;
+        order.Status = OrderStatus.Cancelled;
+        order.Note = string.IsNullOrWhiteSpace(order.Note)
+            ? $"Lý do hủy: {reason}"
+            : $"{order.Note}\nLý do hủy: {reason}";
+
+        // Pending orders have not reserved stock; restoring them would inflate inventory.
+        if (shouldRestoreStock && order.OrderDetails != null)
         {
             foreach (var detail in order.OrderDetails)
             {
