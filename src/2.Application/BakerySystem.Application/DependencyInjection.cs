@@ -1,6 +1,7 @@
 using BakerySystem.Application.Features.Auth;
 using BakerySystem.Application.Features.Dashboard;
 using BakerySystem.Application.Features.Products;
+using BakerySystem.Application.Features.Inventory;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace BakerySystem.Application;
@@ -12,6 +13,8 @@ public static class DependencyInjection
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IDashboardService, DashboardService>();
         services.AddScoped<IProductService, ProductService>();
+        services.AddScoped<InventoryService>();
+        services.AddScoped<PromotionService>();
         return services;
     }
 }
