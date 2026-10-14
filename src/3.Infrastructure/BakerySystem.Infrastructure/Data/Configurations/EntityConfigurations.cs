@@ -48,6 +48,7 @@ public class EmployeeConfiguration : IEntityTypeConfiguration<Employee>
         builder.HasKey(e => e.EmployeeID);
         builder.Property(e => e.FullName).HasMaxLength(100).IsRequired();
         builder.Property(e => e.Phone).HasMaxLength(20).IsUnicode(false);
+        builder.Property(e => e.Position).HasMaxLength(50).IsRequired().HasDefaultValue("Thu ngân");
 
         builder.HasOne(e => e.Account)
                .WithOne(a => a.Employee)

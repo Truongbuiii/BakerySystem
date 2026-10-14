@@ -11,6 +11,11 @@ public static class BakeryDataSeeder
         try
         {
             await context.Database.ExecuteSqlRawAsync(@"
+                IF COL_LENGTH('Employee', 'Position') IS NULL
+                BEGIN
+                    ALTER TABLE [Employee] ADD [Position] nvarchar(50) NOT NULL DEFAULT N'Thu ngân';
+                END;
+
                 -- 1. Bổ sung cột IsActive cho Category nếu thiếu
                 IF COL_LENGTH('Category', 'IsActive') IS NULL
                 BEGIN

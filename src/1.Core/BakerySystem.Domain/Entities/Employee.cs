@@ -6,6 +6,7 @@ public class Employee
     public int AccountID { get; set; }
     public string FullName { get; set; } = string.Empty;
     public string? Phone { get; set; }
+    public string Position { get; set; } = "Thu ngân";
 
     // Navigation Properties
     public virtual Account Account { get; set; } = null!;

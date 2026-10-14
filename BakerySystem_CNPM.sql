@@ -45,6 +45,7 @@ CREATE TABLE Employee (
     AccountID INT NOT NULL,
     FullName NVARCHAR(100) NOT NULL,
     Phone VARCHAR(20),
+    Position NVARCHAR(50) NOT NULL CONSTRAINT DF_Employee_Position DEFAULT N'Thu ngân',
 
     CONSTRAINT UQ_Employee_Account UNIQUE (AccountID),
     CONSTRAINT FK_Employee_Account FOREIGN KEY (AccountID) REFERENCES Account(AccountID)
