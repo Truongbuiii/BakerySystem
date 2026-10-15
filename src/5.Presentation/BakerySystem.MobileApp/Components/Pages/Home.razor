@@ -1,40 +1,10 @@
 @page "/"
 @inject IBakeryDbContext DbContext
 @inject CartService CartService
+@inject CustomerSessionService CustomerSession
 @inject IJSRuntime JS
 @inject HttpClient Http
 @implements IDisposable
-
-<!-- 1. Mobile Top Header -->
-<header class="mobile-header">
-    <div class="header-top">
-        <div class="location-box">
-            <span class="location-label">
-                <iconify-icon icon="solar:map-point-wave-bold" style="color: #E76F51; font-size: 14px;"></iconify-icon> Giao đến
-            </span>
-            <div class="location-value">
-                <span>123 Lê Lợi, Bến Thành, Q.1</span>
-                <iconify-icon icon="solar:alt-arrow-down-linear" style="font-size: 14px; color: #6E6259;"></iconify-icon>
-            </div>
-        </div>
-
-        <div class="header-actions">
-            <!-- Order / Search icon -->
-            <button class="header-icon-btn" @onclick='() => SwitchTab("orders")' title="Đơn hàng">
-                <iconify-icon icon="solar:bag-heart-linear"></iconify-icon>
-            </button>
-
-            <!-- Cart icon with dynamic badge -->
-            <button class="header-icon-btn" @onclick="OpenCart" title="Giỏ hàng">
-                <iconify-icon icon="solar:cart-large-2-linear"></iconify-icon>
-                @if (CartService.TotalItemsCount > 0)
-                {
-                    <span class="badge-counter">@CartService.TotalItemsCount</span>
-                }
-            </button>
-        </div>
-    </div>
-</header>
 
 @if (!string.IsNullOrEmpty(voucherToastMessage))
 {
@@ -44,18 +14,247 @@
     </div>
 }
 
-<!-- 2. Main Mobile Scrollable Content Area -->
-<div class="mobile-content-area no-scrollbar">
+@if (!CustomerSession.IsLoggedIn)
+{
+    <!-- AUTHENTICATION GATEWAY: LOGIN & REGISTER REQUIRED BEFORE ENTERING APP -->
+    <div class="auth-gateway-screen no-scrollbar">
+        <div class="auth-gateway-container">
+            <!-- Brand Hero Header -->
+            <div class="auth-hero-header">
+                <div class="auth-hero-icon">
+                    <iconify-icon icon="solar:cup-paper-bold"></iconify-icon>
+                </div>
+                <div class="auth-hero-badge">CỬA HÀNG BÁNH TƯƠI CAO CẤP</div>
+                <h2 class="auth-hero-title">Bakery System</h2>
+                <p class="auth-hero-subtitle">Vui lòng đăng nhập hoặc tạo tài khoản để trải nghiệm đặt bánh tươi và nhận ngập tràn ưu đãi độc quyền!</p>
+            </div>
 
-    @if (currentTab == "home")
-    {
-        <!-- Greeting & Subtitle -->
-        <div style="padding: 14px 18px 4px;">
-            <p style="margin: 0; font-size: 12px; color: #9C8E84; font-weight: 600;">Chào mừng trở lại</p>
-            <h4 style="margin: 2px 0 0; font-size: 19px; font-weight: 800; color: #2B2118;">Thực đơn bánh tươi hôm nay</h4>
+            <!-- Segmented Switcher Tab -->
+            <div class="auth-segmented-control">
+                <button class="auth-segment-btn @(authMode == "login" ? "active" : "")" @onclick='() => SwitchAuthMode("login")'>
+                    <iconify-icon icon="solar:login-2-linear"></iconify-icon>
+                    <span>Đăng Nhập</span>
+                </button>
+                <button class="auth-segment-btn @(authMode == "register" ? "active" : "")" @onclick='() => SwitchAuthMode("register")'>
+                    <iconify-icon icon="solar:user-plus-rounded-linear"></iconify-icon>
+                    <span>Đăng Ký Mới</span>
+                </button>
+            </div>
+
+            @if (authMode == "login")
+            {
+                <!-- LOGIN FORM -->
+                <div class="auth-card">
+                    <h5 style="margin: 0 0 14px; font-size: 16px; font-weight: 800; color: #2B2118;">Đăng Nhập Khách Hàng</h5>
+
+                    @if (!string.IsNullOrEmpty(loginError))
+                    {
+                        <div class="auth-alert-error">
+                            <iconify-icon icon="solar:danger-circle-bold" style="font-size: 18px; flex-shrink: 0;"></iconify-icon>
+                            <span>@loginError</span>
+                        </div>
+                    }
+
+                    <div class="auth-field">
+                        <label>Tên đăng nhập hoặc Số điện thoại:</label>
+                        <div class="auth-input-wrapper">
+                            <iconify-icon icon="solar:user-linear" class="auth-input-icon"></iconify-icon>
+                            <input type="text" class="auth-input" placeholder="VD: hoanganh hoặc 0912345678"
+                                   @bind="loginUsername" @bind:event="oninput" />
+                        </div>
+                    </div>
+
+                    <div class="auth-field">
+                        <label>Mật khẩu:</label>
+                        <div class="auth-input-wrapper">
+                            <iconify-icon icon="solar:lock-password-linear" class="auth-input-icon"></iconify-icon>
+                            <input type="@(showLoginPassword ? "text" : "password")" class="auth-input" placeholder="Nhập mật khẩu..."
+                                   @bind="loginPassword" @bind:event="oninput" />
+                            <button type="button" class="auth-toggle-pwd" @onclick="() => showLoginPassword = !showLoginPassword">
+                                <iconify-icon icon="@(showLoginPassword ? "solar:eye-linear" : "solar:eye-closed-linear")"></iconify-icon>
+                            </button>
+                        </div>
+                    </div>
+
+                    <button type="button" class="btn-bk-primary" style="margin-top: 10px; width: 100%; height: 46px; font-size: 14px;" @onclick="HandleCustomerLogin" disabled="@isLoggingIn">
+                        @if (isLoggingIn)
+                        {
+                            <span>Đang xác thực...</span>
+                        }
+                        else
+                        {
+                            <span>Đăng Nhập Vào Ứng Dụng</span>
+                        }
+                    </button>
+
+                    <!-- Quick Demo Accounts for Testing / Lecturers -->
+                    <div class="auth-demo-box">
+                        <div style="font-size: 11px; font-weight: 700; color: #6E6259; margin-bottom: 8px; display: flex; align-items: center; gap: 4px;">
+                            <iconify-icon icon="solar:star-circle-bold" style="color: #E76F51;"></iconify-icon>
+                            <span>Tài khoản kiểm thử nhanh (1-chạm):</span>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 6px;">
+                            <button type="button" class="auth-demo-badge" style="justify-content: flex-start; padding: 8px 10px; font-size: 12px;" @onclick='() => QuickDemoLogin("hoanganh", "customer123")'>
+                                <iconify-icon icon="solar:user-bold"></iconify-icon>
+                                <span><strong>hoanganh</strong> (Nguyễn Hoàng Anh - VIP Bạc)</span>
+                            </button>
+                            <button type="button" class="auth-demo-badge" style="justify-content: flex-start; padding: 8px 10px; font-size: 12px;" @onclick='() => QuickDemoLogin("thuha", "customer123")'>
+                                <iconify-icon icon="solar:user-bold"></iconify-icon>
+                                <span><strong>thuha</strong> (Trần Thị Thu Hà)</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <!-- REGISTER FORM -->
+                <div class="auth-card">
+                    <h5 style="margin: 0 0 14px; font-size: 16px; font-weight: 800; color: #2B2118;">Đăng Ký Thành Viên Mới</h5>
+
+                    @if (!string.IsNullOrEmpty(registerError))
+                    {
+                        <div class="auth-alert-error">
+                            <iconify-icon icon="solar:danger-circle-bold" style="font-size: 18px; flex-shrink: 0;"></iconify-icon>
+                            <span>@registerError</span>
+                        </div>
+                    }
+
+                    <div class="auth-field">
+                        <label>Họ và tên của bạn (*):</label>
+                        <div class="auth-input-wrapper">
+                            <iconify-icon icon="solar:user-bold" class="auth-input-icon"></iconify-icon>
+                            <input type="text" class="auth-input" placeholder="VD: Nguyễn Văn Anh"
+                                   @bind="registerFullName" @bind:event="oninput" />
+                        </div>
+                    </div>
+
+                    <div class="auth-field">
+                        <label>Tên đăng nhập (*):</label>
+                        <div class="auth-input-wrapper">
+                            <iconify-icon icon="solar:user-id-linear" class="auth-input-icon"></iconify-icon>
+                            <input type="text" class="auth-input" placeholder="VD: vananh2026 (ít nhất 3 ký tự)"
+                                   @bind="registerUsername" @bind:event="oninput" />
+                        </div>
+                    </div>
+
+                    <div class="auth-field">
+                        <label>Số điện thoại nhận bánh (*):</label>
+                        <div class="auth-input-wrapper">
+                            <iconify-icon icon="solar:phone-linear" class="auth-input-icon"></iconify-icon>
+                            <input type="tel" class="auth-input" placeholder="VD: 0912345678"
+                                   @bind="registerPhone" @bind:event="oninput" />
+                        </div>
+                    </div>
+
+                    <div class="auth-field">
+                        <label>Địa chỉ giao bánh mặc định:</label>
+                        <div class="auth-input-wrapper">
+                            <iconify-icon icon="solar:map-point-linear" class="auth-input-icon"></iconify-icon>
+                            <input type="text" class="auth-input" placeholder="VD: 123 Lê Lợi, Bến Thành, Q.1, TP.HCM"
+                                   @bind="registerAddress" @bind:event="oninput" />
+                        </div>
+                    </div>
+
+                    <div class="auth-field">
+                        <label>Mật khẩu (*):</label>
+                        <div class="auth-input-wrapper">
+                            <iconify-icon icon="solar:lock-password-linear" class="auth-input-icon"></iconify-icon>
+                            <input type="@(showRegisterPassword ? "text" : "password")" class="auth-input" placeholder="Tối thiểu 6 ký tự..."
+                                   @bind="registerPassword" @bind:event="oninput" />
+                            <button type="button" class="auth-toggle-pwd" @onclick="() => showRegisterPassword = !showRegisterPassword">
+                                <iconify-icon icon="@(showRegisterPassword ? "solar:eye-linear" : "solar:eye-closed-linear")"></iconify-icon>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="auth-field">
+                        <label>Xác nhận mật khẩu (*):</label>
+                        <div class="auth-input-wrapper">
+                            <iconify-icon icon="solar:check-circle-linear" class="auth-input-icon"></iconify-icon>
+                            <input type="@(showRegisterPassword ? "text" : "password")" class="auth-input" placeholder="Nhập lại mật khẩu..."
+                                   @bind="registerConfirmPassword" @bind:event="oninput" />
+                        </div>
+                    </div>
+
+                    <button type="button" class="btn-bk-primary" style="margin-top: 10px; width: 100%; height: 46px; font-size: 14px;" @onclick="HandleCustomerRegister" disabled="@isRegistering">
+                        @if (isRegistering)
+                        {
+                            <span>Đang khởi tạo tài khoản...</span>
+                        }
+                        else
+                        {
+                            <span>Tạo Tài Khoản & Vào Ứng Dụng</span>
+                        }
+                    </button>
+                </div>
+            }
         </div>
+    </div>
+}
+else
+{
+    <!-- 1. Mobile Top Header -->
+    <header class="mobile-header">
+        <div class="header-top">
+            <div class="location-box" @onclick='() => SwitchTab("profile")' style="cursor: pointer;" title="Xem hoặc đổi địa chỉ">
+                <span class="location-label">
+                    <iconify-icon icon="solar:map-point-wave-bold" style="color: #E76F51; font-size: 14px;"></iconify-icon> Giao đến
+                </span>
+                <div class="location-value">
+                    <span style="max-width: 190px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                        @(CustomerSession.IsLoggedIn && !string.IsNullOrWhiteSpace(CustomerSession.CurrentCustomer?.Address) 
+                            ? CustomerSession.CurrentCustomer.Address 
+                            : "123 Lê Lợi, Bến Thành, Q.1")
+                    </span>
+                    <iconify-icon icon="solar:alt-arrow-down-linear" style="font-size: 14px; color: #6E6259;"></iconify-icon>
+                </div>
+            </div>
+
+            <div class="header-actions">
+                <!-- Order / Search icon -->
+                <button class="header-icon-btn" @onclick='() => SwitchTab("orders")' title="Đơn hàng của tôi">
+                    <iconify-icon icon="solar:bag-heart-linear"></iconify-icon>
+                    @if (customerOrders.Any(o => o.Status == OrderStatus.Pending || o.Status == OrderStatus.InProgress || o.Status == OrderStatus.Shipping))
+                    {
+                        <span class="badge-counter" style="background: #E76F51;">
+                            @customerOrders.Count(o => o.Status == OrderStatus.Pending || o.Status == OrderStatus.InProgress || o.Status == OrderStatus.Shipping)
+                        </span>
+                    }
+                </button>
+
+                <!-- Cart icon with dynamic badge -->
+                <button class="header-icon-btn" @onclick="OpenCart" title="Giỏ hàng">
+                    <iconify-icon icon="solar:cart-large-2-linear"></iconify-icon>
+                    @if (CartService.TotalItemsCount > 0)
+                    {
+                        <span class="badge-counter">@CartService.TotalItemsCount</span>
+                    }
+                </button>
+
+                <!-- User Profile Avatar/Button -->
+                <button class="header-icon-btn user-avatar-btn" @onclick='() => SwitchTab("profile")' title="Tài khoản">
+                    <span style="font-size: 12px; font-weight: 800; color: #E76F51;">@GetCustomerInitials(CustomerSession.CurrentCustomer?.FullName)</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- 2. Main Mobile Scrollable Content Area -->
+    <div class="mobile-content-area no-scrollbar">
+
+        @if (currentTab == "home")
+        {
+            <!-- Greeting & Subtitle -->
+            <div style="padding: 14px 18px 4px;">
+                <p style="margin: 0; font-size: 12px; color: #9C8E84; font-weight: 600;">
+                    Xin chào, @CustomerSession.CurrentCustomer?.FullName! ✨
+                </p>
+                <h4 style="margin: 2px 0 0; font-size: 19px; font-weight: 800; color: #2B2118;">Thực đơn bánh tươi hôm nay</h4>
+            </div>
 
         <!-- Search Input Bar -->
+
         <div class="search-container">
             <div class="mobile-search-box">
                 <iconify-icon icon="solar:magnifer-linear" style="font-size: 18px; color: #9C8E84;"></iconify-icon>
@@ -125,7 +324,7 @@
                     {
                         <div class="mobile-product-card" @onclick="() => OpenProductModal(prod)">
                             <div class="product-img-wrap">
-                                <img src="@GetProductImageUrl(prod)" alt="@prod.ProductName" class="product-img" style="@(prod.Quantity <= 0 ? "opacity: 0.5; filter: grayscale(40%);" : "")" onerror="this.src='http://localhost:5149/assets/images/products/default-bakery.svg';" />
+                                <img src="@GetProductImageUrl(prod)" alt="@prod.ProductName" class="product-img" style="@(prod.Quantity <= 0 ? "opacity: 0.5; filter: grayscale(40%);" : "")" onerror="this.src='/assets/images/products/default-bakery.svg';" />
                                 <span class="product-tag">@prod.Category?.CategoryName</span>
                                 @if (prod.Quantity <= 0)
                                 {
@@ -192,7 +391,7 @@
                 {
                     <div class="mobile-product-card" @onclick="() => OpenProductModal(prod)">
                         <div class="product-img-wrap">
-                            <img src="@GetProductImageUrl(prod)" alt="@prod.ProductName" class="product-img" style="@(prod.Quantity <= 0 ? "opacity: 0.5; filter: grayscale(40%);" : "")" onerror="this.src='http://localhost:5149/assets/images/products/default-bakery.svg';" />
+                            <img src="@GetProductImageUrl(prod)" alt="@prod.ProductName" class="product-img" style="@(prod.Quantity <= 0 ? "opacity: 0.5; filter: grayscale(40%);" : "")" onerror="this.src='/assets/images/products/default-bakery.svg';" />
                             <span class="product-tag">@prod.Category?.CategoryName</span>
                             @if (prod.Quantity <= 0)
                             {
@@ -227,76 +426,220 @@
     }
     else if (currentTab == "orders")
     {
-        <!-- Customer Orders Tab (Real DB Data) -->
-        <div style="padding: 14px 18px;">
-            <h4 style="margin: 0 0 4px; font-size: 19px; font-weight: 800; color: #2B2118;">Đơn Hàng Của Tôi</h4>
-            <p style="margin: 0 0 14px; font-size: 12px; color: #9C8E84;">Theo dõi tiến độ thực hiện và giao hàng theo thời gian thực</p>
-            <label style="display:block;text-align:left;font-size:11px;color:#6E6259;margin-bottom:4px;">Địa chỉ WebAdmin để đồng bộ trạng thái</label>
-            <input type="url" @bind="webAdminApiBaseUrl" placeholder="http://192.168.1.10:5149"
-                   style="box-sizing:border-box;width:100%;padding:8px;border:1px solid #D6D3D1;border-radius:8px;font-size:12px;margin-bottom:10px;" />
-            <button type="button" @onclick="RefreshMyOrders" disabled="@isRefreshingOrders"
-                    style="border:1px solid #EAE3D8;background:#fff;border-radius:8px;padding:6px 10px;margin-bottom:12px;font-size:11px;font-weight:700;color:#6E6259;">
-                @(isRefreshingOrders ? "Đang cập nhật..." : "Cập nhật trạng thái")
-            </button>
+        <!-- Customer Orders Tab (Real DB Data & History) -->
+        <div style="padding: 14px 18px 24px;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+                <div>
+                    <h4 style="margin: 0 0 4px; font-size: 19px; font-weight: 800; color: #2B2118;">Đơn Hàng Của Tôi</h4>
+                    <p style="margin: 0; font-size: 12px; color: #9C8E84;">
+                        @(CustomerSession.IsLoggedIn 
+                            ? $"Xin chào {CustomerSession.CurrentCustomer?.FullName} • {customerOrders.Count} đơn hàng" 
+                            : "Theo dõi tiến độ làm bánh & giao hàng theo thời gian thực")
+                    </p>
+                </div>
+                <button type="button" @onclick="RefreshMyOrders" disabled="@isRefreshingOrders"
+                        style="border: 1px solid #EAE3D8; background: #FFFFFF; border-radius: 10px; padding: 7px 12px; font-size: 11px; font-weight: 700; color: #6E6259; display: flex; align-items: center; gap: 4px; box-shadow: 0 2px 6px rgba(0,0,0,0.03);"
+                        title="Tải lại danh sách">
+                    <iconify-icon icon="solar:restart-bold" class="@(isRefreshingOrders ? "spin" : "")"></iconify-icon>
+                    <span>@(isRefreshingOrders ? "Đang đồng bộ..." : "Đồng bộ")</span>
+                </button>
+            </div>
 
-            @if (customerOrders == null || !customerOrders.Any())
+            @if (!CustomerSession.IsLoggedIn)
             {
-                <div style="text-align: center; padding: 40px 10px; background: white; border-radius: 16px; border: 1px solid var(--bk-border);">
+                <!-- Not Logged In Callout + Quick Lookup -->
+                <div style="background: #FFF9F5; border: 1.5px dashed #F4A261; border-radius: 16px; padding: 14px 16px; margin-bottom: 16px;">
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                        <div style="width: 36px; height: 36px; border-radius: 10px; background: #FDF0ED; color: #E76F51; display: flex; align-items: center; justify-content: center; font-size: 20px;">
+                            <iconify-icon icon="solar:user-circle-bold"></iconify-icon>
+                        </div>
+                        <div style="flex: 1;">
+                            <h6 style="margin: 0; font-size: 13px; font-weight: 800; color: #2B2118;">Bạn chưa đăng nhập</h6>
+                            <p style="margin: 2px 0 0; font-size: 11px; color: #6E6259;">Đăng nhập để xem lịch sử mua bánh và nhận ưu đãi tích điểm.</p>
+                        </div>
+                        <button class="btn-bk-primary" style="width: auto; padding: 6px 14px; font-size: 11px; border-radius: 8px;" @onclick='() => SwitchTab("profile")'>
+                            Đăng nhập
+                        </button>
+                    </div>
+
+                    <!-- Quick lookup by phone without login -->
+                    <div style="padding-top: 10px; border-top: 1px dashed rgba(244, 162, 97, 0.4);">
+                        <label style="display: block; font-size: 11px; font-weight: 700; color: #6E6259; margin-bottom: 4px;">Hoặc tra cứu nhanh đơn hàng bằng Số điện thoại:</label>
+                        <div style="display: flex; gap: 8px;">
+                            <input type="tel" class="form-control" placeholder="Nhập số điện thoại đặt bánh (VD: 0912345678)..."
+                                   style="font-size: 12px; border-radius: 8px; border-color: #EAE3D8;"
+                                   @bind="lookupPhone" @bind:event="oninput" />
+                            <button type="button" style="background: var(--bk-dark); color: white; border: none; border-radius: 8px; padding: 0 14px; font-size: 11px; font-weight: 700; white-space: nowrap;"
+                                    @onclick="RefreshMyOrders">
+                                Tra cứu
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            }
+
+            <!-- Order Status Filter Pills -->
+            <div class="order-status-tabs no-scrollbar">
+                <button class="order-filter-pill @(currentOrderStatusFilter == "All" ? "active" : "")" @onclick='() => SetOrderStatusFilter("All")'>
+                    <span>Tất cả</span>
+                    <span style="opacity: 0.8; font-size: 10px;">(@customerOrders.Count)</span>
+                </button>
+                <button class="order-filter-pill @(currentOrderStatusFilter == OrderStatus.Pending ? "active" : "")" @onclick='() => SetOrderStatusFilter(OrderStatus.Pending)'>
+                    <iconify-icon icon="solar:clock-circle-bold" style="color: #D97706;"></iconify-icon>
+                    <span>Chờ duyệt</span>
+                    <span style="opacity: 0.8; font-size: 10px;">(@customerOrders.Count(o => o.Status == OrderStatus.Pending))</span>
+                </button>
+                <button class="order-filter-pill @(currentOrderStatusFilter == OrderStatus.Confirmed ? "active" : "")" @onclick='() => SetOrderStatusFilter(OrderStatus.Confirmed)'>
+                    <iconify-icon icon="solar:fire-bold" style="color: #4F46E5;"></iconify-icon>
+                    <span>Đã duyệt</span>
+                    <span style="opacity: 0.8; font-size: 10px;">(@customerOrders.Count(o => o.Status == OrderStatus.Confirmed))</span>
+                </button>
+                <button class="order-filter-pill @(currentOrderStatusFilter == OrderStatus.InProgress ? "active" : "")" @onclick='() => SetOrderStatusFilter(OrderStatus.InProgress)'>
+                    <iconify-icon icon="solar:chef-hat-minimalistic-bold" style="color: #C2410C;"></iconify-icon>
+                    <span>Làm bánh</span>
+                    <span style="opacity: 0.8; font-size: 10px;">(@customerOrders.Count(o => o.Status == OrderStatus.InProgress))</span>
+                </button>
+                <button class="order-filter-pill @(currentOrderStatusFilter == OrderStatus.Shipping ? "active" : "")" @onclick='() => SetOrderStatusFilter(OrderStatus.Shipping)'>
+                    <iconify-icon icon="solar:scooter-bold" style="color: #0284C7;"></iconify-icon>
+                    <span>Đang giao</span>
+                    <span style="opacity: 0.8; font-size: 10px;">(@customerOrders.Count(o => o.Status == OrderStatus.Shipping))</span>
+                </button>
+                <button class="order-filter-pill @(currentOrderStatusFilter == OrderStatus.Completed ? "active" : "")" @onclick='() => SetOrderStatusFilter(OrderStatus.Completed)'>
+                    <iconify-icon icon="solar:check-circle-bold" style="color: #16A34A;"></iconify-icon>
+                    <span>Hoàn tất</span>
+                    <span style="opacity: 0.8; font-size: 10px;">(@customerOrders.Count(o => o.Status == OrderStatus.Completed))</span>
+                </button>
+                <button class="order-filter-pill @(currentOrderStatusFilter == OrderStatus.Cancelled ? "active" : "")" @onclick='() => SetOrderStatusFilter(OrderStatus.Cancelled)'>
+                    <iconify-icon icon="solar:close-circle-bold" style="color: #DC2626;"></iconify-icon>
+                    <span>Đã hủy</span>
+                    <span style="opacity: 0.8; font-size: 10px;">(@customerOrders.Count(o => o.Status == OrderStatus.Cancelled))</span>
+                </button>
+            </div>
+
+            <!-- Search box for orders -->
+            <div class="mobile-search-box" style="margin-bottom: 14px; background: white;">
+                <iconify-icon icon="solar:magnifer-linear" style="font-size: 16px; color: #9C8E84;"></iconify-icon>
+                <input type="text" class="mobile-search-input" placeholder="Tìm theo mã đơn (#1024), tên bánh..."
+                       @bind="orderSearchQuery" @bind:event="oninput" style="font-size: 12px;" />
+                @if (!string.IsNullOrEmpty(orderSearchQuery))
+                {
+                    <iconify-icon icon="solar:close-circle-bold" style="font-size: 16px; color: #9C8E84; cursor: pointer;" @onclick="() => orderSearchQuery = string.Empty"></iconify-icon>
+                }
+            </div>
+
+            <!-- List of filtered orders -->
+            @if (!FilteredCustomerOrders.Any())
+            {
+                <div style="text-align: center; padding: 40px 10px; background: white; border-radius: 16px; border: 1px solid var(--bk-border); margin-top: 6px;">
                     <iconify-icon icon="solar:box-minimalistic-linear" style="font-size: 48px; color: #C0B4A9; margin-bottom: 8px;"></iconify-icon>
-                    <h6 style="margin: 0 0 4px; font-weight: 700; color: #2B2118;">Bạn chưa có đơn hàng nào</h6>
-                    <p style="margin: 0 0 14px; font-size: 12px; color: #9C8E84;">Hãy chọn ngay những chiếc bánh thơm ngon và đặt hàng nhé!</p>
-                    <button class="btn-bk-primary" style="width: auto; padding: 8px 20px;" @onclick='() => SwitchTab("home")'>Khám phá bánh ngay</button>
+                    <h6 style="margin: 0 0 4px; font-weight: 700; color: #2B2118;">Không có đơn hàng nào</h6>
+                    <p style="margin: 0 0 14px; font-size: 12px; color: #9C8E84;">
+                        @(string.IsNullOrEmpty(orderSearchQuery) 
+                            ? "Bạn chưa có đơn hàng nào ở trạng thái này." 
+                            : "Không tìm thấy đơn hàng phù hợp với từ khóa.")
+                    </p>
+                    <button class="btn-bk-primary" style="width: auto; padding: 8px 20px;" @onclick='() => SwitchTab("menu")'>
+                        Khám phá thực đơn bánh ngay
+                    </button>
                 </div>
             }
             else
             {
                 <div style="display: flex; flex-direction: column; gap: 12px;">
-                    @foreach (var order in customerOrders)
+                    @foreach (var order in FilteredCustomerOrders)
                     {
-                        <div style="background: white; border-radius: 16px; border: 1px solid var(--bk-border); padding: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid #F4EFEA;">
+                        <div class="order-card-modern">
+                            <!-- Order Card Header -->
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid #F4EFEA;">
                                 <div>
-                                    <span style="font-size: 13px; font-weight: 800; color: #2B2118;">Đơn #@order.OrderID</span>
-                                    <div style="font-size: 11px; color: #9C8E84;">@order.OrderDate.ToString("dd/MM/yyyy HH:mm")</div>
+                                    <div style="display: flex; align-items: center; gap: 6px;">
+                                        <span style="font-size: 14px; font-weight: 800; color: #2B2118;">#@order.OrderID</span>
+                                        <span style="font-size: 11px; color: #9C8E84;">• @order.OrderDate.ToString("dd/MM/yyyy HH:mm")</span>
+                                    </div>
+                                    <div style="font-size: 11px; color: #6E6259; margin-top: 2px;">
+                                        <iconify-icon icon="solar:user-linear" style="font-size: 12px;"></iconify-icon>
+                                        <span>@order.ReceiverName (@order.ReceiverPhone)</span>
+                                    </div>
                                 </div>
                                 <div>
                                     <span class="order-status-badge @GetStatusCssClass(order.Status)">
                                         <iconify-icon icon="@GetStatusIcon(order.Status)"></iconify-icon>
-                                        @GetStatusText(order.Status)
+                                        <span>@GetStatusText(order.Status)</span>
                                     </span>
                                 </div>
                             </div>
 
-                            <!-- List items summary -->
-                            <div style="margin-bottom: 10px;">
-                                @foreach (var detail in order.OrderDetails)
+                            <!-- Order items list preview -->
+                            <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px;">
+                                @foreach (var detail in order.OrderDetails.Take(2))
                                 {
-                                    <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px;">
-                                        <span style="color: #2B2118; font-weight: 600;">@detail.Quantity x @detail.Product?.ProductName</span>
-                                        <span style="color: #6E6259; font-weight: 700;">@($"{detail.SubTotal:N0}đ")</span>
+                                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; background: #FAF7F2; padding: 6px 10px; border-radius: 10px;">
+                                        <div style="display: flex; align-items: center; gap: 8px; min-width: 0;">
+                                            <img src="@GetProductImageUrl(detail.Product)" alt="@detail.Product?.ProductName"
+                                                 style="width: 34px; height: 34px; border-radius: 6px; object-fit: cover;"
+                                                 onerror="this.src='/assets/images/products/default-bakery.svg';" />
+                                            <div style="min-width: 0;">
+                                                <div style="font-size: 12px; font-weight: 700; color: #2B2118; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                                    @detail.Product?.ProductName
+                                                </div>
+                                                <div style="font-size: 11px; color: #9C8E84;">
+                                                    @detail.Quantity x @($"{detail.UnitPrice:N0}đ")
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <span style="font-size: 12px; font-weight: 700; color: #2B2118; white-space: nowrap;">
+                                            @($"{detail.SubTotal:N0}đ")
+                                        </span>
+                                    </div>
+                                }
+                                @if (order.OrderDetails.Count > 2)
+                                {
+                                    <div style="font-size: 11px; color: #E76F51; font-weight: 700; text-align: center; cursor: pointer;"
+                                         @onclick="() => OpenOrderDetail(order)">
+                                        + Xem thêm @(order.OrderDetails.Count - 2) món bánh khác...
                                     </div>
                                 }
                             </div>
 
                             @if (!string.IsNullOrEmpty(order.Note))
                             {
-                                <div style="font-size: 11px; color: #E76F51; background: #FFF5EE; padding: 6px 10px; border-radius: 8px; margin-bottom: 10px;">
-                                    <strong>Ghi chú:</strong> @order.Note
+                                <div style="font-size: 11px; color: #9C4221; background: #FFF5EE; padding: 7px 10px; border-radius: 8px; margin-bottom: 10px; display: flex; align-items: flex-start; gap: 6px;">
+                                    <iconify-icon icon="solar:cake-bold" style="font-size: 14px; margin-top: 1px; color: #E76F51;"></iconify-icon>
+                                    <div><strong>Ghi chú bánh:</strong> @order.Note</div>
                                 </div>
                             }
 
-                            <!-- Footer with total and payment -->
-                            <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 8px; border-top: 1px dashed #EAE3D8;">
+                            <!-- Payment & Total Row -->
+                            <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-top: 1px dashed #EAE3D8; margin-bottom: 10px;">
                                 <div style="font-size: 11px; color: #9C8E84;">
                                     PTTT: <strong style="color: #2B2118;">@order.PaymentMethod</strong>
-                                    <span style="margin-left: 4px; color: @(order.PaymentStatus == PaymentStatus.Paid ? "#16A34A" : "#D97706"); font-weight: 600;">
+                                    <span style="margin-left: 4px; color: @(order.PaymentStatus == PaymentStatus.Paid ? "#16A34A" : "#D97706"); font-weight: 700;">
                                         (@(order.PaymentStatus == PaymentStatus.Paid ? "Đã thanh toán" : "Chưa thanh toán"))
                                     </span>
                                 </div>
                                 <div style="text-align: right;">
                                     <span style="font-size: 11px; color: #9C8E84;">Tổng cộng: </span>
-                                    <span style="font-size: 14px; font-weight: 800; color: #E76F51;">@($"{order.FinalAmount:N0}đ")</span>
+                                    <span style="font-size: 15px; font-weight: 800; color: #E76F51;">@($"{order.FinalAmount:N0}đ")</span>
                                 </div>
+                            </div>
+
+                            <!-- Action Buttons Row -->
+                            <div style="display: flex; justify-content: flex-end; gap: 8px;">
+                                <button type="button" class="btn-order-action btn-order-detail" @onclick="() => OpenOrderDetail(order)">
+                                    <iconify-icon icon="solar:eye-linear"></iconify-icon>
+                                    <span>Xem chi tiết & Tiến trình</span>
+                                </button>
+                                <button type="button" class="btn-order-action btn-order-reorder" @onclick="() => ReOrderFromHistory(order)">
+                                    <iconify-icon icon="solar:cart-large-2-bold"></iconify-icon>
+                                    <span>Đặt lại</span>
+                                </button>
+                                @if (order.Status == OrderStatus.Pending)
+                                {
+                                    <button type="button" class="btn-order-action btn-order-cancel" @onclick="() => CancelPendingOrder(order.OrderID)">
+                                        <iconify-icon icon="solar:close-circle-bold"></iconify-icon>
+                                        <span>Hủy đơn</span>
+                                    </button>
+                                }
                             </div>
                         </div>
                     }
@@ -306,91 +649,159 @@
     }
     else if (currentTab == "profile")
     {
-        <!-- Customer Profile Tab -->
-        <div style="padding: 14px 18px;">
-            <!-- VIP Member Profile Card -->
-            <div style="background: linear-gradient(135deg, #2B2118 0%, #463428 100%); border-radius: 20px; padding: 20px; color: white; margin-bottom: 16px; box-shadow: 0 10px 25px rgba(43,33,24,0.25);">
-                <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 14px;">
-                    <div style="width: 52px; height: 52px; border-radius: 50%; background: #F4A261; color: #2B2118; font-weight: 700; font-size: 18px; display: flex; align-items: center; justify-content: center; border: 2px solid rgba(255,255,255,0.2);">HA</div>
-                    <div>
+        <!-- Customer Member Profile Tab -->
+        <div style="padding: 14px 18px 24px;">
+            @{
+                var customer = CustomerSession.CurrentCustomer;
+                var totalSpent = customerOrders.Where(o => o.Status != OrderStatus.Cancelled).Sum(o => o.FinalAmount);
+                var rewardPoints = (int)(totalSpent / 10000m);
+                var vipTier = GetVipTier(totalSpent);
+            }
+
+                <!-- VIP Member Profile Card -->
+                <div style="background: linear-gradient(135deg, #2B2118 0%, #463428 100%); border-radius: 20px; padding: 20px; color: white; margin-bottom: 16px; box-shadow: 0 10px 25px rgba(43,33,24,0.25);">
+                    <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 14px;">
+                        <div style="width: 54px; height: 54px; border-radius: 50%; background: #F4A261; color: #2B2118; font-weight: 800; font-size: 19px; display: flex; align-items: center; justify-content: center; border: 2.5px solid rgba(255,255,255,0.25); box-shadow: 0 4px 10px rgba(0,0,0,0.2);">
+                            @GetCustomerInitials(customer?.FullName)
+                        </div>
+                        <div style="flex: 1; min-width: 0;">
+                            <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                                <h5 style="margin: 0; font-size: 17px; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                    @customer?.FullName
+                                </h5>
+                                <span style="background: #F4A261; color: #2B2118; font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 10px; letter-spacing: 0.3px;">
+                                    @vipTier
+                                </span>
+                            </div>
+                            <p style="margin: 3px 0 0; font-size: 12px; color: #D5C8BD;">
+                                @(string.IsNullOrEmpty(customer?.Phone) ? "Chưa cập nhật SĐT" : customer.Phone) • @customer?.Username
+                            </p>
+                        </div>
+                        <button type="button" @onclick="OpenEditProfileModal" title="Chỉnh sửa hồ sơ"
+                                style="border: none; background: rgba(255,255,255,0.12); color: white; width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+                            <iconify-icon icon="solar:pen-new-square-linear" style="font-size: 16px;"></iconify-icon>
+                        </button>
+                    </div>
+
+                    <!-- 3 Stats metrics -->
+                    <div style="display: flex; justify-content: space-around; background: rgba(255,255,255,0.08); border-radius: 14px; padding: 12px 10px;">
+                        <div style="text-align: center;">
+                            <span style="font-size: 11px; color: #C0B4A9;">Điểm tích lũy</span>
+                            <div style="font-size: 16px; font-weight: 800; color: #F4A261;">@($"{rewardPoints:N0} đ")</div>
+                        </div>
+                        <div style="width: 1px; background: rgba(255,255,255,0.15);"></div>
+                        <div style="text-align: center; cursor: pointer;" @onclick='() => OpenVouchersTab("profile")'>
+                            <span style="font-size: 11px; color: #C0B4A9;">Voucher có sẵn</span>
+                            <div style="font-size: 16px; font-weight: 800; color: #E76F51;">@($"{promotions.Count:D2} mã")</div>
+                        </div>
+                        <div style="width: 1px; background: rgba(255,255,255,0.15);"></div>
+                        <div style="text-align: center; cursor: pointer;" @onclick='() => SwitchTab("orders")'>
+                            <span style="font-size: 11px; color: #C0B4A9;">Đơn đã mua</span>
+                            <div style="font-size: 16px; font-weight: 800; color: #2A9D8F;">@customerOrders.Count đơn</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Profile Menu Options -->
+                <div style="background: white; border-radius: 16px; border: 1px solid var(--bk-border); overflow: hidden; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
+                    <!-- 1. Cập nhật thông tin cá nhân -->
+                    <div style="display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid #F4EFEA; cursor: pointer;" @onclick="OpenEditProfileModal">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <div style="width: 34px; height: 34px; border-radius: 10px; background: #F0FDF4; color: #16A34A; display: flex; align-items: center; justify-content: center; font-size: 18px;">
+                                <iconify-icon icon="solar:user-id-bold"></iconify-icon>
+                            </div>
+                            <div>
+                                <span style="font-size: 13px; font-weight: 700; color: #2B2118;">Thông Tin Cá Nhân & Nhận Hàng</span>
+                                <div style="font-size: 11px; color: #9C8E84; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                    @(string.IsNullOrEmpty(customer?.Address) ? "Chưa có địa chỉ mặc định" : customer.Address)
+                                </div>
+                            </div>
+                        </div>
+                        <iconify-icon icon="solar:alt-arrow-right-linear" style="color: #9C8E84;"></iconify-icon>
+                    </div>
+
+                    <!-- 2. Lịch sử đơn hàng shortcut -->
+                    <div style="display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid #F4EFEA; cursor: pointer;" @onclick='() => SwitchTab("orders")'>
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <div style="width: 34px; height: 34px; border-radius: 10px; background: #EEF2FF; color: #4F46E5; display: flex; align-items: center; justify-content: center; font-size: 18px;">
+                                <iconify-icon icon="solar:bill-list-bold"></iconify-icon>
+                            </div>
+                            <div>
+                                <span style="font-size: 13px; font-weight: 700; color: #2B2118;">Lịch Sử Đơn Hàng</span>
+                                <div style="font-size: 11px; color: #9C8E84;">@customerOrders.Count đơn hàng đã ghi nhận</div>
+                            </div>
+                        </div>
+                        <iconify-icon icon="solar:alt-arrow-right-linear" style="color: #9C8E84;"></iconify-icon>
+                    </div>
+
+                    <!-- 3. Kho Voucher -->
+                    <div style="display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid #F4EFEA; cursor: pointer;" @onclick='() => OpenVouchersTab("profile")'>
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <div style="width: 34px; height: 34px; border-radius: 10px; background: #FFF5EE; color: #E76F51; display: flex; align-items: center; justify-content: center; font-size: 18px;">
+                                <iconify-icon icon="solar:ticket-sale-bold"></iconify-icon>
+                            </div>
+                            <div>
+                                <span style="font-size: 13px; font-weight: 700; color: #2B2118;">Kho Voucher Của Tôi</span>
+                                <div style="font-size: 11px; color: #9C8E84;">@promotions.Count mã ưu đãi khả dụng</div>
+                            </div>
+                        </div>
                         <div style="display: flex; align-items: center; gap: 6px;">
-                            <h5 style="margin: 0; font-size: 16px; font-weight: 800;">Nguyễn Hoàng Anh</h5>
-                            <span style="background: #F4A261; color: #2B2118; font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 10px;">VIP BẠC</span>
+                            <span style="font-size: 11px; font-weight: 700; color: #E76F51;">Xem ngay</span>
+                            <iconify-icon icon="solar:alt-arrow-right-linear" style="color: #9C8E84; font-size: 14px;"></iconify-icon>
                         </div>
-                        <p style="margin: 2px 0 0; font-size: 12px; color: #D5C8BD;">0912 345 678 • Khách hàng thân thiết</p>
+                    </div>
+
+                    <!-- 4. Đổi mật khẩu -->
+                    <div style="display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid #F4EFEA; cursor: pointer;" @onclick="OpenChangePasswordModal">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <div style="width: 34px; height: 34px; border-radius: 10px; background: #FEF3C7; color: #D97706; display: flex; align-items: center; justify-content: center; font-size: 18px;">
+                                <iconify-icon icon="solar:lock-password-bold"></iconify-icon>
+                            </div>
+                            <div>
+                                <span style="font-size: 13px; font-weight: 700; color: #2B2118;">Đổi Mật Khẩu Tài Khoản</span>
+                                <div style="font-size: 11px; color: #9C8E84;">Bảo vệ an toàn tài khoản thành viên</div>
+                            </div>
+                        </div>
+                        <iconify-icon icon="solar:alt-arrow-right-linear" style="color: #9C8E84;"></iconify-icon>
+                    </div>
+
+                    <!-- 5. Hotline hỗ trợ -->
+                    <div style="display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid #F4EFEA; cursor: pointer;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <div style="width: 34px; height: 34px; border-radius: 10px; background: #F3E8FF; color: #9333EA; display: flex; align-items: center; justify-content: center; font-size: 18px;">
+                                <iconify-icon icon="solar:phone-calling-bold"></iconify-icon>
+                            </div>
+                            <div>
+                                <span style="font-size: 13px; font-weight: 700; color: #2B2118;">Hotline Hỗ Trợ Đặt Bánh</span>
+                                <div style="font-size: 11px; color: #9C8E84;">1900 8888 (07:00 - 22:00)</div>
+                            </div>
+                        </div>
+                        <iconify-icon icon="solar:alt-arrow-right-linear" style="color: #9C8E84;"></iconify-icon>
+                    </div>
+
+                    <!-- 6. Đăng xuất -->
+                    <div style="display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; cursor: pointer;" @onclick="HandleLogout">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <div style="width: 34px; height: 34px; border-radius: 10px; background: #FEE2E2; color: #DC2626; display: flex; align-items: center; justify-content: center; font-size: 18px;">
+                                <iconify-icon icon="solar:logout-2-bold"></iconify-icon>
+                            </div>
+                            <div>
+                                <span style="font-size: 13px; font-weight: 700; color: #DC2626;">Đăng Xuất Tài Khoản</span>
+                                <div style="font-size: 11px; color: #9C8E84;">Khóa phiên và quay về màn hình đăng nhập</div>
+                            </div>
+                        </div>
+                        <iconify-icon icon="solar:alt-arrow-right-linear" style="color: #DC2626;"></iconify-icon>
                     </div>
                 </div>
 
-                <div style="display: flex; justify-content: space-around; background: rgba(255,255,255,0.08); border-radius: 12px; padding: 10px;">
-                    <div style="text-align: center;">
-                        <span style="font-size: 11px; color: #C0B4A9;">Điểm tích lũy</span>
-                        <div style="font-size: 15px; font-weight: 800; color: #F4A261;">450 điểm</div>
-                    </div>
-                    <div style="width: 1px; background: rgba(255,255,255,0.15);"></div>
-                    <div style="text-align: center; cursor: pointer;" @onclick='() => OpenVouchersTab("profile")'>
-                        <span style="font-size: 11px; color: #C0B4A9;">Voucher có sẵn</span>
-                        <div style="font-size: 15px; font-weight: 800; color: #E76F51;">@($"{promotions.Count:D2} mã")</div>
-                    </div>
-                    <div style="width: 1px; background: rgba(255,255,255,0.15);"></div>
-                    <div style="text-align: center;">
-                        <span style="font-size: 11px; color: #C0B4A9;">Đơn đã mua</span>
-                        <div style="font-size: 15px; font-weight: 800; color: #2A9D8F;">@(customerOrders?.Count ?? 0) đơn</div>
-                    </div>
+                <!-- App info footer -->
+                <div style="text-align: center; padding: 10px; color: #9C8E84; font-size: 11px;">
+                    Bakery Mobile Customer v1.0.0<br />
+                    .NET 10 MAUI Blazor Hybrid
                 </div>
-            </div>
-
-            <!-- Profile Menu Options -->
-            <div style="background: white; border-radius: 16px; border: 1px solid var(--bk-border); overflow: hidden; margin-bottom: 16px;">
-                <div style="display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid #F4EFEA; cursor: pointer;" @onclick='() => OpenVouchersTab("profile")'>
-                    <div style="display: flex; align-items: center; gap: 12px;">
-                        <div style="width: 32px; height: 32px; border-radius: 8px; background: #FFF5EE; color: #E76F51; display: flex; align-items: center; justify-content: center;">
-                            <iconify-icon icon="solar:ticket-sale-bold"></iconify-icon>
-                        </div>
-                        <div>
-                            <span style="font-size: 13px; font-weight: 700; color: #2B2118;">Kho Voucher Của Tôi</span>
-                            <div style="font-size: 11px; color: #9C8E84;">@promotions.Count mã ưu đãi khả dụng</div>
-                        </div>
-                    </div>
-                    <div style="display: flex; align-items: center; gap: 6px;">
-                        <span style="font-size: 11px; font-weight: 700; color: #E76F51;">Xem ngay</span>
-                        <iconify-icon icon="solar:alt-arrow-right-linear" style="color: #9C8E84; font-size: 14px;"></iconify-icon>
-                    </div>
-                </div>
-
-                <div style="display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid #F4EFEA; cursor: pointer;">
-                    <div style="display: flex; align-items: center; gap: 12px;">
-                        <div style="width: 32px; height: 32px; border-radius: 8px; background: #F0FDF4; color: #16A34A; display: flex; align-items: center; justify-content: center;">
-                            <iconify-icon icon="solar:map-point-wave-bold"></iconify-icon>
-                        </div>
-                        <div>
-                            <span style="font-size: 13px; font-weight: 700; color: #2B2118;">Sổ Địa Chỉ Giao Hàng</span>
-                            <div style="font-size: 11px; color: #9C8E84;">123 Lê Lợi, Bến Thành, Q.1, TP.HCM</div>
-                        </div>
-                    </div>
-                    <iconify-icon icon="solar:alt-arrow-right-linear" style="color: #9C8E84;"></iconify-icon>
-                </div>
-
-                <div style="display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; cursor: pointer;">
-                    <div style="display: flex; align-items: center; gap: 12px;">
-                        <div style="width: 32px; height: 32px; border-radius: 8px; background: #FEF3C7; color: #D97706; display: flex; align-items: center; justify-content: center;">
-                            <iconify-icon icon="solar:phone-calling-bold"></iconify-icon>
-                        </div>
-                        <div>
-                            <span style="font-size: 13px; font-weight: 700; color: #2B2118;">Hotline Hỗ Trợ Đặt Bánh</span>
-                            <div style="font-size: 11px; color: #9C8E84;">1900 8888 (07:00 - 22:00)</div>
-                        </div>
-                    </div>
-                    <iconify-icon icon="solar:alt-arrow-right-linear" style="color: #9C8E84;"></iconify-icon>
-                </div>
-            </div>
-
-            <!-- App info footer -->
-            <div style="text-align: center; padding: 10px; color: #9C8E84; font-size: 11px;">
-                Bakery Mobile Customer v1.0.0<br />
-                .NET 10 MAUI Blazor Hybrid
-            </div>
         </div>
     }
+
     else if (currentTab == "vouchers")
     {
         <!-- Kho Voucher & Khuyến Mãi Tab -->
@@ -581,7 +992,7 @@
 
             <div class="sheet-body">
                 <div style="width: 100%; height: 210px; border-radius: 16px; overflow: hidden; background: #FFF5EE; margin-bottom: 14px;">
-                    <img src="@GetProductImageUrl(selectedProduct)" alt="@selectedProduct?.ProductName" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.src='http://localhost:5149/assets/images/products/default-bakery.svg';" />
+                    <img src="@GetProductImageUrl(selectedProduct)" alt="@selectedProduct?.ProductName" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.src='/assets/images/products/default-bakery.svg';" />
                 </div>
 
                 <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
@@ -705,7 +1116,7 @@
                         {
                             <div style="display: flex; align-items: center; justify-content: space-between; background: #FAF7F2; border-radius: 14px; padding: 10px 12px;">
                                 <div style="display: flex; align-items: center; gap: 10px;">
-                                    <img src="@item.ImageURL" alt="@item.ProductName" style="width: 44px; height: 44px; border-radius: 10px; object-fit: cover;" onerror="this.src='http://localhost:5149/assets/images/products/default-bakery.svg';" />
+                                    <img src="@item.ImageURL" alt="@item.ProductName" style="width: 44px; height: 44px; border-radius: 10px; object-fit: cover;" onerror="this.src='/assets/images/products/default-bakery.svg';" />
                                     <div>
                                         <h6 style="margin: 0; font-size: 13px; font-weight: 700; color: #2B2118;">@item.ProductName</h6>
                                         <div style="font-size: 12px; font-weight: 800; color: #E76F51; margin-top: 2px;">@($"{item.UnitPrice:N0}đ")</div>
@@ -925,6 +1336,265 @@
     </div>
 }
 
+<!-- 8. Order Detail Bottom Sheet / Modal with 5-Step Timeline -->
+@if (selectedOrderForDetail != null)
+{
+    <div class="bottom-sheet-backdrop" @onclick="CloseOrderDetail">
+        <div class="bottom-sheet-panel" @onclick:stopPropagation="true">
+            <div class="sheet-handle"></div>
+            <div class="sheet-header">
+                <div>
+                    <h5 style="margin: 0; font-size: 16px; font-weight: 800; color: #2B2118;">Chi Tiết Đơn Hàng #@selectedOrderForDetail.OrderID</h5>
+                    <span style="font-size: 11px; color: #9C8E84;">Đặt lúc: @selectedOrderForDetail.OrderDate.ToString("dd/MM/yyyy HH:mm")</span>
+                </div>
+                <button class="sheet-close-btn" @onclick="CloseOrderDetail">&times;</button>
+            </div>
+
+            <div class="sheet-body" style="max-height: 70vh; overflow-y: auto;">
+                <!-- 5-Step Visual Timeline Tracker -->
+                <div style="background: #FAF7F2; border-radius: 16px; padding: 14px 8px 8px; margin-bottom: 16px; border: 1px solid var(--bk-border);">
+                    <div style="text-align: center; margin-bottom: 4px;">
+                        <span class="order-status-badge @GetStatusCssClass(selectedOrderForDetail.Status)" style="font-size: 12px; padding: 4px 14px;">
+                            <iconify-icon icon="@GetStatusIcon(selectedOrderForDetail.Status)"></iconify-icon>
+                            <span>@GetStatusText(selectedOrderForDetail.Status)</span>
+                        </span>
+                    </div>
+
+                    @if (selectedOrderForDetail.Status == OrderStatus.Cancelled)
+                    {
+                        <div style="text-align: center; padding: 12px 10px; color: #DC2626; font-size: 12px; font-weight: 700;">
+                            <iconify-icon icon="solar:close-circle-bold" style="font-size: 24px; vertical-align: middle; margin-right: 4px;"></iconify-icon>
+                            Đơn hàng này đã bị hủy.
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="order-timeline-stepper">
+                            <div class="timeline-step completed">
+                                <div class="timeline-step-icon">
+                                    <iconify-icon icon="solar:bag-check-bold"></iconify-icon>
+                                </div>
+                                <span class="timeline-step-title">Đặt hàng</span>
+                            </div>
+
+                            <div class="timeline-step @(IsStepActiveOrCompleted(selectedOrderForDetail.Status, OrderStatus.Confirmed))">
+                                <div class="timeline-step-icon">
+                                    <iconify-icon icon="solar:clock-circle-bold"></iconify-icon>
+                                </div>
+                                <span class="timeline-step-title">Chờ duyệt</span>
+                            </div>
+
+                            <div class="timeline-step @(IsStepActiveOrCompleted(selectedOrderForDetail.Status, OrderStatus.InProgress))">
+                                <div class="timeline-step-icon">
+                                    <iconify-icon icon="solar:chef-hat-minimalistic-bold"></iconify-icon>
+                                </div>
+                                <span class="timeline-step-title">Làm bánh</span>
+                            </div>
+
+                            <div class="timeline-step @(IsStepActiveOrCompleted(selectedOrderForDetail.Status, OrderStatus.Shipping))">
+                                <div class="timeline-step-icon">
+                                    <iconify-icon icon="solar:scooter-bold"></iconify-icon>
+                                </div>
+                                <span class="timeline-step-title">Giao hàng</span>
+                            </div>
+
+                            <div class="timeline-step @(IsStepActiveOrCompleted(selectedOrderForDetail.Status, OrderStatus.Completed))">
+                                <div class="timeline-step-icon">
+                                    <iconify-icon icon="solar:check-circle-bold"></iconify-icon>
+                                </div>
+                                <span class="timeline-step-title">Hoàn tất</span>
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                <!-- Receiver Information -->
+                <div style="background: white; border: 1px solid var(--bk-border); border-radius: 14px; padding: 12px 14px; margin-bottom: 14px;">
+                    <div style="font-size: 12px; font-weight: 800; color: #2B2118; margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
+                        <iconify-icon icon="solar:map-point-wave-bold" style="color: #E76F51;"></iconify-icon>
+                        <span>Thông Tin Giao Hàng</span>
+                    </div>
+                    <div style="font-size: 12px; color: #6E6259; line-height: 1.6;">
+                        <div><strong>Người nhận:</strong> @selectedOrderForDetail.ReceiverName</div>
+                        <div><strong>Số điện thoại:</strong> @selectedOrderForDetail.ReceiverPhone</div>
+                        <div><strong>Địa chỉ:</strong> @selectedOrderForDetail.ShippingAddress</div>
+                        @if (!string.IsNullOrEmpty(selectedOrderForDetail.Note))
+                        {
+                            <div style="color: #E76F51; margin-top: 4px; padding-top: 4px; border-top: 1px dashed #F4EFEA;">
+                                <strong>Ghi chú bánh:</strong> @selectedOrderForDetail.Note
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <!-- Items Breakdown -->
+                <div style="background: white; border: 1px solid var(--bk-border); border-radius: 14px; padding: 12px 14px; margin-bottom: 14px;">
+                    <div style="font-size: 12px; font-weight: 800; color: #2B2118; margin-bottom: 10px;">
+                        <span>Danh Sách Món Bánh (@selectedOrderForDetail.OrderDetails.Sum(d => d.Quantity) món)</span>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                        @foreach (var detail in selectedOrderForDetail.OrderDetails)
+                        {
+                            <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <img src="@GetProductImageUrl(detail.Product)" alt="@detail.Product?.ProductName"
+                                         style="width: 38px; height: 38px; border-radius: 8px; object-fit: cover;"
+                                         onerror="this.src='/assets/images/products/default-bakery.svg';" />
+                                    <div>
+                                        <div style="font-size: 12px; font-weight: 700; color: #2B2118;">@detail.Product?.ProductName</div>
+                                        <div style="font-size: 11px; color: #9C8E84;">@detail.Quantity x @($"{detail.UnitPrice:N0}đ")</div>
+                                    </div>
+                                </div>
+                                <span style="font-size: 12px; font-weight: 800; color: #2B2118;">@($"{detail.SubTotal:N0}đ")</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <!-- Pricing & Payment Summary -->
+                <div style="background: #FAF7F2; border-radius: 14px; padding: 12px 14px;">
+                    <div style="display: flex; justify-content: space-between; font-size: 12px; color: #6E6259; margin-bottom: 4px;">
+                        <span>Tạm tính tiền bánh:</span>
+                        <span style="font-weight: 700;">@($"{selectedOrderForDetail.TotalAmount:N0}đ")</span>
+                    </div>
+                    @if (selectedOrderForDetail.DiscountAmount > 0)
+                    {
+                        <div style="display: flex; justify-content: space-between; font-size: 12px; color: #E76F51; margin-bottom: 4px;">
+                            <span>Giảm giá khuyến mãi:</span>
+                            <span style="font-weight: 700;">-@($"{selectedOrderForDetail.DiscountAmount:N0}đ")</span>
+                        </div>
+                    }
+                    <div style="display: flex; justify-content: space-between; font-size: 12px; color: #6E6259; margin-bottom: 4px;">
+                        <span>Phí vận chuyển:</span>
+                        <span style="color: #16A34A; font-weight: 700;">Miễn phí (Freeship)</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 14px; color: #2B2118; font-weight: 800; padding-top: 6px; border-top: 1px dashed #E0D7CD; margin-bottom: 6px;">
+                        <span>Tổng thanh toán:</span>
+                        <span style="color: #E76F51; font-size: 16px;">@($"{selectedOrderForDetail.FinalAmount:N0}đ")</span>
+                    </div>
+                    <div style="font-size: 11px; color: #9C8E84;">
+                        PTTT: <strong style="color: #2B2118;">@selectedOrderForDetail.PaymentMethod</strong>
+                        <span style="margin-left: 4px; color: @(selectedOrderForDetail.PaymentStatus == PaymentStatus.Paid ? "#16A34A" : "#D97706"); font-weight: 700;">
+                            (@(selectedOrderForDetail.PaymentStatus == PaymentStatus.Paid ? "Đã thanh toán" : "Chưa thanh toán"))
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sheet-footer" style="display: flex; gap: 8px;">
+                <button type="button" class="btn-order-action btn-order-reorder" style="flex: 1; padding: 12px; justify-content: center; font-size: 13px;"
+                        @onclick="() => { ReOrderFromHistory(selectedOrderForDetail); CloseOrderDetail(); }">
+                    <iconify-icon icon="solar:cart-large-2-bold"></iconify-icon>
+                    <span>Đặt Lại Đơn Này</span>
+                </button>
+                <button type="button" class="btn-order-action btn-order-detail" style="width: auto; padding: 12px 18px; font-size: 13px;"
+                        @onclick="CloseOrderDetail">
+                    Đóng
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- 9. Edit Profile Modal -->
+@if (isEditProfileOpen)
+{
+    <div class="bottom-sheet-backdrop" @onclick="() => isEditProfileOpen = false">
+        <div class="bottom-sheet-panel" @onclick:stopPropagation="true">
+            <div class="sheet-handle"></div>
+            <div class="sheet-header">
+                <h5>Cập Nhật Thông Tin Cá Nhân</h5>
+                <button class="sheet-close-btn" @onclick="() => isEditProfileOpen = false">&times;</button>
+            </div>
+            <div class="sheet-body">
+                @if (!string.IsNullOrEmpty(editProfileMessage))
+                {
+                    <div class="auth-alert-error" style="color: #16A34A; background: #F0FDF4; border-color: #86EFAC;">
+                        <iconify-icon icon="solar:check-circle-bold"></iconify-icon>
+                        <span>@editProfileMessage</span>
+                    </div>
+                }
+                <div class="auth-field">
+                    <label>Họ và tên:</label>
+                    <div class="auth-input-wrapper">
+                        <iconify-icon icon="solar:user-bold" class="auth-input-icon"></iconify-icon>
+                        <input type="text" class="auth-input" @bind="editFullName" placeholder="Họ và tên..." />
+                    </div>
+                </div>
+                <div class="auth-field">
+                    <label>Số điện thoại:</label>
+                    <div class="auth-input-wrapper">
+                        <iconify-icon icon="solar:phone-linear" class="auth-input-icon"></iconify-icon>
+                        <input type="tel" class="auth-input" @bind="editPhone" placeholder="Số điện thoại..." />
+                    </div>
+                </div>
+                <div class="auth-field">
+                    <label>Địa chỉ nhận bánh mặc định:</label>
+                    <div class="auth-input-wrapper">
+                        <iconify-icon icon="solar:map-point-linear" class="auth-input-icon"></iconify-icon>
+                        <input type="text" class="auth-input" @bind="editAddress" placeholder="Địa chỉ giao bánh..." />
+                    </div>
+                </div>
+            </div>
+            <div class="sheet-footer">
+                <button type="button" class="btn-bk-primary" @onclick="SaveProfileAsync" disabled="@isSavingProfile">
+                    @(isSavingProfile ? "Đang lưu thay đổi..." : "Lưu Thông Tin")
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- 10. Change Password Modal -->
+@if (isChangePasswordOpen)
+{
+    <div class="bottom-sheet-backdrop" @onclick="() => isChangePasswordOpen = false">
+        <div class="bottom-sheet-panel" @onclick:stopPropagation="true">
+            <div class="sheet-handle"></div>
+            <div class="sheet-header">
+                <h5>Đổi Mật Khẩu Tài Khoản</h5>
+                <button class="sheet-close-btn" @onclick="() => isChangePasswordOpen = false">&times;</button>
+            </div>
+            <div class="sheet-body">
+                @if (!string.IsNullOrEmpty(changePasswordError))
+                {
+                    <div class="auth-alert-error">
+                        <iconify-icon icon="solar:danger-circle-bold"></iconify-icon>
+                        <span>@changePasswordError</span>
+                    </div>
+                }
+                <div class="auth-field">
+                    <label>Mật khẩu hiện tại:</label>
+                    <div class="auth-input-wrapper">
+                        <iconify-icon icon="solar:lock-password-linear" class="auth-input-icon"></iconify-icon>
+                        <input type="password" class="auth-input" @bind="changeOldPassword" placeholder="Nhập mật khẩu hiện tại..." />
+                    </div>
+                </div>
+                <div class="auth-field">
+                    <label>Mật khẩu mới (tối thiểu 6 ký tự):</label>
+                    <div class="auth-input-wrapper">
+                        <iconify-icon icon="solar:lock-password-linear" class="auth-input-icon"></iconify-icon>
+                        <input type="password" class="auth-input" @bind="changeNewPassword" placeholder="Nhập mật khẩu mới..." />
+                    </div>
+                </div>
+                <div class="auth-field">
+                    <label>Xác nhận mật khẩu mới:</label>
+                    <div class="auth-input-wrapper">
+                        <iconify-icon icon="solar:check-circle-linear" class="auth-input-icon"></iconify-icon>
+                        <input type="password" class="auth-input" @bind="changeConfirmPassword" placeholder="Xác nhận mật khẩu mới..." />
+                    </div>
+                </div>
+            </div>
+            <div class="sheet-footer">
+                <button type="button" class="btn-bk-primary" @onclick="ChangePasswordAsync" disabled="@isChangingPassword">
+                    @(isChangingPassword ? "Đang cập nhật..." : "Đổi Mật Khẩu")
+                </button>
+            </div>
+        </div>
+    </div>
+}
+}
+
 @code {
     private string currentTab = "home";
     private string previousTab = "profile";
@@ -946,15 +1616,55 @@
     private string voucherMessage = string.Empty;
     private string? voucherToastMessage;
 
-    private string receiverName = "Nguyễn Hoàng Anh";
-    private string receiverPhone = "0912 345 678";
-    private string receiverAddress = "123 Lê Lợi, Phường Bến Thành, Quận 1, TP.HCM";
-    private string orderNote = "Giao lúc 16:30 chiều, kèm nến sinh nhật";
+    private string receiverName = "Khách hàng";
+    private string receiverPhone = string.Empty;
+    private string receiverAddress = string.Empty;
+    private string orderNote = string.Empty;
     private string selectedPaymentMethod = PaymentMethod.COD;
 
     private Order? justPlacedOrder;
     private readonly CancellationTokenSource orderRefreshCancellation = new();
     private bool isRefreshingOrders;
+
+    // Customer Authentication & Session State
+    private string authMode = "login";
+    private string loginUsername = string.Empty;
+    private string loginPassword = string.Empty;
+    private bool showLoginPassword = false;
+    private string? loginError;
+    private bool isLoggingIn = false;
+
+    private string registerFullName = string.Empty;
+    private string registerUsername = string.Empty;
+    private string registerPhone = string.Empty;
+    private string registerAddress = string.Empty;
+    private string registerPassword = string.Empty;
+    private string registerConfirmPassword = string.Empty;
+    private bool showRegisterPassword = false;
+    private string? registerError;
+    private bool isRegistering = false;
+
+    // Edit Profile & Password Modals
+    private bool isEditProfileOpen = false;
+    private string editFullName = string.Empty;
+    private string editPhone = string.Empty;
+    private string editAddress = string.Empty;
+    private string? editProfileMessage;
+    private bool isSavingProfile = false;
+
+    private bool isChangePasswordOpen = false;
+    private string changeOldPassword = string.Empty;
+    private string changeNewPassword = string.Empty;
+    private string changeConfirmPassword = string.Empty;
+    private string? changePasswordError;
+    private bool isChangingPassword = false;
+
+    // Order History Filters & Modals
+    private string currentOrderStatusFilter = "All";
+    private string orderSearchQuery = string.Empty;
+    private string lookupPhone = string.Empty;
+    private Order? selectedOrderForDetail;
+
     private string webAdminApiBaseUrl
     {
         get => Preferences.Default.Get(
@@ -971,9 +1681,12 @@
     protected override async Task OnInitializedAsync()
     {
         CartService.OnChange += StateHasChanged;
+        CustomerSession.OnAuthChanged += HandleAuthChanged;
+        SyncCustomerInfoToCheckout();
         await LoadDataAsync();
         _ = RefreshOrdersPeriodicallyAsync(orderRefreshCancellation.Token);
     }
+
 
     private async Task LoadDataAsync()
     {
@@ -1076,13 +1789,23 @@
     {
         try
         {
-            customerOrders = await DbContext.Orders
+            var query = DbContext.Orders
                 .AsNoTracking()
                 .Include(o => o.OrderDetails)
                 .ThenInclude(od => od.Product)
-                .OrderByDescending(o => o.OrderDate)
-                .ToListAsync();
+                .AsQueryable();
 
+            if (CustomerSession.IsLoggedIn && CustomerSession.CurrentCustomer != null)
+            {
+                query = query.Where(o => o.CustomerID == CustomerSession.CurrentCustomer.CustomerId);
+            }
+            else if (!string.IsNullOrWhiteSpace(lookupPhone))
+            {
+                var cleanPhone = lookupPhone.Trim();
+                query = query.Where(o => o.ReceiverPhone != null && o.ReceiverPhone.Contains(cleanPhone));
+            }
+
+            customerOrders = await query.OrderByDescending(o => o.OrderDate).ToListAsync();
             await SyncOrderStatusesFromWebAdminAsync();
         }
         catch (Exception ex)
@@ -1090,6 +1813,7 @@
             Console.WriteLine("Orders load error: " + ex.Message);
         }
     }
+
 
     private async Task SyncOrderStatusesFromWebAdminAsync()
     {
@@ -1198,11 +1922,13 @@
 
     private string GetProductImageUrl(Product? p)
     {
-        if (p == null) return "http://localhost:5149/assets/images/products/default-bakery.svg";
+        const string fallback = "/assets/images/products/default-bakery.svg";
+        if (p == null) return fallback;
 
         string rawUrl = p.ImageURL?.Trim() ?? string.Empty;
         if (string.IsNullOrEmpty(rawUrl))
         {
+            // Nếu DB không có ImageURL, mapping theo tên sản phẩm
             var name = p.ProductName ?? string.Empty;
             if (name.Contains("Tiramisu", StringComparison.OrdinalIgnoreCase)) rawUrl = "/assets/images/products/tiramisu.jpg";
             else if (name.Contains("Croissant", StringComparison.OrdinalIgnoreCase)) rawUrl = "/assets/images/products/croissant.jpg";
@@ -1210,16 +1936,34 @@
             else if (name.Contains("Mousse", StringComparison.OrdinalIgnoreCase)) rawUrl = "/assets/images/products/mousse.jpg";
             else if (name.Contains("Brioche", StringComparison.OrdinalIgnoreCase) || name.Contains("Cúc", StringComparison.OrdinalIgnoreCase)) rawUrl = "/assets/images/products/brioche.jpg";
             else if (name.Contains("Forest", StringComparison.OrdinalIgnoreCase)) rawUrl = "/assets/images/products/black-forest.jpg";
-            else rawUrl = "/assets/images/products/default-bakery.svg";
+            else rawUrl = fallback;
+            return rawUrl;
         }
 
+        // Nếu là URL đầy đủ (http/https) -> giữ nguyên
         if (rawUrl.StartsWith("http://", StringComparison.OrdinalIgnoreCase) || 
             rawUrl.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
         {
             return rawUrl;
         }
 
-        return rawUrl.StartsWith('/') ? $"http://localhost:5149{rawUrl}" : $"http://localhost:5149/{rawUrl}";
+        rawUrl = rawUrl.Replace('\\', '/');
+        rawUrl = rawUrl.TrimStart('/');
+        if (rawUrl.StartsWith("wwwroot/", StringComparison.OrdinalIgnoreCase))
+        {
+            rawUrl = rawUrl["wwwroot/".Length..];
+        }
+        if (rawUrl.StartsWith("~/", StringComparison.Ordinal))
+        {
+            rawUrl = rawUrl[2..];
+        }
+
+        if (!rawUrl.StartsWith("assets/", StringComparison.OrdinalIgnoreCase))
+        {
+            return fallback;
+        }
+
+        return "/" + rawUrl;
     }
 
     private void QuickAddToCart(Product product)
@@ -1392,7 +2136,8 @@
 
         try
         {
-            var order = await CartService.PlaceOrderAsync(receiverName, receiverPhone, receiverAddress, orderNote, selectedPaymentMethod);
+            int? customerId = CustomerSession.IsLoggedIn ? CustomerSession.CurrentCustomer?.CustomerId : null;
+            var order = await CartService.PlaceOrderAsync(customerId, receiverName, receiverPhone, receiverAddress, orderNote, selectedPaymentMethod);
             if (order != null)
             {
                 justPlacedOrder = order;
@@ -1414,6 +2159,303 @@
     {
         justPlacedOrder = null;
         SwitchTab("orders");
+    }
+
+    private void HandleAuthChanged()
+    {
+        SyncCustomerInfoToCheckout();
+        _ = LoadOrdersAsync().ContinueWith(_ => InvokeAsync(StateHasChanged));
+    }
+
+    private void SyncCustomerInfoToCheckout()
+    {
+        if (CustomerSession.IsLoggedIn && CustomerSession.CurrentCustomer != null)
+        {
+            receiverName = CustomerSession.CurrentCustomer.FullName;
+            receiverPhone = CustomerSession.CurrentCustomer.Phone ?? string.Empty;
+            receiverAddress = CustomerSession.CurrentCustomer.Address ?? string.Empty;
+        }
+    }
+
+    private void SwitchAuthMode(string mode)
+    {
+        authMode = mode;
+        loginError = null;
+        registerError = null;
+    }
+
+    private async Task HandleCustomerLogin()
+    {
+        if (isLoggingIn) return;
+        isLoggingIn = true;
+        loginError = null;
+
+        try
+        {
+            var result = await CustomerSession.LoginAsync(loginUsername, loginPassword);
+            if (result.Success)
+            {
+                currentTab = "home";
+                ShowToast($"Chào mừng {result.Customer?.FullName} trở lại tiệm bánh!");
+                SyncCustomerInfoToCheckout();
+                await LoadOrdersAsync();
+                loginUsername = string.Empty;
+                loginPassword = string.Empty;
+            }
+            else
+            {
+                loginError = result.ErrorMessage ?? "Đăng nhập thất bại.";
+            }
+        }
+        catch (Exception ex)
+        {
+            loginError = "Lỗi đăng nhập: " + ex.Message;
+        }
+        finally
+        {
+            isLoggingIn = false;
+        }
+    }
+
+    private async Task QuickDemoLogin(string user, string pass)
+    {
+        loginUsername = user;
+        loginPassword = pass;
+        await HandleCustomerLogin();
+    }
+
+    private async Task HandleCustomerRegister()
+    {
+        if (isRegistering) return;
+        isRegistering = true;
+        registerError = null;
+
+        try
+        {
+            var req = new CustomerRegisterRequest
+            {
+                FullName = registerFullName,
+                Username = registerUsername,
+                Phone = registerPhone,
+                Address = registerAddress,
+                Password = registerPassword,
+                ConfirmPassword = registerConfirmPassword
+            };
+
+            var result = await CustomerSession.RegisterAsync(req);
+            if (result.Success)
+            {
+                loginUsername = registerUsername.Trim();
+                loginPassword = string.Empty;
+                SwitchAuthMode("login");
+                ShowToast("Đăng ký tài khoản thành công. Vui lòng đăng nhập để vào ứng dụng.");
+                registerFullName = string.Empty;
+                registerUsername = string.Empty;
+                registerPhone = string.Empty;
+                registerAddress = string.Empty;
+                registerPassword = string.Empty;
+                registerConfirmPassword = string.Empty;
+            }
+            else
+            {
+                registerError = result.ErrorMessage ?? "Đăng ký thất bại.";
+            }
+        }
+        catch (Exception ex)
+        {
+            registerError = "Lỗi đăng ký: " + ex.Message;
+        }
+        finally
+        {
+            isRegistering = false;
+        }
+    }
+
+    private void HandleLogout()
+    {
+        CustomerSession.Logout();
+        currentTab = "home";
+        authMode = "login";
+        loginError = null;
+        registerError = null;
+        ShowToast("Đã đăng xuất tài khoản.");
+        receiverName = "Khách hàng";
+        receiverPhone = string.Empty;
+        receiverAddress = string.Empty;
+        _ = LoadOrdersAsync();
+    }
+
+    private void OpenEditProfileModal()
+    {
+        if (CustomerSession.CurrentCustomer != null)
+        {
+            editFullName = CustomerSession.CurrentCustomer.FullName;
+            editPhone = CustomerSession.CurrentCustomer.Phone ?? string.Empty;
+            editAddress = CustomerSession.CurrentCustomer.Address ?? string.Empty;
+        }
+        editProfileMessage = null;
+        isEditProfileOpen = true;
+    }
+
+    private async Task SaveProfileAsync()
+    {
+        if (isSavingProfile) return;
+        isSavingProfile = true;
+        editProfileMessage = null;
+
+        try
+        {
+            var ok = await CustomerSession.UpdateProfileAsync(editFullName, editPhone, editAddress);
+            if (ok)
+            {
+                SyncCustomerInfoToCheckout();
+                ShowToast("Đã cập nhật thông tin thành công!");
+                isEditProfileOpen = false;
+            }
+            else
+            {
+                editProfileMessage = "Không thể cập nhật thông tin.";
+            }
+        }
+        catch (Exception ex)
+        {
+            editProfileMessage = "Lỗi: " + ex.Message;
+        }
+        finally
+        {
+            isSavingProfile = false;
+        }
+    }
+
+    private void OpenChangePasswordModal()
+    {
+        changeOldPassword = string.Empty;
+        changeNewPassword = string.Empty;
+        changeConfirmPassword = string.Empty;
+        changePasswordError = null;
+        isChangePasswordOpen = true;
+    }
+
+    private async Task ChangePasswordAsync()
+    {
+        if (isChangingPassword) return;
+        isChangingPassword = true;
+        changePasswordError = null;
+
+        try
+        {
+            var ok = await CustomerSession.ChangePasswordAsync(changeOldPassword, changeNewPassword, changeConfirmPassword);
+            if (ok)
+            {
+                ShowToast("Đổi mật khẩu thành công!");
+                isChangePasswordOpen = false;
+            }
+            else
+            {
+                changePasswordError = "Mật khẩu cũ không chính xác hoặc mật khẩu mới chưa hợp lệ (>= 6 ký tự).";
+            }
+        }
+        catch (Exception ex)
+        {
+            changePasswordError = "Lỗi: " + ex.Message;
+        }
+        finally
+        {
+            isChangingPassword = false;
+        }
+    }
+
+    private void SetOrderStatusFilter(string status)
+    {
+        currentOrderStatusFilter = status;
+    }
+
+    private IEnumerable<Order> FilteredCustomerOrders
+    {
+        get
+        {
+            var list = customerOrders.AsEnumerable();
+            if (currentOrderStatusFilter != "All")
+            {
+                list = list.Where(o => o.Status.Equals(currentOrderStatusFilter, StringComparison.OrdinalIgnoreCase));
+            }
+            if (!string.IsNullOrWhiteSpace(orderSearchQuery))
+            {
+                var query = orderSearchQuery.Trim();
+                list = list.Where(o => o.OrderID.ToString().Contains(query) ||
+                                       (o.ReceiverName != null && o.ReceiverName.Contains(query, StringComparison.OrdinalIgnoreCase)) ||
+                                       o.OrderDetails.Any(d => d.Product != null && d.Product.ProductName.Contains(query, StringComparison.OrdinalIgnoreCase)));
+            }
+            return list;
+        }
+    }
+
+    private void OpenOrderDetail(Order order)
+    {
+        selectedOrderForDetail = order;
+    }
+
+    private void CloseOrderDetail()
+    {
+        selectedOrderForDetail = null;
+    }
+
+    private void ReOrderFromHistory(Order order)
+    {
+        CartService.ReOrder(order);
+        ShowToast($"Đã thêm lại {order.OrderDetails.Count} món vào giỏ hàng!");
+        OpenCart();
+    }
+
+    private async Task CancelPendingOrder(int orderId)
+    {
+        int? customerId = CustomerSession.IsLoggedIn ? CustomerSession.CurrentCustomer?.CustomerId : null;
+        var ok = await CartService.CancelOrderAsync(orderId, customerId);
+        if (ok)
+        {
+            ShowToast($"Đã hủy thành công đơn hàng #{orderId}.");
+            await LoadOrdersAsync();
+        }
+        else
+        {
+            ShowToast($"Không thể hủy đơn hàng #{orderId}.");
+        }
+    }
+
+    private string IsStepActiveOrCompleted(string currentStatus, string stepStatus)
+    {
+        int currentRank = GetStatusRank(currentStatus);
+        int stepRank = GetStatusRank(stepStatus);
+
+        if (currentRank > stepRank) return "completed";
+        if (currentRank == stepRank) return "active";
+        return string.Empty;
+    }
+
+    private int GetStatusRank(string status) => status switch
+    {
+        OrderStatus.Pending => 1,
+        OrderStatus.Confirmed => 2,
+        OrderStatus.InProgress => 3,
+        OrderStatus.Shipping => 4,
+        OrderStatus.Completed => 5,
+        _ => 0
+    };
+
+    private string GetVipTier(decimal totalSpent)
+    {
+        if (totalSpent >= 3000000m) return "VIP KIM CƯƠNG";
+        if (totalSpent >= 1500000m) return "VIP VÀNG";
+        if (totalSpent >= 500000m) return "VIP BẠC";
+        return "THÀNH VIÊN";
+    }
+
+    private string GetCustomerInitials(string? fullName)
+    {
+        if (string.IsNullOrWhiteSpace(fullName)) return "KH";
+        var parts = fullName.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length == 1) return parts[0].Length >= 2 ? parts[0][..2].ToUpper() : parts[0].ToUpper();
+        return $"{parts[0][0]}{parts[^1][0]}".ToUpper();
     }
 
     private string GetStatusText(string status) => status switch
@@ -1461,5 +2503,7 @@
         orderRefreshCancellation.Cancel();
         orderRefreshCancellation.Dispose();
         CartService.OnChange -= StateHasChanged;
+        CustomerSession.OnAuthChanged -= HandleAuthChanged;
     }
 }
+

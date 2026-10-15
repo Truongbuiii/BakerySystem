@@ -56,6 +56,7 @@ public static class MauiProgram
 
 		builder.Services.AddScoped<IBakeryDbContext>(sp => sp.GetRequiredService<BakeryDbContext>());
 		builder.Services.AddScoped<CartService>();
+		builder.Services.AddScoped<CustomerSessionService>();
 		builder.Services.AddScoped(_ => new HttpClient());
 		builder.Services.AddApplicationServices();
 

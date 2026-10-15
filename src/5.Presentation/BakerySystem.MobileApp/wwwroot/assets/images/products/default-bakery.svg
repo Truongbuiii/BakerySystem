@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+  <defs>
+    <linearGradient id="cakeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffedd5"/>
+      <stop offset="100%" stop-color="#fed7aa"/>
+    </linearGradient>
+    <linearGradient id="breadGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f97316"/>
+      <stop offset="100%" stop-color="#c2410c"/>
+    </linearGradient>
+  </defs>
+  <rect width="100" height="100" rx="16" fill="url(#cakeGrad)"/>
+  <!-- Croissant / Bread icon -->
+  <path d="M50 24 C36 24 24 35 20 46 C17 55 20 64 28 70 C34 74 42 76 50 76 C58 76 66 74 72 70 C80 64 83 55 80 46 C76 35 64 24 50 24 Z" fill="url(#breadGrad)"/>
+  <path d="M35 44 C42 40 58 40 65 44 C67 52 64 62 50 64 C36 62 33 52 35 44 Z" fill="#ea580c"/>
+  <path d="M42 34 C47 32 53 32 58 34" stroke="#ffedd5" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M38 50 C44 48 56 48 62 50" stroke="#ffedd5" stroke-width="2.5" stroke-linecap="round"/>
+</svg>

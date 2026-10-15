@@ -73,7 +73,15 @@ public class CartService
             if (!rawImg.StartsWith("http://", StringComparison.OrdinalIgnoreCase) && 
                 !rawImg.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
             {
-                resolvedImg = rawImg.StartsWith('/') ? $"http://localhost:5149{rawImg}" : $"http://localhost:5149/{rawImg}";
+                resolvedImg = rawImg.Replace('\\', '/').TrimStart('/');
+                if (resolvedImg.StartsWith("wwwroot/", StringComparison.OrdinalIgnoreCase))
+                {
+                    resolvedImg = resolvedImg["wwwroot/".Length..];
+                }
+
+                resolvedImg = resolvedImg.StartsWith("assets/", StringComparison.OrdinalIgnoreCase)
+                    ? $"/{resolvedImg}"
+                    : "/assets/images/products/default-bakery.svg";
             }
 
             Items.Add(new CartItem
@@ -159,16 +167,30 @@ public class CartService
         return false;
     }
 
-    public async Task<Order?> PlaceOrderAsync(string receiverName, string phone, string address, string note, string paymentMethod)
+    public Task<Order?> PlaceOrderAsync(string receiverName, string phone, string address, string note, string paymentMethod)
+    {
+        return PlaceOrderAsync(null, receiverName, phone, address, note, paymentMethod);
+    }
+
+    public async Task<Order?> PlaceOrderAsync(int? customerId, string receiverName, string phone, string address, string note, string paymentMethod)
     {
         if (!Items.Any()) return null;
 
-        var customer = await _context.Customers.FirstOrDefaultAsync();
-        int customerId = customer?.CustomerID ?? 1;
+        int finalCustomerId;
+        if (customerId.HasValue && customerId.Value > 0)
+        {
+            finalCustomerId = customerId.Value;
+        }
+        else
+        {
+            var customer = await _context.Customers.FirstOrDefaultAsync(c => c.Phone == phone)
+                           ?? await _context.Customers.FirstOrDefaultAsync();
+            finalCustomerId = customer?.CustomerID ?? 1;
+        }
 
         var order = new Order
         {
-            CustomerID = customerId,
+            CustomerID = finalCustomerId,
             OrderDate = DateTime.Now,
             TotalAmount = SubTotalAmount,
             DiscountAmount = DiscountAmount,
@@ -201,5 +223,36 @@ public class CartService
         return order;
     }
 
+    public async Task<bool> CancelOrderAsync(int orderId, int? customerId = null)
+    {
+        var order = await _context.Orders.FirstOrDefaultAsync(o => o.OrderID == orderId);
+        if (order == null) return false;
+
+        if (customerId.HasValue && customerId.Value > 0 && order.CustomerID != customerId.Value)
+            return false;
+
+        // Chỉ cho phép khách hàng hủy đơn khi đang ở trạng thái 'Pending' (Chờ duyệt)
+        if (order.Status != OrderStatus.Pending)
+            return false;
+
+        order.Status = OrderStatus.Cancelled;
+        await _context.SaveChangesAsync();
+        return true;
+    }
+
+    public void ReOrder(Order order)
+    {
+        if (order.OrderDetails == null || !order.OrderDetails.Any()) return;
+
+        foreach (var detail in order.OrderDetails)
+        {
+            if (detail.Product != null && detail.Product.IsActive && detail.Product.Quantity > 0)
+            {
+                AddItem(detail.Product, Math.Min(detail.Quantity, detail.Product.Quantity));
+            }
+        }
+    }
+
     private void NotifyStateChanged() => OnChange?.Invoke();
+
 }
