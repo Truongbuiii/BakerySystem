@@ -3663,3 +3663,7 @@ html.dark .border {
 .p-3 { padding: 0.75rem !important; }
 .p-3\.5 { padding: 0.875rem !important; }
 .p-4 { padding: 1rem !important; }
+
+/* Report two-column layout (independent of generated Tailwind xl classes) */
+.bakery-report-two-col { display: grid !important; grid-template-columns: 1fr !important; gap: 1rem !important; margin-bottom: 1rem !important; width: 100% !important; }
+@media (min-width: 1024px) { .bakery-report-two-col { grid-template-columns: 1fr 1fr !important; } }

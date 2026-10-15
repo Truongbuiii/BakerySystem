@@ -163,50 +163,20 @@
         </div>
     }
 
-    <div class="grid grid-cols-1 xl:grid-cols-12 gap-4 mb-5">
-        <div class="xl:col-span-7 bakery-card p-4 h-full">
-            <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 mb-3 pb-2 border-b border-slate-100 dark:border-slate-800">
-                <div>
-                    <h3 class="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5 mb-0.5">
-                        <iconify-icon icon="solar:chart-square-bold" class="text-primary text-sm"></iconify-icon>
-                        So Sánh Doanh Thu Thực Thu vs Chi Phí Vốn Nhập Hàng
-                    </h3>
-                    <p class="text-[10px] text-slate-500 mb-0">Theo chu kỳ @GetPeriodDisplayName()</p>
-                </div>
-                <div class="flex flex-wrap items-center gap-2 text-[10px] font-semibold">
-                    <span class="inline-flex items-center gap-1.5 text-slate-600 dark:text-slate-300">
-                        <span class="w-2.5 h-2.5 rounded-full bg-blue-600"></span>Doanh thu
-                    </span>
-                    <span class="inline-flex items-center gap-1.5 text-slate-600 dark:text-slate-300">
-                        <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>Chi phí vốn
-                    </span>
-                </div>
-            </div>
-
-            <div id="reports-financial-chart" style="min-height: 250px;">
-                @if (isLoading)
-                {
-                    <div class="flex items-center justify-center h-56">
-                        <span class="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin"></span>
-                    </div>
-                }
-            </div>
-        </div>
-
-        <div class="xl:col-span-5 bakery-card p-4 h-full flex flex-col min-h-0">
+    <div class="bakery-report-two-col">
+        <div class="bakery-card p-3 h-full flex flex-col min-h-0">
             <div class="mb-2 pb-2 border-b border-slate-100 dark:border-slate-800 flex-shrink-0">
-                <h3 class="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5 mb-0.5">
-                    <iconify-icon icon="solar:pie-chart-2-bold" class="text-emerald-600 text-sm"></iconify-icon>
+                <h3 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1.5 mb-0.5">
                     Cơ Cấu Doanh Thu Theo Loại Bánh
                 </h3>
                 <p class="text-[10px] text-slate-500 mb-0">Tỷ lệ đóng góp doanh thu</p>
             </div>
 
-            <div class="flex-1 flex items-center justify-center min-h-0" style="max-height: 220px;">
-                <div id="reports-category-donut" style="width: 100%; height: 220px;"></div>
+            <div class="flex-1 flex items-center justify-center min-h-0" style="max-height: 200px;">
+                <div id="reports-category-donut" style="width: 100%; height: 200px;"></div>
             </div>
 
-            <div class="mt-2 space-y-1 text-[10px] flex-shrink-0 max-h-28 overflow-y-auto pr-1">
+            <div class="mt-2 space-y-1 text-[10px] flex-shrink-0 max-h-24 overflow-y-auto pr-1">
                 @foreach (var cat in categoryShares.Take(5))
                 {
                     <div class="flex items-center justify-between gap-2 py-0.5 px-1.5 rounded bg-slate-50/60 dark:bg-slate-800/50">
@@ -219,58 +189,83 @@
                 }
             </div>
         </div>
+
+        <div class="bakery-card p-3 h-full flex flex-col min-h-0">
+            <div class="flex items-center justify-between mb-2 pb-2 border-b border-slate-100 dark:border-slate-800">
+                <div>
+                    <h3 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1.5 mb-0.5">
+                        Thống Kê Doanh Thu Theo Phương Thức Thanh Toán
+                    </h3>
+                </div>
+                <span class="bakery-badge bakery-badge-primary text-[10px] font-bold">@($"{paymentStats.Sum(x => x.Amount):N0}đ")</span>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-xs">
+                    <thead>
+                        <tr class="text-[10px] uppercase text-slate-400 border-b border-slate-100 dark:border-slate-800">
+                            <th class="text-left py-1.5 px-2">Phương thức</th>
+                            <th class="text-center py-1.5 px-2">Số đơn</th>
+                            <th class="text-right py-1.5 px-2">Số tiền</th>
+                            <th class="text-right py-1.5 px-2">Tỷ lệ</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var pay in paymentStats)
+                        {
+                            <tr class="border-b border-slate-100 dark:border-slate-800 last:border-0">
+                                <td class="py-1.5 px-2">
+                                    <div class="flex items-center gap-2">
+                                        <span class="w-7 h-7 rounded-lg @pay.IconClass flex items-center justify-center shrink-0">
+                                            <iconify-icon icon="@pay.Icon"></iconify-icon>
+                                        </span>
+                                        <span class="font-semibold text-slate-800 dark:text-white">@pay.DisplayName</span>
+                                    </div>
+                                </td>
+                                <td class="py-1.5 px-2 text-center font-semibold text-slate-700 dark:text-slate-300">@pay.OrderCount</td>
+                                <td class="py-1.5 px-2 text-right font-mono font-bold text-slate-900 dark:text-white">@($"{pay.Amount:N0}đ")</td>
+                                <td class="py-1.5 px-2 text-right font-mono text-slate-500">@($"{pay.Percentage:F1}%")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
 
-    <div class="bakery-card p-4 mb-5">
-        <div class="flex items-center justify-between mb-3 pb-2 border-b border-slate-100 dark:border-slate-800">
+    <div class="bakery-card p-3 mb-4">
+        <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 mb-3 pb-2 border-b border-slate-100 dark:border-slate-800">
             <div>
-                <h3 class="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5 mb-0.5">
-                    <iconify-icon icon="solar:card-transfer-bold" class="text-blue-600 text-sm"></iconify-icon>
-                    Thống Kê Doanh Thu Theo Phương Thức Thanh Toán
+                <h3 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1.5 mb-0.5">
+                    So Sánh Doanh Thu Thực Thu vs Chi Phí Vốn Nhập Hàng
                 </h3>
-                <p class="text-[10px] text-slate-500 mb-0">Tách riêng tiền mặt/COD, chuyển khoản và cổng thanh toán online</p>
+                <p class="text-[10px] text-slate-500 mb-0">Theo chu kỳ @GetPeriodDisplayName()</p>
             </div>
-            <span class="bakery-badge bakery-badge-primary text-[10px] font-bold">@($"{paymentStats.Sum(x => x.Amount):N0}đ")</span>
+            <div class="flex flex-wrap items-center gap-2 text-[10px] font-semibold">
+                <span class="inline-flex items-center gap-1.5 text-slate-600 dark:text-slate-300">
+                    <span class="w-2.5 h-2.5 rounded-full bg-blue-600"></span>Doanh thu
+                </span>
+                <span class="inline-flex items-center gap-1.5 text-slate-600 dark:text-slate-300">
+                    <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>Chi phí vốn
+                </span>
+            </div>
         </div>
 
-        <div class="overflow-x-auto">
-            <table class="w-full text-xs">
-                <thead>
-                    <tr class="text-[10px] uppercase text-slate-400 border-b border-slate-100 dark:border-slate-800">
-                        <th class="text-left py-2 px-2">Phương thức</th>
-                        <th class="text-center py-2 px-2">Số đơn</th>
-                        <th class="text-right py-2 px-2">Số tiền</th>
-                        <th class="text-right py-2 px-2">Tỷ lệ</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var pay in paymentStats)
-                    {
-                        <tr class="border-b border-slate-100 dark:border-slate-800 last:border-0">
-                            <td class="py-2 px-2">
-                                <div class="flex items-center gap-2">
-                                    <span class="w-8 h-8 rounded-lg @pay.IconClass flex items-center justify-center shrink-0">
-                                        <iconify-icon icon="@pay.Icon"></iconify-icon>
-                                    </span>
-                                    <span class="font-semibold text-slate-800 dark:text-white">@pay.DisplayName</span>
-                                </div>
-                            </td>
-                            <td class="py-2 px-2 text-center font-semibold text-slate-700 dark:text-slate-300">@pay.OrderCount</td>
-                            <td class="py-2 px-2 text-right font-mono font-bold text-slate-900 dark:text-white">@($"{pay.Amount:N0}đ")</td>
-                            <td class="py-2 px-2 text-right font-mono text-slate-500">@($"{pay.Percentage:F1}%")</td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
+        <div id="reports-financial-chart" style="min-height: 230px;">
+            @if (isLoading)
+            {
+                <div class="flex items-center justify-center h-56">
+                    <span class="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin"></span>
+                </div>
+            }
         </div>
     </div>
 
     <div class="grid grid-cols-1 xl:grid-cols-2 gap-4 mb-5">
-        <div class="bakery-card p-4 h-full flex flex-col min-h-0">
+        <div class="bakery-card p-3 h-full flex flex-col min-h-0">
             <div class="flex items-center justify-between mb-2 pb-2 border-b border-slate-100 dark:border-slate-800 flex-shrink-0">
                 <div>
-                    <h3 class="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5 mb-0">
-                        <iconify-icon icon="solar:cup-star-bold" class="text-amber-500 text-sm"></iconify-icon>
+                    <h3 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1.5 mb-0">
                         Top 5 Bán Chạy Nhất
                     </h3>
                     <p class="text-[10px] text-slate-500 mb-0">Số lượng bán từ đơn hoàn tất</p>
@@ -323,15 +318,14 @@
             </div>
         </div>
 
-        <div class="bakery-card p-4 h-full flex flex-col min-h-0">
+        <div class="bakery-card p-3 h-full flex flex-col min-h-0">
             <div class="flex items-center justify-between mb-2 pb-2 border-b border-slate-100 dark:border-slate-800 flex-shrink-0">
                 <div>
-                    <h3 class="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5 mb-0">
-                        <iconify-icon icon="solar:danger-triangle-bold" class="text-rose-500 text-sm"></iconify-icon>
-                        Cảnh Báo Tồn Kho Bánh (Ngưỡng &le; 10 cái)
+                    <h3 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1.5 mb-0">
+                        Cảnh Báo Tồn Kho Bánh (Ngưỡng ≤ 10 cái)
                     </h3>
                     <p class="text-[10px] text-slate-500 mb-0">Các món hết hàng hoặc sắp hết</p>
-                </div>
+                </div>>
                 <span class="bakery-badge bakery-badge-danger text-[10px] font-bold">@lowStockProducts.Count món</span>
             </div>
 
@@ -653,14 +647,8 @@
         var result = new List<PaymentStatItem>
         {
             CreatePaymentStat("Tiền mặt / COD", cashOrders, total, "solar:wallet-money-bold", "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300"),
-            CreatePaymentStat("Chuyển khoản", transferOrders, total, "solar:card-transfer-bold", "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300"),
-            CreatePaymentStat("VNPAY / MoMo", onlineOrders, total, "solar:smartphone-2-bold", "bg-purple-50 text-purple-700 dark:bg-purple-950/40 dark:text-purple-300")
+            CreatePaymentStat("Chuyển khoản", transferOrders, total, "solar:card-transfer-bold", "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300")
         };
-
-        if (otherOrders.Any())
-        {
-            result.Add(CreatePaymentStat("Khác", otherOrders, total, "solar:question-circle-bold", "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300"));
-        }
 
         return result;
     }
