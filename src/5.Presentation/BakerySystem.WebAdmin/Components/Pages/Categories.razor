@@ -1,8 +1,9 @@
-@page "/categories"
+﻿@page "/categories"
 @rendermode InteractiveServer
 @attribute [Authorize(Roles = "Admin")]
 @inject IProductService ProductService
 @inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
 
 <PageTitle>Quản Lý Loại Sản Phẩm | BakeryAdmin</PageTitle>
 
@@ -132,127 +133,45 @@
     }
     else
     {
-        <div class="bakery-category-grid">
-            @foreach (var cat in FilteredCategories)
-            {
-                <div class="bakery-category-card @(!cat.IsActive ? "is-inactive" : "")">
-                    <!-- Top section: Avatar Icon, Status Pill & Product Count -->
-                    <div>
-                        <div class="flex items-start justify-between mb-3.5">
-                            <!-- Icon Box with gradient -->
-                            <div class="bakery-cat-icon-box @(cat.IsActive ? "active" : "inactive")">
-                                <iconify-icon icon="solar:folder-with-files-bold"></iconify-icon>
-                            </div>
-                            
-                            <div class="flex flex-col items-end gap-1.5">
-                                <!-- Status Pill -->
-                                @if (cat.IsActive)
-                                {
-                                    <span class="bakery-badge bakery-badge-success text-[11px] font-semibold flex items-center gap-1.5">
-                                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                                        Hoạt động
-                                    </span>
-                                }
-                                else
-                                {
-                                    <span class="bakery-badge bakery-badge-secondary text-[11px] font-semibold flex items-center gap-1.5 text-slate-600 dark:text-slate-300">
-                                        <span class="w-2 h-2 rounded-full bg-slate-400"></span>
-                                        Đang ẩn
-                                    </span>
-                                }
-
-                                <!-- Product Count Badge -->
-                                <span class="bakery-badge @(cat.ProductCount > 0 ? "bakery-badge-primary" : "bakery-badge-secondary") text-[11px] font-medium">
-                                    <iconify-icon icon="solar:bag-5-linear" class="text-xs mr-0.5"></iconify-icon>
-                                    @cat.ProductCount món
-                                </span>
-                            </div>
-                        </div>
-
-                        <!-- Name & Category Metadata -->
-                        <h4 class="text-base font-bold text-slate-900 dark:text-white mb-1.5 tracking-tight line-clamp-1" title="@cat.CategoryName">
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; margin-top: 1.5rem;">
+    @foreach (var cat in FilteredCategories)
+    {
+        <div style="background: #ffffff; border-radius: 16px; padding: 14px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.05); display: flex; flex-direction: column; justify-content: space-between; gap: 12px;">
+            <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 8px;">
+                <div style="display: flex; align-items: center; gap: 10px; min-width: 0;">
+                                        <div style="min-width: 0;">
+                        <h4 style="font-size: 14px; font-weight: 700; color: #0f172a; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                             @cat.CategoryName
                         </h4>
-                        
-                        <div class="flex items-center gap-2 text-xs text-slate-500">
-                            <span class="font-mono bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md text-[11px] text-slate-600 dark:text-slate-400">#CAT-@cat.CategoryID.ToString("D2")</span>
-                            <span class="text-slate-300 dark:text-slate-700">•</span>
-                            <span>@(cat.ProductCount > 0 ? $"{cat.ProductCount} món trong thực đơn" : "Chưa có món bánh")</span>
-                        </div>
-                    </div>
-
-                    <!-- Bottom section: Navigation Link & Modern Action Buttons -->
-                    <div class="pt-3.5 mt-3 border-t border-slate-100 dark:border-slate-800 space-y-2.5">
-                        <!-- Link to view items in this category -->
-                        <div class="flex items-center justify-between text-xs">
-                            <a href="/products?categoryId=@cat.CategoryID" class="font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 flex items-center gap-1 transition-colors group">
-                                <span>Xem danh sách bánh</span>
-                                <iconify-icon icon="solar:arrow-right-linear" class="text-sm transition-transform group-hover:translate-x-0.5"></iconify-icon>
-                            </a>
-                            
-                            @if (cat.ProductCount == 0)
-                            {
-                                <span class="text-[11px] text-slate-400 italic">Trống</span>
-                            }
-                        </div>
-
-                        <!-- Action Buttons Group (Sửa - Ẩn/Hiện - Xóa) -->
-                        <div class="flex items-center gap-1.5 pt-1">
-                            <!-- Nút Sửa (Edit) -->
-                            <button type="button"
-                                    class="bakery-cat-action-btn edit flex-1"
-                                    title="Chỉnh sửa tên loại sản phẩm"
-                                    @onclick="() => OpenEditModal(cat)">
-                                <iconify-icon icon="solar:pen-2-linear" class="text-sm"></iconify-icon>
-                                <span>Sửa</span>
-                            </button>
-
-                            <!-- Nút Ẩn / Hiện lại (Toggle IsActive) -->
-                            @if (cat.IsActive)
-                            {
-                                <button type="button"
-                                        class="bakery-cat-action-btn hide flex-1"
-                                        title="Ẩn loại sản phẩm này và ngưng bán toàn bộ sản phẩm liên quan"
-                                        @onclick="() => ToggleCategoryStatusAsync(cat)">
-                                    <iconify-icon icon="solar:eye-closed-linear" class="text-sm"></iconify-icon>
-                                    <span>Ẩn</span>
-                                </button>
-                            }
-                            else
-                            {
-                                <button type="button"
-                                        class="bakery-cat-action-btn unhide flex-1"
-                                        title="Bỏ ẩn - Kích hoạt lại loại sản phẩm và mở bán lại các món bánh"
-                                        @onclick="() => ToggleCategoryStatusAsync(cat)">
-                                    <iconify-icon icon="solar:eye-bold" class="text-sm"></iconify-icon>
-                                    <span>Hiện lại</span>
-                                </button>
-                            }
-
-                            <!-- Nút Xóa (Delete / Archive Business Rule Dialog) -->
-                            @if (cat.ProductCount == 0)
-                            {
-                                <button type="button"
-                                        class="bakery-cat-action-btn delete px-2.5"
-                                        title="Chưa có món bánh nào - Cho phép Xóa vĩnh viễn"
-                                        @onclick="() => OpenConfirmDialog(cat)">
-                                    <iconify-icon icon="solar:trash-bin-trash-linear" class="text-sm"></iconify-icon>
-                                </button>
-                            }
-                            else
-                            {
-                                <button type="button"
-                                        class="bakery-cat-action-btn archive-warning px-2.5"
-                                        title="Đang có @cat.ProductCount món bánh - Theo quy định chỉ được Ẩn, không xóa vĩnh viễn"
-                                        @onclick="() => OpenConfirmDialog(cat)">
-                                    <iconify-icon icon="solar:shield-warning-linear" class="text-sm"></iconify-icon>
-                                </button>
-                            }
-                        </div>
+                        <span style="font-size: 11px; color: @(cat.IsActive ? "#059669" : "#d97706"); font-weight: 500;">
+                            ● @(cat.IsActive ? "Hoạt động" : "Tạm ẩn")
+                        </span>
                     </div>
                 </div>
-            }
+                <span style="padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; white-space: nowrap;">
+                    @cat.ProductCount bánh
+                </span>
+            </div>
+
+            <div style="padding-top: 10px; border-top: 1px solid #f1f5f9; display: flex; align-items: center; justify-content: space-between;">
+                <a href="/products?categoryId=@cat.CategoryID" style="font-size: 12px; font-weight: 600; color: #2563eb; text-decoration: none;">
+                    Chi tiết →
+                </a>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                    <button type="button" @onclick="() => RequestToggleCategoryStatusAsync(cat)" style="cursor: pointer; background: @(cat.IsActive ? "#10b981" : "#cbd5e1"); border: none; width: 32px; height: 18px; border-radius: 9px; position: relative;">
+                        <span style="display: block; width: 14px; height: 14px; background: #fff; border-radius: 50%; position: absolute; top: 2px; left: @(cat.IsActive ? "16px" : "2px"); transition: all 0.2s;"></span>
+                    </button>
+                    <button type="button" @onclick="() => OpenEditModal(cat)" style="width: 28px; height: 28px; border-radius: 6px; border: 1px solid #e2e8f0; background: #fff; cursor: pointer;">
+                        <iconify-icon icon="solar:pen-2-linear" style="font-size: 12px;"></iconify-icon>
+                    </button>
+                    <button type="button" @onclick="() => OpenConfirmDialog(cat)" style="width: 28px; height: 28px; border-radius: 6px; border: 1px solid #fecdd3; background: #fff; color: #e11d48; cursor: pointer;">
+                        <iconify-icon icon="solar:trash-bin-trash-linear" style="font-size: 12px;"></iconify-icon>
+                    </button>
+                </div>
+            </div>
         </div>
+    }
+</div>
     }
 </div>
 
@@ -541,6 +460,38 @@
     </div>
 }
 
+
+@if (isHideConfirmOpen && categoryToHide != null)
+{
+    <div class="bakery-modal-backdrop" @onclick="() => isHideConfirmOpen = false">
+        <div class="bakery-modal-card max-w-md" @onclick:stopPropagation="true">
+            <div class="bakery-modal-header">
+                <div class="flex items-center gap-2.5">
+                    <div class="bakery-modal-icon-badge warning">
+                        <iconify-icon icon="solar:eye-closed-bold"></iconify-icon>
+                    </div>
+                    <div>
+                        <h4 class="text-base font-bold text-slate-900 dark:text-white mb-0">Xác nhận ẩn loại sản phẩm</h4>
+                        <p class="text-xs text-slate-500 mb-0">Thao tác thay đổi trạng thái</p>
+                    </div>
+                </div>
+                <button type="button" class="text-slate-400 hover:text-slate-600 text-lg" @onclick="() => isHideConfirmOpen = false">
+                    <iconify-icon icon="solar:close-circle-linear"></iconify-icon>
+                </button>
+            </div>
+            <div class="bakery-modal-body">
+                <p class="text-xs text-slate-600 dark:text-slate-300 leading-relaxed mb-0">
+                    Bạn có chắc chắn muốn ẩn loại sản phẩm <strong>"@categoryToHide.CategoryName"</strong> không?
+                </p>
+            </div>
+            <div class="bakery-modal-footer">
+                <button type="button" class="bakery-btn bakery-btn-outline" @onclick="() => isHideConfirmOpen = false">Hủy bỏ</button>
+                <button type="button" class="bakery-btn bakery-btn-primary" style="background-color: #d97706; border-color: #d97706;" @onclick="ConfirmHideAsync">Đồng ý ẩn</button>
+            </div>
+        </div>
+    </div>
+}
+
 @code {
     private bool isLoading = true;
     private bool isSubmitting = false;
@@ -566,6 +517,8 @@
     private string? editModalError = null;
 
     private bool isConfirmModalOpen = false;
+    private bool isHideConfirmOpen = false;
+    private CategoryDto? categoryToHide = null;
 
     private IEnumerable<CategoryDto> FilteredCategories
     {
@@ -714,6 +667,26 @@
         {
             isSubmitting = false;
         }
+    }
+
+    // ================= REQUEST TOGGLE ACTIVE STATUS (CONFIRM ON HIDE) =================
+    private void RequestToggleCategoryStatusAsync(CategoryDto cat)
+    {
+        if (cat.IsActive)
+        {
+            categoryToHide = cat;
+            isHideConfirmOpen = true;
+            return;
+        }
+        _ = ToggleCategoryStatusAsync(cat);
+    }
+
+    private async Task ConfirmHideAsync()
+    {
+        if (categoryToHide == null) return;
+        isHideConfirmOpen = false;
+        await ToggleCategoryStatusAsync(categoryToHide);
+        categoryToHide = null;
     }
 
     // ================= TOGGLE ACTIVE STATUS =================

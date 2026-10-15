@@ -256,12 +256,7 @@ public class ProductService : IProductService
         var existing = await _context.Categories.FirstOrDefaultAsync(c => c.CategoryName.ToLower() == trimmed.ToLower(), cancellationToken);
         if (existing != null)
         {
-            return new CategoryDto
-            {
-                CategoryID = existing.CategoryID,
-                CategoryName = existing.CategoryName,
-                ProductCount = await _context.Products.CountAsync(p => p.CategoryID == existing.CategoryID, cancellationToken)
-            };
+            throw new InvalidOperationException($"Tên loại sản phẩm '{trimmed}' đã tồn tại trong hệ thống.");
         }
 
         var category = new Category

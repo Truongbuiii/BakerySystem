@@ -58,3 +58,19 @@ h1:focus {
 .form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
     text-align: start;
 }
+/* CSS bổ sung riêng cho Category Grid */
+.bakery-category-grid {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)) !important;
+    gap: 1rem !important;
+    margin-top: 1.25rem !important;
+}
+
+.bakery-category-card {
+    padding: 1rem !important;
+    border-radius: 16px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    min-height: 120px !important;
+}

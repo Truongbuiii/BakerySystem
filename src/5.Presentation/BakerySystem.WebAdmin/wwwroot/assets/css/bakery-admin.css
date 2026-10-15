@@ -3667,3 +3667,20 @@ html.dark .border {
 /* Report two-column layout (independent of generated Tailwind xl classes) */
 .bakery-report-two-col { display: grid !important; grid-template-columns: 1fr !important; gap: 1rem !important; margin-bottom: 1rem !important; width: 100% !important; }
 @media (min-width: 1024px) { .bakery-report-two-col { grid-template-columns: 1fr 1fr !important; } }
+
+/* CSS bổ sung riêng cho Category Grid */
+.bakery-category-grid {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)) !important;
+    gap: 1rem !important;
+    margin-top: 1.25rem !important;
+}
+
+.bakery-category-card {
+    padding: 1rem !important;
+    border-radius: 16px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    min-height: 120px !important;
+}
