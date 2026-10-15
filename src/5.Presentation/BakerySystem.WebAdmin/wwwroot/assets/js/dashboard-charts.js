@@ -198,7 +198,7 @@ window.initBakeryReportsCharts = function (categories, revenueSeries, costSeries
             ],
             chart: {
                 type: 'bar',
-                height: 320,
+                height: 250,
                 fontFamily: "inherit",
                 toolbar: { show: false }
             },
@@ -206,7 +206,7 @@ window.initBakeryReportsCharts = function (categories, revenueSeries, costSeries
             plotOptions: {
                 bar: {
                     horizontal: false,
-                    columnWidth: '42%',
+                    columnWidth: '48%',
                     borderRadius: 6,
                     borderRadiusApplication: 'end'
                 }
@@ -277,7 +277,7 @@ window.initBakeryReportsCharts = function (categories, revenueSeries, costSeries
             labels: catDonutLabels && catDonutLabels.length > 0 ? catDonutLabels : ['Chưa có dữ liệu'],
             chart: {
                 type: 'donut',
-                height: 280,
+                height: 220,
                 fontFamily: "inherit"
             },
             colors: ['#2563eb', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4'],

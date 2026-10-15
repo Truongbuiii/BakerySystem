@@ -163,76 +163,110 @@
         </div>
     }
 
-    <!-- 3. Biểu đồ So sánh Doanh thu vs Chi phí (Full width) -->
-    <div class="bakery-card p-5 mb-5">
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4 pb-3 border-b border-slate-100 dark:border-slate-800">
-            <div>
-                <h3 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2 mb-0.5">
-                    <iconify-icon icon="solar:chart-square-bold" class="text-primary text-base"></iconify-icon>
-                    So Sánh Doanh Thu Thực Thu vs Chi Phí Vốn Nhập Hàng
-                </h3>
-                <p class="text-xs text-slate-500 mb-0">Biểu đồ so sánh trực quan dòng tiền theo chu kỳ @GetPeriodDisplayName()</p>
+    <div class="grid grid-cols-1 xl:grid-cols-12 gap-4 mb-5">
+        <div class="xl:col-span-7 bakery-card p-4 h-full">
+            <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 mb-3 pb-2 border-b border-slate-100 dark:border-slate-800">
+                <div>
+                    <h3 class="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5 mb-0.5">
+                        <iconify-icon icon="solar:chart-square-bold" class="text-primary text-sm"></iconify-icon>
+                        So Sánh Doanh Thu Thực Thu vs Chi Phí Vốn Nhập Hàng
+                    </h3>
+                    <p class="text-[10px] text-slate-500 mb-0">Theo chu kỳ @GetPeriodDisplayName()</p>
+                </div>
+                <div class="flex flex-wrap items-center gap-2 text-[10px] font-semibold">
+                    <span class="inline-flex items-center gap-1.5 text-slate-600 dark:text-slate-300">
+                        <span class="w-2.5 h-2.5 rounded-full bg-blue-600"></span>Doanh thu
+                    </span>
+                    <span class="inline-flex items-center gap-1.5 text-slate-600 dark:text-slate-300">
+                        <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>Chi phí vốn
+                    </span>
+                </div>
             </div>
-            <div class="flex items-center gap-3 text-xs font-semibold">
-                <div class="flex items-center gap-1.5">
-                    <span class="w-3 h-3 rounded-full bg-blue-600 inline-block"></span>
-                    <span class="text-slate-600 dark:text-slate-300">Doanh thu bán bánh</span>
-                </div>
-                <div class="flex items-center gap-1.5">
-                    <span class="w-3 h-3 rounded-full bg-amber-500 inline-block"></span>
-                    <span class="text-slate-600 dark:text-slate-300">Chi phí vốn nhập</span>
-                </div>
+
+            <div id="reports-financial-chart" style="min-height: 250px;">
+                @if (isLoading)
+                {
+                    <div class="flex items-center justify-center h-56">
+                        <span class="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin"></span>
+                    </div>
+                }
             </div>
         </div>
 
-        <!-- DOM Container cho ApexCharts -->
-        <div id="reports-financial-chart" style="min-height: 320px;">
-            @if (isLoading)
-            {
-                <div class="flex items-center justify-center h-72">
-                    <span class="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin"></span>
-                </div>
-            }
-        </div>
-    </div>
-
-    <!-- 4. Hàng ngang: Donut (Cơ cấu) + Top 5 Bán Chạy -->
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 mb-5">
-        <!-- Cột Trái (5 Cols): Cơ Cấu Doanh Thu Theo Loại Bánh (Donut) - COMPACT -->
-        <div class="lg:col-span-5 bakery-card p-3 h-full flex flex-col min-h-0">
+        <div class="xl:col-span-5 bakery-card p-4 h-full flex flex-col min-h-0">
             <div class="mb-2 pb-2 border-b border-slate-100 dark:border-slate-800 flex-shrink-0">
-                <h3 class="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5 mb-0">
+                <h3 class="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5 mb-0.5">
                     <iconify-icon icon="solar:pie-chart-2-bold" class="text-emerald-600 text-sm"></iconify-icon>
                     Cơ Cấu Doanh Thu Theo Loại Bánh
                 </h3>
                 <p class="text-[10px] text-slate-500 mb-0">Tỷ lệ đóng góp doanh thu</p>
             </div>
 
-            <!-- Donut Chart - max-height 200px -->
-            <div class="flex-1 flex items-center justify-center min-h-0" style="max-height: 200px;">
-                <div id="reports-category-donut" style="width: 100%; height: 100%; max-height: 200px;"></div>
+            <div class="flex-1 flex items-center justify-center min-h-0" style="max-height: 220px;">
+                <div id="reports-category-donut" style="width: 100%; height: 220px;"></div>
             </div>
 
-            <!-- Chi tiết % - ultra compact -->
-            <div class="mt-2 space-y-1 text-[10px] flex-shrink-0 max-h-32 overflow-y-auto pr-1">
+            <div class="mt-2 space-y-1 text-[10px] flex-shrink-0 max-h-28 overflow-y-auto pr-1">
                 @foreach (var cat in categoryShares.Take(5))
                 {
-                    <div class="flex items-center justify-between py-0.5 px-1.5 rounded bg-slate-50/50 dark:bg-slate-800/50">
+                    <div class="flex items-center justify-between gap-2 py-0.5 px-1.5 rounded bg-slate-50/60 dark:bg-slate-800/50">
                         <div class="flex items-center gap-1.5 min-w-0">
                             <span class="w-2 h-2 rounded-full shrink-0" style="background-color: @cat.ColorHex;"></span>
                             <span class="font-medium text-slate-700 dark:text-slate-300 truncate">@cat.CategoryName</span>
                         </div>
-                        <div class="flex items-center gap-1.5 shrink-0 font-mono font-semibold text-right">
-                            <span class="text-slate-900 dark:text-white">@($"{cat.Revenue:N0}đ")</span>
-                            <span class="text-[9px] text-slate-400">(@($"{cat.Percentage:F1}%"))</span>
-                        </div>
+                        <span class="shrink-0 font-mono font-semibold text-slate-900 dark:text-white">@($"{cat.Revenue:N0}đ")</span>
                     </div>
                 }
             </div>
         </div>
+    </div>
 
-        <!-- Cột Phải (7 Cols): Top 5 Món Bánh Bán Chạy Nhất - COMPACT -->
-        <div class="lg:col-span-7 bakery-card p-3 h-full flex flex-col min-h-0">
+    <div class="bakery-card p-4 mb-5">
+        <div class="flex items-center justify-between mb-3 pb-2 border-b border-slate-100 dark:border-slate-800">
+            <div>
+                <h3 class="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5 mb-0.5">
+                    <iconify-icon icon="solar:card-transfer-bold" class="text-blue-600 text-sm"></iconify-icon>
+                    Thống Kê Doanh Thu Theo Phương Thức Thanh Toán
+                </h3>
+                <p class="text-[10px] text-slate-500 mb-0">Tách riêng tiền mặt/COD, chuyển khoản và cổng thanh toán online</p>
+            </div>
+            <span class="bakery-badge bakery-badge-primary text-[10px] font-bold">@($"{paymentStats.Sum(x => x.Amount):N0}đ")</span>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-xs">
+                <thead>
+                    <tr class="text-[10px] uppercase text-slate-400 border-b border-slate-100 dark:border-slate-800">
+                        <th class="text-left py-2 px-2">Phương thức</th>
+                        <th class="text-center py-2 px-2">Số đơn</th>
+                        <th class="text-right py-2 px-2">Số tiền</th>
+                        <th class="text-right py-2 px-2">Tỷ lệ</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var pay in paymentStats)
+                    {
+                        <tr class="border-b border-slate-100 dark:border-slate-800 last:border-0">
+                            <td class="py-2 px-2">
+                                <div class="flex items-center gap-2">
+                                    <span class="w-8 h-8 rounded-lg @pay.IconClass flex items-center justify-center shrink-0">
+                                        <iconify-icon icon="@pay.Icon"></iconify-icon>
+                                    </span>
+                                    <span class="font-semibold text-slate-800 dark:text-white">@pay.DisplayName</span>
+                                </div>
+                            </td>
+                            <td class="py-2 px-2 text-center font-semibold text-slate-700 dark:text-slate-300">@pay.OrderCount</td>
+                            <td class="py-2 px-2 text-right font-mono font-bold text-slate-900 dark:text-white">@($"{pay.Amount:N0}đ")</td>
+                            <td class="py-2 px-2 text-right font-mono text-slate-500">@($"{pay.Percentage:F1}%")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 xl:grid-cols-2 gap-4 mb-5">
+        <div class="bakery-card p-4 h-full flex flex-col min-h-0">
             <div class="flex items-center justify-between mb-2 pb-2 border-b border-slate-100 dark:border-slate-800 flex-shrink-0">
                 <div>
                     <h3 class="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5 mb-0">
@@ -246,13 +280,12 @@
                 </a>
             </div>
 
-            <div class="flex-1 min-h-0 bakery-table-responsive overflow-hidden">
+            <div class="flex-1 min-h-0 bakery-table-responsive overflow-auto max-h-[330px]">
                 <table class="bakery-table">
                     <thead class="sticky top-0 bg-white dark:bg-slate-900 z-10">
                         <tr>
                             <th class="w-8 text-center py-1 px-1.5">Hạng</th>
                             <th class="py-1 px-1.5">Món bánh</th>
-                            <th class="py-1 px-1.5 hidden md:table-cell">Loại</th>
                             <th class="text-center py-1 px-1.5 w-20">SL</th>
                             <th class="text-right py-1 px-1.5 w-28">Doanh thu</th>
                         </tr>
@@ -261,9 +294,7 @@
                         @if (!topSellingProducts.Any())
                         {
                             <tr>
-                                <td colspan="5" class="text-center py-4 text-[10px] text-slate-400">
-                                    Chưa có đơn hàng trong kỳ này.
-                                </td>
+                                <td colspan="4" class="text-center py-4 text-[10px] text-slate-400">Chưa có đơn hàng trong kỳ này.</td>
                             </tr>
                         }
                         else
@@ -274,31 +305,11 @@
                                 var rank = i + 1;
                                 <tr class="border-t border-slate-100 dark:border-slate-800 hover:bg-slate-50/50 dark:hover:bg-slate-800/50">
                                     <td class="text-center py-1.5 px-1.5">
-                                        @if (rank == 1)
-                                        {
-                                            <span class="inline-flex items-center justify-center w-4 h-4 rounded bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-300 font-bold text-[9px]">🥇</span>
-                                        }
-                                        else if (rank == 2)
-                                        {
-                                            <span class="inline-flex items-center justify-center w-4 h-4 rounded bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200 font-bold text-[9px]">🥈</span>
-                                        }
-                                        else if (rank == 3)
-                                        {
-                                            <span class="inline-flex items-center justify-center w-4 h-4 rounded bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 font-bold text-[9px] border border-amber-200">🥉</span>
-                                        }
-                                        else
-                                        {
-                                            <span class="inline-flex items-center justify-center w-4 h-4 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-bold text-[9px]">#@rank</span>
-                                        }
+                                        <span class="inline-flex items-center justify-center w-5 h-5 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-[10px]">#@rank</span>
                                     </td>
-                                    <td class="py-1.5 px-1.5">
-                                        <div class="font-bold text-xs text-slate-900 dark:text-white truncate max-w-xs" title="@item.ProductName">
-                                            @item.ProductName
-                                        </div>
-                                        <div class="text-[9px] text-slate-400 font-mono">@($"{item.UnitPrice:N0}đ")</div>
-                                    </td>
-                                    <td class="py-1.5 px-1.5 hidden md:table-cell text-[10px] text-slate-600 dark:text-slate-400">
-                                        <span class="px-1 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-[9px] font-medium whitespace-nowrap">@item.CategoryName</span>
+                                    <td class="py-1.5 px-1.5 min-w-0">
+                                        <div class="font-bold text-xs text-slate-900 dark:text-white truncate" title="@item.ProductName">@item.ProductName</div>
+                                        <div class="text-[9px] text-slate-400">@item.CategoryName · @($"{item.UnitPrice:N0}đ")</div>
                                     </td>
                                     <td class="text-center py-1.5 px-1.5 font-bold text-xs text-slate-800 dark:text-white">
                                         @item.SoldQuantity <span class="text-[9px] font-normal text-slate-400">cái</span>
@@ -311,70 +322,57 @@
                 </table>
             </div>
         </div>
-    </div>
 
-    <!-- 5. Cảnh Báo Tồn Kho (Full width) -->
-    <div class="bakery-card p-5">
-            <div class="flex items-center justify-between mb-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+        <div class="bakery-card p-4 h-full flex flex-col min-h-0">
+            <div class="flex items-center justify-between mb-2 pb-2 border-b border-slate-100 dark:border-slate-800 flex-shrink-0">
                 <div>
-                    <h3 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2 mb-0.5">
-                        <iconify-icon icon="solar:danger-triangle-bold" class="text-rose-500 text-lg"></iconify-icon>
+                    <h3 class="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5 mb-0">
+                        <iconify-icon icon="solar:danger-triangle-bold" class="text-rose-500 text-sm"></iconify-icon>
                         Cảnh Báo Tồn Kho Bánh (Ngưỡng &le; 10 cái)
                     </h3>
-                    <p class="text-xs text-slate-500 mb-0">Cảnh báo tự động các món hết hàng hoặc sắp hết để thợ bánh nướng bổ sung</p>
+                    <p class="text-[10px] text-slate-500 mb-0">Các món hết hàng hoặc sắp hết</p>
                 </div>
-                <span class="bakery-badge bakery-badge-danger text-[10px] font-bold">
-                    @lowStockProducts.Count món báo động
-                </span>
+                <span class="bakery-badge bakery-badge-danger text-[10px] font-bold">@lowStockProducts.Count món</span>
             </div>
 
             @if (!lowStockProducts.Any())
             {
-                <div class="p-5 text-center bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800/40 rounded-xl my-4">
-                    <iconify-icon icon="solar:check-circle-bold" class="text-emerald-500 text-3xl mb-1"></iconify-icon>
+                <div class="p-4 text-center bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800/40 rounded-xl mt-2">
+                    <iconify-icon icon="solar:check-circle-bold" class="text-emerald-500 text-2xl mb-1"></iconify-icon>
                     <p class="text-xs font-bold text-emerald-800 dark:text-emerald-300 mb-0.5">Tồn kho đang ở mức an toàn!</p>
-                    <p class="text-[11px] text-emerald-600 dark:text-emerald-400 mb-0">Tất cả món bánh đều có số lượng tồn kho trên 10 cái.</p>
+                    <p class="text-[11px] text-emerald-600 dark:text-emerald-400 mb-0">Tất cả món bánh đều trên 10 cái.</p>
                 </div>
             }
             else
             {
-                <div class="space-y-2.5 max-h-[340px] overflow-y-auto scrollbar-thin pr-1">
+                <div class="space-y-2 max-h-[330px] overflow-y-auto scrollbar-thin pr-1">
                     @foreach (var prod in lowStockProducts)
                     {
                         var isOutOfStock = prod.Quantity <= 0;
-                        <div class="p-3 rounded-xl border flex items-center justify-between gap-3 @(isOutOfStock ? "bg-rose-50/70 border-rose-200 dark:bg-rose-950/30 dark:border-rose-900/50" : "bg-amber-50/70 border-amber-200 dark:bg-amber-950/30 dark:border-amber-900/50")">
+                        <div class="p-2.5 rounded-xl border flex items-center justify-between gap-3 @(isOutOfStock ? "bg-rose-50/70 border-rose-200 dark:bg-rose-950/30 dark:border-rose-900/50" : "bg-amber-50/70 border-amber-200 dark:bg-amber-950/30 dark:border-amber-900/50")">
                             <div class="min-w-0 flex-1">
-                                <div class="flex items-center gap-2 mb-0.5">
-                                    <span class="text-xs font-bold text-slate-900 dark:text-white truncate" title="@prod.ProductName">
-                                        @prod.ProductName
-                                    </span>
-                                </div>
-                                <div class="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-2">
-                                    <span>Loại: @prod.Category?.CategoryName</span>
-                                    <span>&bull;</span>
-                                    <span class="font-mono">@($"{prod.Price:N0}đ")</span>
-                                </div>
+                                <div class="text-xs font-bold text-slate-900 dark:text-white truncate" title="@prod.ProductName">@prod.ProductName</div>
+                                <div class="text-[10px] text-slate-500 dark:text-slate-400 truncate">Loại: @prod.Category?.CategoryName · @($"{prod.Price:N0}đ")</div>
                             </div>
 
-                            <div class="text-right shrink-0">
-                                @if (isOutOfStock)
-                                {
-                                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-extrabold uppercase bg-rose-600 text-white shadow-xs">
-                                        <iconify-icon icon="solar:close-circle-bold"></iconify-icon> HẾT HÀNG (0)
-                                    </span>
-                                }
-                                else
-                                {
-                                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold bg-amber-500 text-white shadow-xs">
-                                        <iconify-icon icon="solar:danger-triangle-bold"></iconify-icon> Còn @prod.Quantity cái
-                                    </span>
-                                }
-                            </div>
+                            @if (isOutOfStock)
+                            {
+                                <span class="shrink-0 inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-extrabold uppercase bg-rose-600 text-white">
+                                    <iconify-icon icon="solar:close-circle-bold"></iconify-icon> Hết
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="shrink-0 inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold bg-amber-500 text-white">
+                                    <iconify-icon icon="solar:danger-triangle-bold"></iconify-icon> @prod.Quantity cái
+                                </span>
+                            }
                         </div>
                     }
                 </div>
             }
         </div>
+    </div>
     </div>
 
 @code {
@@ -405,6 +403,7 @@
 
     // Category Breakdown
     private List<CategoryShareItem> categoryShares = new();
+    private List<PaymentStatItem> paymentStats = new();
 
     // Chart Time Series Data
     private List<string> chartLabels = new();
@@ -483,6 +482,7 @@
             var validOrders = orders.Where(o => o.Status != OrderStatus.Cancelled).ToList();
             totalRevenue = validOrders.Sum(o => o.FinalAmount);
             totalDiscountAmount = validOrders.Sum(o => o.DiscountAmount);
+            paymentStats = BuildPaymentStats(validOrders);
 
             // 2. Lọc Chi Phí Nhập Kho trong kỳ
             var importQuery = Context.ImportReceipts.AsQueryable();
@@ -627,6 +627,58 @@
         }
     }
 
+    private List<PaymentStatItem> BuildPaymentStats(List<Order> validOrders)
+    {
+        var total = validOrders.Sum(o => o.FinalAmount);
+
+        var cashOrders = validOrders
+            .Where(o => string.Equals(o.PaymentMethod, "Cash", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(o.PaymentMethod, PaymentMethod.COD, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        var transferOrders = validOrders
+            .Where(o => string.Equals(o.PaymentMethod, PaymentMethod.BankTransfer, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        var onlineOrders = validOrders
+            .Where(o => string.Equals(o.PaymentMethod, PaymentMethod.VNPAY, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(o.PaymentMethod, PaymentMethod.MoMo, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        var knownMethods = new[] { "Cash", PaymentMethod.COD, PaymentMethod.BankTransfer, PaymentMethod.VNPAY, PaymentMethod.MoMo };
+        var otherOrders = validOrders
+            .Where(o => !knownMethods.Contains(o.PaymentMethod ?? string.Empty, StringComparer.OrdinalIgnoreCase))
+            .ToList();
+
+        var result = new List<PaymentStatItem>
+        {
+            CreatePaymentStat("Tiền mặt / COD", cashOrders, total, "solar:wallet-money-bold", "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300"),
+            CreatePaymentStat("Chuyển khoản", transferOrders, total, "solar:card-transfer-bold", "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300"),
+            CreatePaymentStat("VNPAY / MoMo", onlineOrders, total, "solar:smartphone-2-bold", "bg-purple-50 text-purple-700 dark:bg-purple-950/40 dark:text-purple-300")
+        };
+
+        if (otherOrders.Any())
+        {
+            result.Add(CreatePaymentStat("Khác", otherOrders, total, "solar:question-circle-bold", "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300"));
+        }
+
+        return result;
+    }
+
+    private static PaymentStatItem CreatePaymentStat(string displayName, List<Order> orders, decimal total, string icon, string iconClass)
+    {
+        var amount = orders.Sum(o => o.FinalAmount);
+        return new PaymentStatItem
+        {
+            DisplayName = displayName,
+            OrderCount = orders.Count,
+            Amount = amount,
+            Percentage = total > 0 ? amount / total * 100m : 0m,
+            Icon = icon,
+            IconClass = iconClass
+        };
+    }
+
     private async Task TriggerChartsRenderAsync()
     {
         try
@@ -685,6 +737,16 @@
         public decimal Revenue { get; set; }
         public decimal Percentage { get; set; }
         public string ColorHex { get; set; } = "#2563eb";
+    }
+
+    public class PaymentStatItem
+    {
+        public string DisplayName { get; set; } = "";
+        public int OrderCount { get; set; }
+        public decimal Amount { get; set; }
+        public decimal Percentage { get; set; }
+        public string Icon { get; set; } = "";
+        public string IconClass { get; set; } = "";
     }
 }
 

@@ -34,11 +34,11 @@
                 <Authorized>
                     <button class="bakery-btn bakery-btn-outline bakery-btn-sm" @onclick="OpenCreateCategoryModal">
                         <iconify-icon icon="solar:folder-with-files-linear" class="text-base"></iconify-icon>
-                        <span>+ Thêm loại sản phẩm</span>
+                        <span>Thêm loại sản phẩm</span>
                     </button>
                     <button class="bakery-btn bakery-btn-primary bakery-btn-sm shadow-sm" @onclick="OpenCreateProductModal">
                         <iconify-icon icon="solar:add-circle-linear" class="text-base"></iconify-icon>
-                        <span>+ Thêm món mới</span>
+                        <span>Thêm món mới</span>
                     </button>
                 </Authorized>
             </AuthorizeView>
@@ -749,12 +749,14 @@
      ======================================================== -->
 @if (toastMessage != null)
 {
-    <div class="fixed bottom-6 right-6 z-50 transition-all transform animate-bounce-short">
-        <div class="flex items-center gap-3 p-4 rounded-xl shadow-xl text-white text-sm font-semibold @(isToastSuccess ? "bg-emerald-600" : "bg-rose-600")">
-            <iconify-icon icon="@(isToastSuccess ? "solar:check-circle-bold" : "solar:danger-circle-bold")" class="text-xl"></iconify-icon>
-            <span>@toastMessage</span>
-            <button class="ml-2 hover:opacity-75" @onclick="() => toastMessage = null">
-                <iconify-icon icon="solar:close-circle-linear" class="text-lg"></iconify-icon>
+    <div class="bakery-toast-container">
+        <div class="bakery-toast @(isToastSuccess ? "bakery-toast-success" : "bakery-toast-danger")">
+            <div class="bakery-toast-icon">
+                <iconify-icon icon="@(isToastSuccess ? "solar:check-circle-bold" : "solar:danger-triangle-bold")"></iconify-icon>
+            </div>
+            <div class="bakery-toast-message">@toastMessage</div>
+            <button type="button" class="bakery-toast-close" title="Đóng thông báo" @onclick="() => toastMessage = null">
+                <iconify-icon icon="solar:close-circle-linear"></iconify-icon>
             </button>
         </div>
     </div>
@@ -805,6 +807,7 @@
     // Toast
     private string? toastMessage = null;
     private bool isToastSuccess = true;
+    private int toastVersion = 0;
 
     protected override async Task OnInitializedAsync()
     {
@@ -1228,6 +1231,7 @@
 
     private void ShowToast(string message, bool isSuccess)
     {
+        var version = ++toastVersion;
         toastMessage = message;
         isToastSuccess = isSuccess;
         StateHasChanged();
@@ -1235,8 +1239,11 @@
         _ = Task.Run(async () =>
         {
             await Task.Delay(4000);
-            toastMessage = null;
-            await InvokeAsync(StateHasChanged);
+            if (version == toastVersion)
+            {
+                toastMessage = null;
+                await InvokeAsync(StateHasChanged);
+            }
         });
     }
 }

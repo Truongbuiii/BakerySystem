@@ -1163,8 +1163,8 @@ html.dark .bakery-sold-count {
 .bakery-stats-grid {
     display: grid !important;
     grid-template-columns: repeat(1, minmax(0, 1fr)) !important;
-    gap: 1rem !important;
-    margin-bottom: 1.5rem !important;
+    gap: 0.875rem !important;
+    margin-bottom: 1.25rem !important;
 }
 
 @media (min-width: 640px) {
@@ -1182,9 +1182,9 @@ html.dark .bakery-sold-count {
 .bakery-stat-card {
     background-color: #ffffff !important;
     border: 1px solid rgba(226, 232, 240, 0.9) !important;
-    border-radius: 18px !important;
-    padding: 1.25rem 1.4rem !important;
-    box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.05) !important;
+    border-radius: 14px !important;
+    padding: 1rem 1.25rem !important;
+    box-shadow: 0 3px 14px -2px rgba(15, 23, 42, 0.05) !important;
     display: flex !important;
     align-items: center !important;
     justify-content: space-between !important;
@@ -1194,8 +1194,8 @@ html.dark .bakery-sold-count {
 }
 
 .bakery-stat-card:hover {
-    transform: translateY(-3px) !important;
-    box-shadow: 0 12px 28px -4px rgba(15, 23, 42, 0.09) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 10px 22px -4px rgba(15, 23, 42, 0.08) !important;
     border-color: #cbd5e1 !important;
 }
 
@@ -1205,9 +1205,9 @@ html.dark .bakery-stat-card {
 }
 
 .bakery-stat-icon-wrapper {
-    width: 48px !important;
-    height: 48px !important;
-    border-radius: 14px !important;
+    width: 44px !important;
+    height: 44px !important;
+    border-radius: 12px !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
@@ -1224,10 +1224,10 @@ html.dark .bakery-stat-card {
 .bakery-filter-toolbar {
     background-color: #ffffff !important;
     border: 1px solid rgba(226, 232, 240, 0.9) !important;
-    border-radius: 18px !important;
-    padding: 0.875rem 1.25rem !important;
-    margin-bottom: 1.5rem !important;
-    box-shadow: 0 4px 18px -2px rgba(15, 23, 42, 0.04) !important;
+    border-radius: 14px !important;
+    padding: 0.75rem 1rem !important;
+    margin-bottom: 1.25rem !important;
+    box-shadow: 0 3px 14px -2px rgba(15, 23, 42, 0.04) !important;
     display: flex !important;
     flex-direction: column !important;
     gap: 0.875rem !important;
@@ -1319,8 +1319,9 @@ html.dark .bakery-pill-tab.active {
 .bakery-category-grid {
     display: grid !important;
     grid-template-columns: repeat(1, minmax(0, 1fr)) !important;
-    gap: 1.5rem !important;
-    margin-top: 1rem !important;
+    gap: 1rem !important;
+    margin-top: 0.75rem !important;
+    align-items: start !important;
 }
 
 @media (min-width: 640px) {
@@ -1331,26 +1332,26 @@ html.dark .bakery-pill-tab.active {
 
 @media (min-width: 1024px) {
     .bakery-category-grid {
-        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+        grid-template-columns: repeat(3, minmax(290px, 1fr)) !important;
     }
 }
 
 @media (min-width: 1400px) {
     .bakery-category-grid {
-        grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+        grid-template-columns: repeat(4, minmax(290px, 1fr)) !important;
     }
 }
 
 .bakery-category-card {
     background-color: #ffffff !important;
     border: 1px solid rgba(226, 232, 240, 0.9) !important;
-    border-radius: 20px !important; /* Bo góc tròn hiện đại, sang trọng */
-    padding: 1.35rem 1.4rem !important;
-    box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.04), 0 2px 6px -1px rgba(15, 23, 42, 0.02) !important;
+    border-radius: 14px !important;
+    padding: 1.05rem 1.15rem !important;
+    box-shadow: 0 3px 14px -2px rgba(15, 23, 42, 0.04), 0 2px 6px -1px rgba(15, 23, 42, 0.02) !important;
     display: flex !important;
     flex-direction: column !important;
-    justify-content: space-between !important;
-    min-height: 240px !important; /* Ô vuông vắn cân xứng */
+    gap: 0.9rem !important;
+    min-height: 0 !important;
     position: relative !important;
     overflow: hidden !important;
     transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
@@ -1371,8 +1372,8 @@ html.dark .bakery-pill-tab.active {
 
 .bakery-category-card:hover {
     border-color: #93c5fd !important;
-    box-shadow: 0 16px 32px -4px rgba(37, 99, 235, 0.1), 0 4px 12px -2px rgba(15, 23, 42, 0.04) !important;
-    transform: translateY(-4px) !important;
+    box-shadow: 0 12px 24px -4px rgba(37, 99, 235, 0.1), 0 4px 12px -2px rgba(15, 23, 42, 0.04) !important;
+    transform: translateY(-2px) !important;
 }
 
 .bakery-category-card:hover::before {
@@ -1404,11 +1405,16 @@ html.dark .bakery-category-card.is-inactive {
     border-color: rgba(51, 65, 85, 0.6) !important;
 }
 
+.bakery-category-card > div:last-child {
+    margin-top: 0 !important;
+    padding-top: 0.85rem !important;
+}
+
 /* Modern Icon Box */
 .bakery-cat-icon-box {
-    width: 48px !important;
-    height: 48px !important;
-    border-radius: 15px !important;
+    width: 44px !important;
+    height: 44px !important;
+    border-radius: 12px !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
@@ -1418,7 +1424,7 @@ html.dark .bakery-category-card.is-inactive {
 }
 
 .bakery-category-card:hover .bakery-cat-icon-box {
-    transform: scale(1.08) rotate(3deg) !important;
+    transform: scale(1.04) !important;
 }
 
 .bakery-cat-icon-box.active {
@@ -3451,6 +3457,101 @@ html.dark .bakery-info-box.danger {
     background-color: rgba(127, 29, 29, 0.25) !important;
     border-color: rgba(239, 68, 68, 0.4) !important;
     color: #fca5a5 !important;
+}
+
+.bakery-toast-container {
+    position: fixed !important;
+    right: 1.25rem !important;
+    bottom: 1.25rem !important;
+    z-index: 70 !important;
+    width: min(420px, calc(100vw - 2rem)) !important;
+    pointer-events: none !important;
+}
+
+.bakery-toast {
+    pointer-events: auto !important;
+    display: grid !important;
+    grid-template-columns: auto minmax(0, 1fr) auto !important;
+    align-items: start !important;
+    gap: 0.75rem !important;
+    padding: 0.9rem 1rem !important;
+    border-radius: 12px !important;
+    background-color: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    box-shadow: 0 18px 35px -12px rgba(15, 23, 42, 0.28), 0 8px 18px -12px rgba(15, 23, 42, 0.18) !important;
+    color: #0f172a !important;
+    animation: bakery-toast-in 0.18s ease-out !important;
+}
+
+.bakery-toast-success {
+    border-left: 4px solid #059669 !important;
+}
+
+.bakery-toast-danger {
+    border-left: 4px solid #dc2626 !important;
+}
+
+.bakery-toast-icon {
+    width: 1.6rem !important;
+    height: 1.6rem !important;
+    border-radius: 9999px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 1.1rem !important;
+}
+
+.bakery-toast-success .bakery-toast-icon {
+    background-color: #ecfdf5 !important;
+    color: #047857 !important;
+}
+
+.bakery-toast-danger .bakery-toast-icon {
+    background-color: #fef2f2 !important;
+    color: #dc2626 !important;
+}
+
+.bakery-toast-message {
+    min-width: 0 !important;
+    font-size: 0.8125rem !important;
+    font-weight: 600 !important;
+    line-height: 1.45 !important;
+    overflow-wrap: anywhere !important;
+}
+
+.bakery-toast-close {
+    color: #94a3b8 !important;
+    font-size: 1.1rem !important;
+    line-height: 1 !important;
+    background: transparent !important;
+    border: none !important;
+    cursor: pointer !important;
+    padding: 0 !important;
+}
+
+.bakery-toast-close:hover {
+    color: #334155 !important;
+}
+
+html.dark .bakery-toast {
+    background-color: #0f172a !important;
+    border-color: #334155 !important;
+    color: #f8fafc !important;
+}
+
+html.dark .bakery-toast-close:hover {
+    color: #e2e8f0 !important;
+}
+
+@keyframes bakery-toast-in {
+    from {
+        opacity: 0;
+        transform: translate3d(0, 10px, 0) scale(0.98);
+    }
+    to {
+        opacity: 1;
+        transform: translate3d(0, 0, 0) scale(1);
+    }
 }
 
 /* Modal Header Icon Badges */

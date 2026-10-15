@@ -29,24 +29,10 @@
             </a>
             <button class="bakery-btn bakery-btn-primary bakery-btn-sm shadow-sm" @onclick="OpenCreateModal">
                 <iconify-icon icon="solar:add-circle-linear" class="text-base"></iconify-icon>
-                <span>+ Thêm loại mới</span>
+                <span>Thêm loại mới</span>
             </button>
         </div>
     </div>
-
-    <!-- Alert / Status Banner -->
-    @if (!string.IsNullOrEmpty(alertMessage))
-    {
-        <div class="mb-4 bakery-info-box @(alertIsSuccess ? "bakery-info-box-success" : "bakery-info-box-danger") flex flex-row items-center justify-between shadow-sm transition-all">
-            <div class="flex items-center gap-2.5 text-xs sm:text-sm font-medium">
-                <iconify-icon icon="@(alertIsSuccess ? "solar:check-circle-bold" : "solar:danger-triangle-bold")" class="text-lg @(alertIsSuccess ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400")"></iconify-icon>
-                <span>@alertMessage</span>
-            </div>
-            <button type="button" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1" @onclick="() => alertMessage = null">
-                <iconify-icon icon="solar:close-circle-linear" class="text-base"></iconify-icon>
-            </button>
-        </div>
-    }
 
     <!-- Modern Metric Overview Cards (Bo góc 18px, đổ bóng nhẹ, gradient icon) -->
     <div class="bakery-stats-grid">
@@ -540,6 +526,21 @@
     </div>
 }
 
+@if (!string.IsNullOrEmpty(alertMessage))
+{
+    <div class="bakery-toast-container">
+        <div class="bakery-toast @(alertIsSuccess ? "bakery-toast-success" : "bakery-toast-danger")">
+            <div class="bakery-toast-icon">
+                <iconify-icon icon="@(alertIsSuccess ? "solar:check-circle-bold" : "solar:danger-triangle-bold")"></iconify-icon>
+            </div>
+            <div class="bakery-toast-message">@alertMessage</div>
+            <button type="button" class="bakery-toast-close" title="Đóng thông báo" @onclick="() => alertMessage = null">
+                <iconify-icon icon="solar:close-circle-linear"></iconify-icon>
+            </button>
+        </div>
+    </div>
+}
+
 @code {
     private bool isLoading = true;
     private bool isSubmitting = false;
@@ -552,6 +553,7 @@
     // Alert feedback
     private string? alertMessage = null;
     private bool alertIsSuccess = true;
+    private int alertVersion = 0;
 
     // Modals state
     private bool isCreateModalOpen = false;
@@ -615,8 +617,20 @@
 
     private void ShowAlert(string message, bool isSuccess)
     {
+        var version = ++alertVersion;
         alertMessage = message;
         alertIsSuccess = isSuccess;
+        StateHasChanged();
+
+        _ = Task.Run(async () =>
+        {
+            await Task.Delay(4000);
+            if (version == alertVersion)
+            {
+                alertMessage = null;
+                await InvokeAsync(StateHasChanged);
+            }
+        });
     }
 
     // ================= CREATE CATEGORY =================
