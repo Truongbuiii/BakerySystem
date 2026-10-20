@@ -108,15 +108,20 @@
                                 ? $"{words[0][0]}{words[^1][0]}".ToUpper() 
                                 : (displayName.Length >= 2 ? displayName[..2].ToUpper() : "NV");
                         }
-                        <div class="relative">
-                            <button data-dropdown-trigger onclick="window.bakeryAdmin.toggleDropdown('profile-dropdown')" class="flex items-center gap-2 p-0.5 rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer" title="Hồ sơ tài khoản: @displayName">
+                        <div class="relative bakery-profile-menu-wrap">
+                            <button data-dropdown-trigger onclick="window.bakeryAdmin.toggleDropdown('profile-dropdown')" class="bakery-profile-trigger" title="Hồ sơ tài khoản: @displayName" aria-label="Mở menu tài khoản">
                                 <span class="bakery-avatar-initials">@initials</span>
+                                <span class="bakery-profile-trigger-copy">
+                                    <span class="bakery-profile-trigger-name">@displayName</span>
+                                    <span class="bakery-profile-trigger-role">@userRole</span>
+                                </span>
+                                <iconify-icon icon="solar:alt-arrow-down-linear" class="bakery-profile-chevron"></iconify-icon>
                             </button>
-                            <div id="profile-dropdown" data-admin-dropdown class="hidden absolute right-0 mt-2 w-60 bg-white dark:bg-dark border border-border dark:border-darkborder rounded-md shadow-sm py-2 z-50">
-                                <div class="px-4 py-2.5 border-b border-border dark:border-darkborder flex items-center gap-3">
+                            <div id="profile-dropdown" data-admin-dropdown class="bakery-profile-dropdown hidden absolute right-0 mt-2 w-60 bg-white dark:bg-dark border border-border dark:border-darkborder py-2 z-50">
+                                <div class="bakery-profile-dropdown-heading">
                                     <span class="bakery-avatar-initials-lg">@initials</span>
                                     <div class="min-w-0">
-                                        <p class="text-xs font-semibold text-slate-800 dark:text-white mb-0 truncate">@displayName</p>
+                                        <p class="bakery-profile-dropdown-name">@displayName</p>
                                         <div class="flex items-center gap-1.5 mt-0.5">
                                             <span class="bakery-badge @(context.User.IsInRole("Admin") ? "bakery-badge-primary" : "bakery-badge-success") text-[10px] py-0.5 px-1.5">
                                                 @userRole
@@ -125,16 +130,18 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="py-1">
-                                    <a href="profile" class="flex items-center gap-2.5 px-4 py-2 text-xs text-slate-700 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-primary transition-colors">
-                                        <iconify-icon icon="solar:user-circle-linear" class="text-base"></iconify-icon>
-                                        Hồ sơ & Đổi mật khẩu
+                                <div class="bakery-profile-dropdown-links">
+                                    <a href="profile" class="bakery-profile-dropdown-link">
+                                        <span class="bakery-profile-link-icon"><iconify-icon icon="solar:user-circle-linear"></iconify-icon></span>
+                                        <span><strong>Hồ sơ cá nhân</strong><small>Thông tin và bảo mật</small></span>
+                                        <iconify-icon icon="solar:alt-arrow-right-linear" class="bakery-profile-link-arrow"></iconify-icon>
                                     </a>
                                 </div>
-                                <div class="p-2.5 border-t border-border dark:border-darkborder">
-                                    <button onclick="window.bakeryAuth.logout()" class="bakery-btn bakery-btn-outline w-full text-xs text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/30" style="height: 30px;">
-                                        <iconify-icon icon="solar:logout-2-linear" class="text-sm"></iconify-icon>
+                                <div class="bakery-profile-dropdown-footer">
+                                    <button onclick="window.bakeryAuth.logout()" class="bakery-profile-logout">
+                                        <iconify-icon icon="solar:logout-2-linear"></iconify-icon>
                                         <span>Đăng xuất</span>
+                                        <iconify-icon icon="solar:alt-arrow-right-linear" class="bakery-profile-link-arrow"></iconify-icon>
                                     </button>
                                 </div>
                             </div>

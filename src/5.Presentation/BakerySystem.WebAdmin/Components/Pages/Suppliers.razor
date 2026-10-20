@@ -1,10 +1,181 @@
 @page "/suppliers"
 @rendermode InteractiveServer
+@attribute [Authorize(Roles = "Admin")]
 @inject InventoryService Inventory
+@inject IJSRuntime JSRuntime
+
 <PageTitle>Nhà cung cấp | BakerySystem</PageTitle>
-<div class="bakery-page-header"><div><h2 class="text-2xl font-bold">Nhà cung cấp</h2><p class="text-bodytext">Danh bạ đối tác nguyên liệu và xưởng bánh.</p></div></div>
-<div class="bakery-filter-card mb-4"><div class="grid md:grid-cols-4 gap-3 items-end">
-<label>Tên nhà cung cấp<input class="bakery-input w-full" @bind="form.SupplierName" /></label><label>Số điện thoại<input class="bakery-input w-full" @bind="form.Phone" /></label><label>Địa chỉ<input class="bakery-input w-full" @bind="form.Address" /></label>
-<div class="flex gap-2"><button class="bakery-btn bakery-btn-primary" @onclick="Save">@(form.SupplierID == 0 ? "Thêm nhà cung cấp" : "Lưu thay đổi")</button>@if(form.SupplierID != 0){<button class="bakery-btn bakery-btn-secondary" @onclick="Reset">Hủy</button>}</div></div>@if(!string.IsNullOrEmpty(message)){<p class="mt-3 text-sm text-rose-600">@message</p>}</div>
-<div class="bakery-filter-card overflow-x-auto"><table class="w-full text-sm"><thead><tr><th class="text-left p-3">Nhà cung cấp</th><th class="text-left p-3">Số điện thoại</th><th class="text-left p-3">Địa chỉ</th><th></th></tr></thead><tbody>@foreach(var supplier in suppliers){<tr class="border-t"><td class="p-3 font-semibold">@supplier.SupplierName</td><td class="p-3">@supplier.Phone</td><td class="p-3">@supplier.Address</td><td class="p-3 text-right"><button class="bakery-btn bakery-btn-secondary bakery-btn-sm" @onclick="() => Edit(supplier)">Sửa</button></td></tr>}</tbody></table>@if(suppliers.Count == 0){<p class="p-6 text-center text-slate-500">Chưa có nhà cung cấp.</p>}</div>
-@code { List<Supplier> suppliers = []; Supplier form = new(); string? message; protected override async Task OnInitializedAsync()=>await Load(); async Task Load()=>suppliers=await Inventory.GetSuppliersAsync(); void Edit(Supplier s)=>form=new(){SupplierID=s.SupplierID,SupplierName=s.SupplierName,Phone=s.Phone,Address=s.Address}; void Reset()=>form=new(); async Task Save(){try{await Inventory.SaveSupplierAsync(form);message=null;Reset();await Load();}catch(Exception ex){message=ex.Message;}} }
+
+<div class="bakery-page-header">
+    <div>
+        <h2 class="text-2xl font-bold">Nhà cung cấp</h2>
+        <p class="text-bodytext">Danh bạ đối tác nguyên liệu và xưởng bánh.</p>
+    </div>
+</div>
+
+<div class="bakery-filter-card mb-4">
+    <div class="grid md:grid-cols-4 gap-3 items-end">
+        <label>
+            Tên nhà cung cấp
+            <input class="bakery-input w-full" @bind="form.SupplierName" />
+        </label>
+        <label>
+            Số điện thoại
+            <input class="bakery-input w-full" @bind="form.Phone" />
+        </label>
+        <label>
+            Địa chỉ
+            <input class="bakery-input w-full" @bind="form.Address" />
+        </label>
+        <div class="flex gap-2">
+            <button class="bakery-btn bakery-btn-primary" @onclick="Save">
+                @(form.SupplierID == 0 ? "Thêm nhà cung cấp" : "Lưu thay đổi")
+            </button>
+            @if (form.SupplierID != 0)
+            {
+                <button class="bakery-btn bakery-btn-secondary" @onclick="Reset">Hủy</button>
+            }
+        </div>
+    </div>
+    @if (!string.IsNullOrEmpty(message))
+    {
+        <p class="mt-3 text-sm @(operationSucceeded ? "text-emerald-600" : "text-rose-600")">@message</p>
+    }
+</div>
+
+<div class="bakery-filter-card overflow-x-auto">
+    <div class="mb-3 text-sm text-slate-500">
+        Nhà cung cấp đã có phiếu nhập sẽ được giữ trong lịch sử; bạn có thể ngừng hoạt động để ẩn khỏi danh sách chọn khi nhập kho.
+    </div>
+    <table class="w-full text-sm">
+        <thead>
+            <tr>
+                <th class="text-left p-3">Nhà cung cấp</th>
+                <th class="text-left p-3">Số điện thoại</th>
+                <th class="text-left p-3">Địa chỉ</th>
+                <th class="text-left p-3">Trạng thái</th>
+                <th class="text-right p-3">Thao tác</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var supplier in suppliers)
+            {
+                var hasReceipts = supplier.ImportReceipts.Count > 0;
+                <tr class="border-t">
+                    <td class="p-3 font-semibold">@supplier.SupplierName</td>
+                    <td class="p-3">@supplier.Phone</td>
+                    <td class="p-3">@supplier.Address</td>
+                    <td class="p-3">
+                        <span class="bakery-badge @(supplier.IsActive ? "bakery-badge-success" : "bakery-badge-error")">
+                            @(supplier.IsActive ? "Đang hoạt động" : "Đã ẩn")
+                        </span>
+                    </td>
+                    <td class="p-3 text-right whitespace-nowrap">
+                        <button class="bakery-btn bakery-btn-secondary bakery-btn-sm" @onclick="() => Edit(supplier)">Sửa</button>
+                        <button class="bakery-btn bakery-btn-secondary bakery-btn-sm ml-1" @onclick="() => ToggleStatus(supplier)">
+                            @(supplier.IsActive ? "Ngừng hoạt động" : "Kích hoạt")
+                        </button>
+                        @if (!hasReceipts)
+                        {
+                            <button class="bakery-btn bakery-btn-danger bakery-btn-sm ml-1" @onclick="() => Delete(supplier)">Xóa</button>
+                        }
+                        else
+                        {
+                            <span class="ml-2 text-xs text-slate-400" title="Nhà cung cấp đã được dùng trong phiếu nhập">Có lịch sử</span>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    @if (suppliers.Count == 0)
+    {
+        <p class="p-6 text-center text-slate-500">Chưa có nhà cung cấp.</p>
+    }
+</div>
+
+@code {
+    private List<Supplier> suppliers = [];
+    private Supplier form = new();
+    private string? message;
+    private bool operationSucceeded;
+
+    protected override async Task OnInitializedAsync() => await Load();
+
+    private async Task Load() => suppliers = await Inventory.GetSuppliersAsync();
+
+    private void Edit(Supplier supplier)
+    {
+        form = new()
+        {
+            SupplierID = supplier.SupplierID,
+            SupplierName = supplier.SupplierName,
+            Phone = supplier.Phone,
+            Address = supplier.Address,
+            IsActive = supplier.IsActive
+        };
+        message = null;
+    }
+
+    private void Reset()
+    {
+        form = new();
+        message = null;
+    }
+
+    private async Task Save()
+    {
+        try
+        {
+            var isNew = form.SupplierID == 0;
+            await Inventory.SaveSupplierAsync(form);
+            form = new();
+            message = isNew ? "Đã thêm nhà cung cấp." : "Đã cập nhật nhà cung cấp.";
+            operationSucceeded = true;
+            await Load();
+        }
+        catch (Exception ex)
+        {
+            message = ex.Message;
+            operationSucceeded = false;
+        }
+    }
+
+    private async Task ToggleStatus(Supplier supplier)
+    {
+        try
+        {
+            await Inventory.SetSupplierStatusAsync(supplier.SupplierID, !supplier.IsActive);
+            message = supplier.IsActive
+                ? "Đã ngừng hoạt động. Nhà cung cấp sẽ không xuất hiện khi lập phiếu nhập mới."
+                : "Đã kích hoạt lại nhà cung cấp.";
+            operationSucceeded = true;
+            await Load();
+        }
+        catch (Exception ex)
+        {
+            message = ex.Message;
+            operationSucceeded = false;
+        }
+    }
+
+    private async Task Delete(Supplier supplier)
+    {
+        var confirmed = await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa nhà cung cấp '{supplier.SupplierName}' không?");
+        if (!confirmed)
+            return;
+
+        try
+        {
+            await Inventory.DeleteSupplierAsync(supplier.SupplierID);
+            message = "Đã xóa nhà cung cấp.";
+            operationSucceeded = true;
+            await Load();
+        }
+        catch (Exception ex)
+        {
+            message = ex.Message;
+            operationSucceeded = false;
+        }
+    }
+}

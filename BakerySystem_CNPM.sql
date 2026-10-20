@@ -59,7 +59,8 @@ CREATE TABLE Supplier (
     SupplierID INT IDENTITY(1,1) PRIMARY KEY,
     SupplierName NVARCHAR(150) NOT NULL,
     Phone VARCHAR(20),
-    Address NVARCHAR(255)
+    Address NVARCHAR(255),
+    IsActive BIT NOT NULL DEFAULT 1
 );
 GO
 

@@ -8,22 +8,107 @@ public sealed class ImportLineInput { public int ProductID { get; set; } public 
 public sealed class ImportReceiptInput { public int SupplierID { get; set; } public int EmployeeID { get; set; } public string? Note { get; set; } public List<ImportLineInput> Lines { get; set; } = []; }
 public sealed class InventoryService(IBakeryDbContext db)
 {
-    public Task<List<Supplier>> GetSuppliersAsync(CancellationToken ct = default) => db.Suppliers.AsNoTracking().OrderBy(x => x.SupplierName).ToListAsync(ct);
+    public Task<List<Supplier>> GetSuppliersAsync(CancellationToken ct = default) => db.Suppliers
+        .AsNoTracking()
+        .Include(x => x.ImportReceipts)
+        .OrderBy(x => x.SupplierName)
+        .ToListAsync(ct);
+
+    public Task<List<Supplier>> GetActiveSuppliersAsync(CancellationToken ct = default) => db.Suppliers
+        .AsNoTracking()
+        .Where(x => x.IsActive)
+        .OrderBy(x => x.SupplierName)
+        .ToListAsync(ct);
+
     public async Task SaveSupplierAsync(Supplier item, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(item.SupplierName)) throw new InvalidOperationException("Vui lòng nhập tên nhà cung cấp.");
-        if (item.SupplierID == 0) db.Suppliers.Add(item);
-        else { var current = await db.Suppliers.FindAsync([item.SupplierID], ct) ?? throw new InvalidOperationException("Không tìm thấy nhà cung cấp."); current.SupplierName = item.SupplierName.Trim(); current.Phone = item.Phone?.Trim(); current.Address = item.Address?.Trim(); }
+        if (item.SupplierID == 0)
+        {
+            item.SupplierName = item.SupplierName.Trim();
+            item.Phone = item.Phone?.Trim();
+            item.Address = item.Address?.Trim();
+            db.Suppliers.Add(item);
+        }
+        else
+        {
+            var current = await db.Suppliers.FindAsync([item.SupplierID], ct) ?? throw new InvalidOperationException("Không tìm thấy nhà cung cấp.");
+            current.SupplierName = item.SupplierName.Trim();
+            current.Phone = item.Phone?.Trim();
+            current.Address = item.Address?.Trim();
+            current.IsActive = item.IsActive;
+        }
+        await db.SaveChangesAsync(ct);
+    }
+
+    public async Task DeleteSupplierAsync(int supplierId, CancellationToken ct = default)
+    {
+        var supplier = await db.Suppliers
+            .Include(x => x.ImportReceipts)
+            .FirstOrDefaultAsync(x => x.SupplierID == supplierId, ct)
+            ?? throw new InvalidOperationException("Không tìm thấy nhà cung cấp.");
+
+        if (supplier.ImportReceipts.Count > 0)
+            throw new InvalidOperationException("Nhà cung cấp đã có phiếu nhập nên không thể xóa. Hãy ngừng hoạt động để ẩn nhà cung cấp này.");
+
+        db.Suppliers.Remove(supplier);
+        await db.SaveChangesAsync(ct);
+    }
+
+    public async Task SetSupplierStatusAsync(int supplierId, bool isActive, CancellationToken ct = default)
+    {
+        var supplier = await db.Suppliers.FindAsync([supplierId], ct)
+            ?? throw new InvalidOperationException("Không tìm thấy nhà cung cấp.");
+
+        supplier.IsActive = isActive;
         await db.SaveChangesAsync(ct);
     }
     public async Task SaveReceiptAsync(ImportReceiptInput input, CancellationToken ct = default)
     {
-        var lines = input.Lines.Where(x => x.ProductID > 0 && x.Quantity > 0).GroupBy(x => x.ProductID).Select(g => new ImportLineInput { ProductID = g.Key, Quantity = g.Sum(x => x.Quantity), UnitPrice = g.Last().UnitPrice }).ToList();
-        if (input.SupplierID <= 0 || lines.Count == 0 || lines.Any(x => x.UnitPrice < 0)) throw new InvalidOperationException("Chọn nhà cung cấp và ít nhất một sản phẩm có số lượng hợp lệ.");
-        var employee = await db.Employees.FirstOrDefaultAsync(e => e.EmployeeID == input.EmployeeID, ct) ?? await db.Employees.OrderBy(e => e.EmployeeID).FirstOrDefaultAsync(ct);
-        if (employee is null) throw new InvalidOperationException("Không tìm thấy nhân viên lập phiếu.");
-        var products = await db.Products.Where(p => lines.Select(x => x.ProductID).Contains(p.ProductID)).ToDictionaryAsync(p => p.ProductID, ct);
-        if (products.Count != lines.Count) throw new InvalidOperationException("Một số sản phẩm không còn tồn tại.");
+        var submittedLines = input.Lines ?? [];
+        var enteredLines = submittedLines
+            .Where(x => x.ProductID != 0 || x.Quantity != 0 || x.UnitPrice != 0)
+            .ToList();
+
+        if (input.SupplierID <= 0)
+            throw new InvalidOperationException("Vui lòng chọn nhà cung cấp.");
+        if (input.EmployeeID <= 0)
+            throw new InvalidOperationException("Vui lòng chọn nhân viên lập phiếu.");
+        if (enteredLines.Count == 0)
+            throw new InvalidOperationException("Vui lòng thêm ít nhất một sản phẩm vào phiếu nhập.");
+        if (enteredLines.Any(x => x.ProductID <= 0 || x.Quantity <= 0 || x.UnitPrice < 0))
+            throw new InvalidOperationException("Kiểm tra sản phẩm, số lượng phải lớn hơn 0 và đơn giá không được âm.");
+
+        var duplicateProduct = enteredLines
+            .GroupBy(x => x.ProductID)
+            .FirstOrDefault(group => group.Select(x => x.UnitPrice).Distinct().Count() > 1);
+        if (duplicateProduct is not null)
+            throw new InvalidOperationException("Một sản phẩm không thể có nhiều đơn giá trong cùng phiếu. Hãy gộp số lượng và chọn một đơn giá.");
+
+        var lines = enteredLines
+            .GroupBy(x => x.ProductID)
+            .Select(group => new ImportLineInput
+            {
+                ProductID = group.Key,
+                Quantity = group.Sum(x => x.Quantity),
+                UnitPrice = group.First().UnitPrice
+            })
+            .ToList();
+
+        if (!await db.Suppliers.AnyAsync(s => s.SupplierID == input.SupplierID && s.IsActive, ct))
+            throw new InvalidOperationException("Nhà cung cấp đã chọn không tồn tại hoặc đã ngừng hoạt động.");
+
+        var employee = await db.Employees.FirstOrDefaultAsync(e => e.EmployeeID == input.EmployeeID, ct);
+        if (employee is null)
+            throw new InvalidOperationException("Nhân viên lập phiếu đã chọn không tồn tại.");
+
+        var productIds = lines.Select(x => x.ProductID).ToArray();
+        var products = await db.Products
+            .Where(p => productIds.Contains(p.ProductID) && p.IsActive)
+            .ToDictionaryAsync(p => p.ProductID, ct);
+        if (products.Count != lines.Count)
+            throw new InvalidOperationException("Một số sản phẩm không tồn tại hoặc đã ngừng kinh doanh.");
+
         var receipt = new ImportReceipt { SupplierID = input.SupplierID, EmployeeID = employee.EmployeeID, ReceiptDate = DateTime.Now, Note = input.Note?.Trim(), TotalAmount = lines.Sum(x => x.Quantity * x.UnitPrice) };
         foreach (var line in lines) { products[line.ProductID].Quantity = checked(products[line.ProductID].Quantity + line.Quantity); receipt.ImportReceiptDetails.Add(new ImportReceiptDetail { ProductID = line.ProductID, Quantity = line.Quantity, UnitPrice = line.UnitPrice, SubTotal = line.Quantity * line.UnitPrice }); }
         db.ImportReceipts.Add(receipt);

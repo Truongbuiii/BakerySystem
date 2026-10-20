@@ -489,6 +489,11 @@ namespace BakerySystem.Infrastructure.Data.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
 
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
                     b.Property<string>("Phone")
                         .HasMaxLength(20)
                         .IsUnicode(false)

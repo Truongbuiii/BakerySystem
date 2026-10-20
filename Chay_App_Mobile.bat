@@ -15,3 +15,4 @@ if exist "%APP_EXE%" (
     echo [LOI] Khong the build hoac tim thay file BakerySystem.MobileApp.exe. Vui long kiem tra lai SDK .NET MAUI.
     pause
 )
+ 

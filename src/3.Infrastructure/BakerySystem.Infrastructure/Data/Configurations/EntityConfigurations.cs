@@ -69,6 +69,7 @@ public class SupplierConfiguration : IEntityTypeConfiguration<Supplier>
         builder.Property(s => s.SupplierName).HasMaxLength(150).IsRequired();
         builder.Property(s => s.Phone).HasMaxLength(20).IsUnicode(false);
         builder.Property(s => s.Address).HasMaxLength(255);
+        builder.Property(s => s.IsActive).HasDefaultValue(true);
     }
 }
 

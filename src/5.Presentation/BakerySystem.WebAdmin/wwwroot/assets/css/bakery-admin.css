@@ -3684,3 +3684,150 @@ html.dark .border {
     justify-content: space-between !important;
     min-height: 120px !important;
 }
+
+/* Login and account menu polish */
+.bakery-login-wrapper {
+    position: relative !important;
+    overflow: hidden !important;
+    background:
+        radial-gradient(ellipse at 14% 14%, rgba(234, 147, 72, .16), transparent 34%),
+        radial-gradient(ellipse at 86% 82%, rgba(48, 93, 132, .12), transparent 36%),
+        #f6f2ed !important;
+}
+
+.bakery-login-wrapper::before,
+.bakery-login-wrapper::after {
+    content: "";
+    position: absolute;
+    width: 230px;
+    height: 230px;
+    border: 1px solid rgba(154, 103, 63, .13);
+    border-radius: 50%;
+    pointer-events: none;
+}
+
+.bakery-login-wrapper::before { top: -112px; right: -54px; }
+.bakery-login-wrapper::after { bottom: -142px; left: -75px; width: 310px; height: 310px; }
+
+html.dark .bakery-login-wrapper {
+    background:
+        radial-gradient(ellipse at 14% 14%, rgba(234, 147, 72, .12), transparent 34%),
+        radial-gradient(ellipse at 86% 82%, rgba(48, 93, 132, .22), transparent 36%),
+        #111827 !important;
+}
+
+.bakery-login-card {
+    position: relative !important;
+    z-index: 1 !important;
+    max-width: 448px !important;
+    padding: 2.5rem 2.25rem 1.75rem !important;
+    border: 1px solid rgba(226, 232, 240, .9) !important;
+    border-radius: 22px !important;
+    box-shadow: 0 24px 70px -34px rgba(60, 42, 27, .34), 0 8px 24px -16px rgba(15, 23, 42, .2) !important;
+}
+
+html.dark .bakery-login-card {
+    border-color: rgba(71, 85, 105, .7) !important;
+    box-shadow: 0 24px 70px -34px rgba(0, 0, 0, .8), 0 8px 24px -16px rgba(0, 0, 0, .55) !important;
+}
+
+.bakery-login-header { margin-bottom: 1.75rem !important; }
+.bakery-login-title { margin-top: .9rem !important; font-size: 1.45rem !important; letter-spacing: -.035em !important; }
+.bakery-login-subtitle { max-width: 300px; margin: .35rem auto 0 !important; line-height: 1.65 !important; }
+.bakery-login-devbox { border-style: solid !important; border-radius: 14px !important; padding: .9rem !important; }
+.bakery-dev-chip { min-height: 54px !important; border-radius: 10px !important; }
+.bakery-login-form { gap: 1.1rem !important; }
+.bakery-login-field { gap: .45rem !important; }
+.bakery-login-input { height: 48px !important; border-radius: 10px !important; }
+.bakery-login-input:focus { border-color: #c47a45 !important; box-shadow: 0 0 0 4px rgba(196, 122, 69, .13) !important; }
+.bakery-login-btn {
+    height: 48px !important;
+    margin-top: .45rem !important;
+    border-radius: 10px !important;
+    background: linear-gradient(110deg, #9b5732, #bd7546) !important;
+    box-shadow: 0 8px 18px -10px rgba(155, 87, 50, .8) !important;
+    transition: transform .18s ease, box-shadow .18s ease, filter .18s ease !important;
+}
+.bakery-login-btn:hover:not(:disabled) { filter: brightness(1.06); transform: translateY(-1px); box-shadow: 0 11px 20px -10px rgba(155, 87, 50, .75) !important; }
+.bakery-login-error { border-radius: 10px !important; }
+.bakery-login-footer { margin-top: 1.75rem !important; }
+
+.bakery-topbar {
+    height: 68px;
+    padding: 0 1.5rem;
+    background: rgba(255, 255, 255, .94);
+    box-shadow: 0 4px 18px -16px rgba(15, 23, 42, .45);
+    backdrop-filter: blur(14px);
+}
+html.dark .bakery-topbar { background: rgba(30, 41, 59, .94); }
+
+.bakery-profile-trigger {
+    display: flex;
+    align-items: center;
+    gap: .65rem;
+    min-height: 44px;
+    padding: .3rem .55rem .3rem .35rem;
+    border: 1px solid transparent;
+    border-radius: 14px;
+    background: transparent;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: background .18s ease, border-color .18s ease, box-shadow .18s ease;
+}
+.bakery-profile-trigger:hover, .bakery-profile-trigger[aria-expanded="true"] {
+    background: #fffaf6;
+    border-color: #f0dfd1;
+    box-shadow: 0 3px 12px -9px rgba(89, 55, 33, .55);
+}
+html.dark .bakery-profile-trigger:hover, html.dark .bakery-profile-trigger[aria-expanded="true"] { background: #263449; border-color: #475569; }
+.bakery-profile-trigger .bakery-avatar-initials, .bakery-profile-dropdown-heading .bakery-avatar-initials-lg {
+    border: 0 !important;
+    border-radius: 12px !important;
+    background: linear-gradient(145deg, #9b5732, #d49a68) !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.2);
+}
+.bakery-profile-trigger-copy { display: flex; flex-direction: column; min-width: 0; line-height: 1.3; }
+.bakery-profile-trigger-name { max-width: 145px; overflow: hidden; color: #263244; font-size: .75rem; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+.bakery-profile-trigger-role { margin-top: 2px; color: #8b6c57; font-size: .65rem; font-weight: 500; }
+html.dark .bakery-profile-trigger-name { color: #f8fafc; }
+html.dark .bakery-profile-trigger-role { color: #cbd5e1; }
+.bakery-profile-chevron { margin-left: .15rem; color: #8b6c57; font-size: .9rem; }
+.bakery-profile-dropdown {
+    overflow: hidden;
+    margin-top: .65rem;
+    border-color: #eee3d9;
+    border-radius: 16px;
+    box-shadow: 0 20px 48px -22px rgba(40, 29, 20, .32);
+}
+html.dark .bakery-profile-dropdown { border-color: #475569; box-shadow: 0 20px 48px -22px rgba(0, 0, 0, .75); }
+.bakery-profile-dropdown-heading { display: flex; align-items: center; gap: .75rem; padding: .9rem 1rem; border-bottom: 1px solid #f1e8e0; }
+html.dark .bakery-profile-dropdown-heading { border-color: #334155; }
+.bakery-profile-dropdown-name { overflow: hidden; margin: 0; color: #263244; font-size: .8rem; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+html.dark .bakery-profile-dropdown-name { color: white; }
+.bakery-profile-dropdown-links { padding: .45rem; }
+.bakery-profile-dropdown-link { display: flex; align-items: center; gap: .7rem; padding: .65rem .6rem; border-radius: 11px; color: #334155; text-decoration: none; transition: background .16s ease, color .16s ease; }
+.bakery-profile-dropdown-link:hover { background: #fff6ef; color: #9b5732; }
+html.dark .bakery-profile-dropdown-link { color: #e2e8f0; }
+html.dark .bakery-profile-dropdown-link:hover { background: #263449; color: #f0b785; }
+.bakery-profile-link-icon { display: grid; width: 36px; height: 36px; flex: 0 0 36px; place-items: center; border-radius: 11px; background: #f8eee6; color: #9b5732; font-size: 1.15rem; }
+html.dark .bakery-profile-link-icon { background: #3a2d29; color: #f0b785; }
+.bakery-profile-dropdown-link strong, .bakery-profile-dropdown-link small { display: block; }
+.bakery-profile-dropdown-link strong { font-size: .75rem; font-weight: 650; }
+.bakery-profile-dropdown-link small { margin-top: 2px; color: #94a3b8; font-size: .65rem; }
+.bakery-profile-link-arrow { margin-left: auto; color: #a8b1bd; font-size: .9rem; }
+.bakery-profile-dropdown-footer { padding: .45rem .65rem .65rem; border-top: 1px solid #f1e8e0; }
+html.dark .bakery-profile-dropdown-footer { border-color: #334155; }
+.bakery-profile-logout { display: flex; width: 100%; align-items: center; gap: .6rem; padding: .65rem .7rem; border: 0; border-radius: 10px; background: transparent; color: #b5473d; font-size: .75rem; font-weight: 650; text-align: left; cursor: pointer; transition: background .16s ease; }
+.bakery-profile-logout > iconify-icon:first-child { font-size: 1rem; }
+.bakery-profile-logout:hover { background: #fff0ee; }
+html.dark .bakery-profile-logout { color: #fda4af; }
+html.dark .bakery-profile-logout:hover { background: rgba(127, 29, 29, .22); }
+
+@media (max-width: 640px) {
+    .bakery-login-card { padding: 2rem 1.25rem 1.5rem !important; border-radius: 18px !important; }
+    .bakery-topbar { height: 62px; padding: 0 .75rem; }
+    .bakery-profile-trigger { gap: .4rem; padding-right: .35rem; }
+    .bakery-profile-trigger-name { max-width: 92px; }
+    .bakery-profile-trigger-role, .bakery-profile-chevron { display: none; }
+}

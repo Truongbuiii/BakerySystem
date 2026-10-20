@@ -17,6 +17,11 @@ public static class BakeryDataSeeder
                 END;
 
                 -- 1. Bổ sung cột IsActive cho Category nếu thiếu
+                IF COL_LENGTH('Supplier', 'IsActive') IS NULL
+                BEGIN
+                    ALTER TABLE [Supplier] ADD [IsActive] bit NOT NULL DEFAULT 1;
+                END;
+
                 IF COL_LENGTH('Category', 'IsActive') IS NULL
                 BEGIN
                     ALTER TABLE [Category] ADD [IsActive] bit NOT NULL DEFAULT 1;
