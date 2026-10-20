@@ -195,3 +195,22 @@ h1:focus {
     background: #dcfce7;
     color: #15803d;
 }
+
+.bakery-voucher-chip-disabled {
+    opacity: .6;
+}
+
+.bakery-voucher-chip-disabled button:first-child:hover {
+    opacity: .85;
+}
+
+.bakery-pos-voucher-upsell {
+    margin-top: .5rem;
+    padding: .55rem .75rem;
+    border: 1px solid #bbf7d0;
+    border-radius: .5rem;
+    background: #f0fdf4;
+    color: #15803d;
+    font-size: .75rem;
+    font-weight: 600;
+}

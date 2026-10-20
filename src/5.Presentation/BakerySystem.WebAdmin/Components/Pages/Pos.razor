@@ -351,12 +351,15 @@
                                     @foreach (var promo in availablePromotions)
                                     {
                                         var discountPct = promo.PromotionInvoice?.DiscountPercent ?? 0;
-                                        <div class="bakery-voucher-chip">
+                                        var minimum = promo.PromotionInvoice?.MinOrderAmount ?? 0;
+                                        var missing = Math.Max(0, minimum - totalAmount);
+                                        var isEligible = missing == 0;
+                                        <div class="bakery-voucher-chip @(isEligible ? "" : "bakery-voucher-chip-disabled")">
                                             <button type="button" class="inline-flex items-center gap-1.5 border-0 bg-transparent p-0 text-inherit"
                                                     @onclick="() => SelectPromotion(promo)"
-                                                    title="Bấm để áp dụng mã @promo.PromotionCode">
+                                                    title="@(isEligible ? $"Bấm để áp dụng mã {promo.PromotionCode}" : $"Cần mua thêm {missing:N0}đ.")">
                                                 <iconify-icon icon="solar:ticket-sale-bold" class="text-xs text-primary"></iconify-icon>
-                                                <span class="font-mono font-bold">@promo.PromotionCode</span>
+                                                <span><span class="font-mono font-bold block">@promo.PromotionCode</span><small class="block text-[10px] text-slate-500">(Đơn từ @($"{minimum / 1000:N0}k"))</small></span>
                                                 <span class="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">(-@($"{discountPct:0}%"))</span>
                                             </button>
                                             <button type="button" class="inline-flex h-5 w-5 items-center justify-center rounded-full border border-slate-400 bg-white text-xs font-bold leading-none text-slate-700 hover:border-primary hover:text-primary dark:bg-slate-800 dark:text-slate-200"
@@ -376,6 +379,13 @@
                                 <span>@voucherMessage</span>
                             </div>
                         }
+                    </div>
+                }
+
+                @if (!string.IsNullOrEmpty(GetUpsellSuggestion()))
+                {
+                    <div class="bakery-pos-voucher-upsell">
+                        <span>@GetUpsellSuggestion()</span>
                     </div>
                 }
 
@@ -873,6 +883,20 @@
             return;
         }
 
+        var invoice = promo.PromotionInvoice;
+        if (invoice is null)
+        {
+            voucherMessage = "Mã ưu đãi này chưa có điều kiện giảm giá hợp lệ.";
+            return;
+        }
+
+        if (totalAmount < invoice.MinOrderAmount)
+        {
+            var missing = invoice.MinOrderAmount - totalAmount;
+            voucherMessage = $"Voucher {promo.PromotionCode} yêu cầu đơn tối thiểu {invoice.MinOrderAmount:N0}đ. Cần mua thêm {missing:N0}đ để áp dụng.";
+            return;
+        }
+
         appliedPromo = promo;
         RecalculateDiscount();
     }
@@ -888,8 +912,11 @@
         var inv = appliedPromo.PromotionInvoice;
         if (totalAmount < inv.MinOrderAmount)
         {
+            var code = appliedPromo.PromotionCode;
+            appliedPromo = null;
+            voucherCode = "";
             discountAmount = 0;
-            voucherMessage = $"Mã {appliedPromo.PromotionCode} yêu cầu đơn từ {inv.MinOrderAmount:N0}đ (hiện có: {totalAmount:N0}đ).";
+            voucherMessage = $"Mã {code} đã bị hủy do tổng đơn hàng không còn đủ điều kiện tối thiểu.";
             return;
         }
 
@@ -901,6 +928,24 @@
 
         discountAmount = Math.Round(discount, 0);
         voucherMessage = $"Đã áp dụng mã {appliedPromo.PromotionCode}: Giảm {inv.DiscountPercent:0}% (-{discountAmount:N0}đ)";
+    }
+
+    private string? GetUpsellSuggestion()
+    {
+        var candidate = availablePromotions
+            .Where(p => p.PromotionInvoice is not null && p.PromotionInvoice.MinOrderAmount > totalAmount)
+            .Select(p => new
+            {
+                Promotion = p,
+                Missing = p.PromotionInvoice!.MinOrderAmount - totalAmount
+            })
+            .Where(x => x.Missing <= 100000m)
+            .OrderBy(x => x.Missing)
+            .FirstOrDefault();
+
+        return candidate is null
+            ? null
+            : $"💡 Mua thêm {candidate.Missing:N0}đ để được giảm {candidate.Promotion.PromotionInvoice!.DiscountPercent:0}% với mã {candidate.Promotion.PromotionCode}";
     }
 
     private async Task HandleCheckout()
