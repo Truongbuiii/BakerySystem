@@ -2,7 +2,6 @@
 @rendermode InteractiveServer
 @attribute [Authorize(Roles = "Admin")]
 @inject InventoryService Inventory
-@inject IJSRuntime JSRuntime
 
 <PageTitle>Nhà cung cấp | BakerySystem</PageTitle>
 
@@ -75,14 +74,7 @@
                         <button class="bakery-btn bakery-btn-secondary bakery-btn-sm ml-1" @onclick="() => ToggleStatus(supplier)">
                             @(supplier.IsActive ? "Ngừng hoạt động" : "Kích hoạt")
                         </button>
-                        @if (!hasReceipts)
-                        {
-                            <button class="bakery-btn bakery-btn-danger bakery-btn-sm ml-1" @onclick="() => Delete(supplier)">Xóa</button>
-                        }
-                        else
-                        {
-                            <span class="ml-2 text-xs text-slate-400" title="Nhà cung cấp đã được dùng trong phiếu nhập">Có lịch sử</span>
-                        }
+                        <button class="bakery-btn bakery-btn-danger bakery-btn-sm ml-1" @onclick="() => RequestDelete(supplier)">Xóa</button>
                     </td>
                 </tr>
             }
@@ -94,9 +86,78 @@
     }
 </div>
 
+@if (supplierDeletePrompt is not null)
+{
+    var hasReceipts = supplierDeletePrompt.ImportReceipts.Count > 0;
+    <div class="bakery-modal-backdrop" @onclick="CloseDeletePrompt">
+        <div class="bakery-modal-card max-w-md" @onclick:stopPropagation="true">
+            <div class="bakery-modal-header">
+                <div class="flex items-center gap-2.5">
+                    <div class="bakery-modal-icon-badge @(hasReceipts ? "warning" : "danger")">
+                        <iconify-icon icon="@(hasReceipts ? "solar:shield-warning-bold" : "solar:trash-bin-trash-bold")"></iconify-icon>
+                    </div>
+                    <div>
+                        <h4 class="text-base font-bold text-slate-900 dark:text-white mb-0">
+                            @(hasReceipts ? "Không thể xóa nhà cung cấp" : "Xác nhận xóa nhà cung cấp")
+                        </h4>
+                        <p class="text-xs text-slate-500 mb-0">@supplierDeletePrompt.SupplierName</p>
+                    </div>
+                </div>
+                <button type="button" class="text-slate-400 hover:text-slate-600 text-lg" @onclick="CloseDeletePrompt" aria-label="Đóng">
+                    <iconify-icon icon="solar:close-circle-linear"></iconify-icon>
+                </button>
+            </div>
+
+            <div class="bakery-modal-body">
+                @if (hasReceipts)
+                {
+                    <div class="bakery-info-box bakery-info-box-warning text-sm">
+                        Nhà cung cấp này đã có <strong>@supplierDeletePrompt.ImportReceipts.Count phiếu nhập hàng</strong> liên kết.
+                        Hệ thống giữ lại để bảo toàn lịch sử nhập kho và không cho xóa vĩnh viễn.
+                    </div>
+                    @if (supplierDeletePrompt.IsActive)
+                    {
+                        <p class="text-sm text-slate-600 dark:text-slate-300 mb-0">
+                            Bạn có thể ngừng hoạt động nhà cung cấp này. Nhà cung cấp sẽ được ẩn khỏi danh sách chọn khi lập phiếu nhập mới.
+                        </p>
+                    }
+                    else
+                    {
+                        <p class="text-sm text-slate-600 dark:text-slate-300 mb-0">
+                            Nhà cung cấp này đã ngừng hoạt động và đang được ẩn khỏi danh sách chọn. Lịch sử phiếu nhập vẫn được giữ nguyên.
+                        </p>
+                    }
+                }
+                else
+                {
+                    <div class="bakery-info-box bakery-info-box-danger text-sm">
+                        Nhà cung cấp này chưa có phiếu nhập hàng, nên có thể xóa an toàn.
+                    </div>
+                    <p class="text-sm text-slate-600 dark:text-slate-300 mb-0">
+                        Bạn có chắc muốn xóa <strong>@supplierDeletePrompt.SupplierName</strong>? Thao tác này không thể hoàn tác.
+                    </p>
+                }
+            </div>
+
+            <div class="bakery-modal-footer">
+                <button type="button" class="bakery-btn bakery-btn-outline" @onclick="CloseDeletePrompt">@(hasReceipts ? "Đóng" : "Hủy")</button>
+                @if (hasReceipts && supplierDeletePrompt.IsActive)
+                {
+                    <button type="button" class="bakery-btn bakery-btn-primary" @onclick="DeactivateFromPrompt">Ngừng hoạt động</button>
+                }
+                else if (!hasReceipts)
+                {
+                    <button type="button" class="bakery-btn bakery-btn-danger" @onclick="ConfirmDelete">Xóa nhà cung cấp</button>
+                }
+            </div>
+        </div>
+    </div>
+}
+
 @code {
     private List<Supplier> suppliers = [];
     private Supplier form = new();
+    private Supplier? supplierDeletePrompt;
     private string? message;
     private bool operationSucceeded;
 
@@ -159,16 +220,43 @@
         }
     }
 
-    private async Task Delete(Supplier supplier)
+    private void RequestDelete(Supplier supplier)
     {
-        var confirmed = await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa nhà cung cấp '{supplier.SupplierName}' không?");
-        if (!confirmed)
+        supplierDeletePrompt = supplier;
+    }
+
+    private void CloseDeletePrompt() => supplierDeletePrompt = null;
+
+    private async Task ConfirmDelete()
+    {
+        if (supplierDeletePrompt is null || supplierDeletePrompt.ImportReceipts.Count > 0)
             return;
 
         try
         {
-            await Inventory.DeleteSupplierAsync(supplier.SupplierID);
+            await Inventory.DeleteSupplierAsync(supplierDeletePrompt.SupplierID);
+            supplierDeletePrompt = null;
             message = "Đã xóa nhà cung cấp.";
+            operationSucceeded = true;
+            await Load();
+        }
+        catch (Exception ex)
+        {
+            message = ex.Message;
+            operationSucceeded = false;
+        }
+    }
+
+    private async Task DeactivateFromPrompt()
+    {
+        if (supplierDeletePrompt is null || supplierDeletePrompt.ImportReceipts.Count == 0)
+            return;
+
+        try
+        {
+            await Inventory.SetSupplierStatusAsync(supplierDeletePrompt.SupplierID, false);
+            supplierDeletePrompt = null;
+            message = "Đã ngừng hoạt động. Nhà cung cấp sẽ không xuất hiện khi lập phiếu nhập mới.";
             operationSucceeded = true;
             await Load();
         }
