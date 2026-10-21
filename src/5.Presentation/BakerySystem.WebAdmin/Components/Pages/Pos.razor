@@ -1,6 +1,7 @@
 @page "/pos"
 @rendermode InteractiveServer
-@inject IBakeryDbContext Context
+@using BakerySystem.Application.Features.Pos
+@inject BakerySystem.Application.Features.Pos.PosService PosService
 @inject AuthenticationStateProvider AuthStateProvider
 @inject NavigationManager Navigation
 @inject IJSRuntime JS
@@ -664,27 +665,10 @@
 
     private async Task LoadDataAsync()
     {
-        categories = await Context.Categories
-            .Where(c => c.IsActive)
-            .OrderBy(c => c.CategoryName)
-            .ToListAsync();
-
-        products = await Context.Products
-            .Include(p => p.Category)
-            .Where(p => p.IsActive && (p.Category == null || p.Category.IsActive))
-            .OrderBy(p => p.ProductName)
-            .ToListAsync();
-
-        var now = DateTime.Today;
-        availablePromotions = await Context.Promotions
-            .Include(p => p.PromotionInvoice)
-            .Where(p => p.Status == PromotionStatus.Active 
-                     && p.PromotionInvoice != null
-                     && p.StartDate <= now
-                     && p.EndDate >= now
-                     && (p.PromotionInvoice.UsageLimit == null || p.PromotionInvoice.UsedCount < p.PromotionInvoice.UsageLimit))
-            .OrderByDescending(p => p.PromotionInvoice!.DiscountPercent)
-            .ToListAsync();
+        var catalog = await PosService.GetCatalogAsync();
+        categories = catalog.Categories;
+        products = catalog.Products;
+        availablePromotions = catalog.Promotions;
     }
 
     private void SelectCategory(int categoryId)
@@ -755,7 +739,7 @@
     {
         if (string.IsNullOrWhiteSpace(searchPhoneInput))
         {
-            customerSearchMessage = "Vui lòng nhập số điện thoại để tìm.";
+            customerSearchMessage = "Vui l?ng nh?p s? ?i?n tho?i ?? t?m.";
             showQuickCreateCustomer = false;
             return;
         }
@@ -764,28 +748,23 @@
         customerSearchMessage = null;
         try
         {
-            var cleanPhone = searchPhoneInput.Trim().Replace(" ", "").Replace(".", "").Replace("-", "");
-            var found = await Context.Customers
-                .Include(c => c.Account)
-                .FirstOrDefaultAsync(c => c.Phone != null && c.Phone.Replace(" ", "").Replace(".", "").Replace("-", "") == cleanPhone);
-
+            var found = await PosService.FindCustomerByPhoneAsync(searchPhoneInput);
             if (found != null)
             {
                 selectedCustomer = found;
-                customerSearchMessage = null;
                 searchPhoneInput = "";
                 showQuickCreateCustomer = false;
             }
             else
             {
                 selectedCustomer = null;
-                customerSearchMessage = $"Số điện thoại {searchPhoneInput.Trim()} chưa có trong hệ thống.";
+                customerSearchMessage = $"S? ?i?n tho?i {searchPhoneInput.Trim()} ch?a c? trong h? th?ng.";
                 showQuickCreateCustomer = true;
             }
         }
         catch (Exception ex)
         {
-            customerSearchMessage = "Lỗi khi tra cứu: " + ex.Message;
+            customerSearchMessage = "L?i khi tra c?u: " + ex.Message;
         }
         finally
         {
@@ -814,21 +793,10 @@
     {
         if (string.IsNullOrWhiteSpace(searchPhoneInput)) return;
 
-        var cleanPhone = searchPhoneInput.Trim();
-        var lastName = newCustomerLastName.Trim();
-        var firstName = string.IsNullOrWhiteSpace(newCustomerFirstName) ? "Khách tại quầy" : newCustomerFirstName.Trim();
-
-        var newCust = new Customer
-        {
-            LastName = lastName,
-            FirstName = firstName,
-            Phone = cleanPhone,
-            Address = "Mua trực tiếp tại tiệm bánh",
-            AccountID = null
-        };
-
-        Context.Customers.Add(newCust);
-        await Context.SaveChangesAsync();
+        var newCust = await PosService.CreateCustomerAsync(
+            newCustomerLastName,
+            newCustomerFirstName,
+            searchPhoneInput);
 
         selectedCustomer = newCust;
         customerSearchMessage = null;
@@ -862,16 +830,12 @@
             return;
         }
 
-        var code = voucherCode.Trim().ToUpper();
-        var promo = await Context.Promotions
-            .Include(p => p.PromotionInvoice)
-            .FirstOrDefaultAsync(p => p.PromotionCode.ToUpper() == code && p.Status == PromotionStatus.Active);
-
+        var promo = await PosService.FindPromotionAsync(voucherCode);
         if (promo == null)
         {
             appliedPromo = null;
             discountAmount = 0;
-            voucherMessage = "Mã ưu đãi không tồn tại hoặc đã hết hiệu lực.";
+            voucherMessage = "M? ?u ??i kh?ng t?n t?i ho?c ?? h?t hi?u l?c.";
             return;
         }
 
@@ -879,21 +843,21 @@
         {
             appliedPromo = null;
             discountAmount = 0;
-            voucherMessage = "Mã ưu đãi này chưa bắt đầu hoặc đã hết hạn sử dụng.";
+            voucherMessage = "M? ?u ??i n?y ch?a b?t ??u ho?c ?? h?t h?n s? d?ng.";
             return;
         }
 
         var invoice = promo.PromotionInvoice;
         if (invoice is null)
         {
-            voucherMessage = "Mã ưu đãi này chưa có điều kiện giảm giá hợp lệ.";
+            voucherMessage = "M? ?u ??i n?y ch?a c? ?i?u ki?n gi?m gi? h?p l?.";
             return;
         }
 
         if (totalAmount < invoice.MinOrderAmount)
         {
             var missing = invoice.MinOrderAmount - totalAmount;
-            voucherMessage = $"Voucher {promo.PromotionCode} yêu cầu đơn tối thiểu {invoice.MinOrderAmount:N0}đ. Cần mua thêm {missing:N0}đ để áp dụng.";
+            voucherMessage = $"Voucher {promo.PromotionCode} y?u c?u ??n t?i thi?u {invoice.MinOrderAmount:N0}?. C?n mua th?m {missing:N0}? ?? ?p d?ng.";
             return;
         }
 
@@ -955,109 +919,38 @@
         isProcessing = true;
         try
         {
-            // 1. Xác định Customer: Khách thành viên (nếu đã tìm thấy/chọn) hoặc Khách vãng lai
-            Customer customer;
-            if (selectedCustomer != null)
-            {
-                customer = selectedCustomer;
-            }
-            else
-            {
-                // Tìm khách vãng lai trong DB (AccountID == null và Phone == null)
-                var walkIn = await Context.Customers.FirstOrDefaultAsync(c => c.AccountID == null && c.Phone == null);
-                if (walkIn == null)
-                {
-                    walkIn = new Customer
-                    {
-                        LastName = "Khách",
-                        FirstName = "vãng lai",
-                        Phone = null,
-                        Address = "Mua trực tiếp tại tiệm bánh",
-                        AccountID = null
-                    };
-                    Context.Customers.Add(walkIn);
-                    await Context.SaveChangesAsync();
-                }
-                customer = walkIn;
-            }
-
-            // 2. Tìm EmployeeID nếu có
             var authState = await AuthStateProvider.GetAuthenticationStateAsync();
-            var username = authState.User.Identity?.Name;
-            int? employeeId = null;
-            if (!string.IsNullOrEmpty(username))
+            var employeeId = await PosService.GetEmployeeIdByUsernameAsync(authState.User.Identity?.Name);
+            var lines = cart.Select(item => new PosOrderLine
             {
-                var emp = await Context.Employees
-                    .Include(e => e.Account)
-                    .FirstOrDefaultAsync(e => e.Account.Username == username);
-                if (emp != null) employeeId = emp.EmployeeID;
-            }
+                ProductID = item.Product.ProductID,
+                Quantity = item.Quantity,
+                UnitPrice = item.Product.Price,
+                SubTotal = item.SubTotal
+            }).ToList();
 
-            // Re-read authoritative quantities; cart quantities are only a UI snapshot.
-            var stockById = await Context.Products
-                .Where(p => cart.Select(i => i.Product.ProductID).Contains(p.ProductID))
-                .ToDictionaryAsync(p => p.ProductID);
-            foreach (var item in cart)
-            {
-                if (!stockById.TryGetValue(item.Product.ProductID, out var product) || product.Quantity < item.Quantity)
-                {
-                    await JS.InvokeVoidAsync("alert", $"Tồn kho món {item.Product.ProductName} vừa thay đổi. Vui lòng kiểm tra lại giỏ hàng.");
-                    await LoadDataAsync();
-                    return;
-                }
-            }
-
-            // 3. Tạo Order
-            var order = new Order
-            {
-                CustomerID = customer.CustomerID,
-                EmployeeID = employeeId,
-                PromotionID = appliedPromo?.PromotionID,
-                OrderDate = DateTime.Now,
-                TotalAmount = totalAmount,
-                DiscountAmount = discountAmount,
-                FinalAmount = finalAmount,
-                PaymentMethod = paymentMethod,
-                PaymentStatus = "Paid",
-                Status = "Completed",
-                ReceiverName = selectedCustomer != null ? selectedCustomer.FullName : "Khách vãng lai",
-                ReceiverPhone = selectedCustomer != null ? selectedCustomer.Phone : null,
-                ShippingAddress = "Nhận tại quầy BakerySystem",
-                Note = selectedCustomer != null ? $"Bán cho thành viên: {selectedCustomer.FullName}" : "Khách vãng lai mua lẻ tại quầy"
-            };
-
-            // Persist invoice, details and inventory updates in one SaveChanges transaction.
-            foreach (var item in cart)
-            {
-                var detail = new OrderDetail
-                {
-                    ProductID = item.Product.ProductID,
-                    Quantity = item.Quantity,
-                    UnitPrice = item.Product.Price,
-                    DiscountAmount = 0,
-                    SubTotal = item.SubTotal
-                };
-                order.OrderDetails.Add(detail);
-                stockById[item.Product.ProductID].Quantity -= item.Quantity;
-            }
-
-            Context.Orders.Add(order);
-            await Context.SaveChangesAsync();
+            var order = await PosService.CreateOrderAsync(
+                selectedCustomer,
+                employeeId,
+                lines,
+                appliedPromo?.PromotionID,
+                totalAmount,
+                discountAmount,
+                finalAmount,
+                paymentMethod);
 
             lastCreatedOrderId = order.OrderID;
             lastFinalAmount = order.FinalAmount;
-            lastCustomerName = order.ReceiverName ?? "Khách vãng lai";
+            lastCustomerName = order.ReceiverName ?? "Kh?ch v?ng lai";
             lastCustomerPhone = order.ReceiverPhone;
             isSuccessModalOpen = true;
-
-            // Xóa giỏ hàng & tải lại tồn kho mới nhất
             ClearCart();
             await LoadDataAsync();
         }
         catch (Exception ex)
         {
             var msg = ex.InnerException != null ? $"{ex.Message} -> {ex.InnerException.Message}" : ex.Message;
-            await JS.InvokeVoidAsync("alert", "Lỗi trong quá trình thanh toán: " + msg);
+            await JS.InvokeVoidAsync("alert", "L?i trong qu? tr?nh thanh to?n: " + msg);
         }
         finally
         {

@@ -1,6 +1,6 @@
 @page "/orders"
 @rendermode InteractiveServer
-@inject IBakeryDbContext Context
+@inject BakerySystem.Application.Features.Orders.OrderService OrderService
 @inject IJSRuntime JS
 @inject NavigationManager Navigation
 
@@ -683,14 +683,7 @@
 
     private async Task LoadOrdersAsync()
     {
-        orders = await Context.Orders
-            .Include(o => o.Customer)
-            .Include(o => o.Employee)
-            .Include(o => o.OrderDetails)
-                .ThenInclude(d => d.Product)
-                    .ThenInclude(p => p.Category)
-            .OrderByDescending(o => o.OrderDate)
-            .ToListAsync();
+        orders = await OrderService.GetOrdersAsync();
     }
 
     private void FilterByStatus(string status)
@@ -702,32 +695,12 @@
     {
         if (order.Status is OrderStatus.Cancelled or OrderStatus.Completed) return;
 
-        // Online orders reserve inventory when accepted by the bakery. POS
-        // invoices are created Completed after stock was deducted at checkout.
-        if (order.Status == OrderStatus.Pending && newStatus == OrderStatus.Confirmed)
+        if (!await OrderService.ChangeStatusAsync(order, newStatus))
         {
-            foreach (var detail in order.OrderDetails)
-            {
-                var product = await Context.Products.FirstOrDefaultAsync(p => p.ProductID == detail.ProductID);
-                if (product == null || product.Quantity < detail.Quantity)
-                {
-                    await JS.InvokeVoidAsync("alert", $"Không đủ tồn kho cho {detail.Product?.ProductName ?? $"sản phẩm #{detail.ProductID}"}.");
-                    return;
-                }
-            }
-            foreach (var detail in order.OrderDetails)
-            {
-                var product = await Context.Products.FirstAsync(p => p.ProductID == detail.ProductID);
-                product.Quantity -= detail.Quantity;
-            }
+            await JS.InvokeVoidAsync("alert", $"Kh?ng ?? t?n kho cho ??n h?ng #{order.OrderID}.");
+            return;
         }
 
-        order.Status = newStatus;
-        if (newStatus == OrderStatus.Completed)
-        {
-            order.PaymentStatus = "Paid";
-        }
-        await Context.SaveChangesAsync();
         await LoadOrdersAsync();
     }
 
@@ -745,38 +718,19 @@
     private async Task CancelOrder(Order order)
     {
         if (order.Status == OrderStatus.Cancelled) return;
-        bool confirmed = await JS.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn hủy đơn hàng #HD-{order.OrderID:D4}? Hệ thống sẽ tự động hoàn trả số lượng bánh vào kho.");
+        bool confirmed = await JS.InvokeAsync<bool>("confirm", $"B?n c? ch?c mu?n h?y ??n h?ng #HD-{order.OrderID:D4}?");
         if (!confirmed) return;
 
-        var reason = await JS.InvokeAsync<string?>("prompt", "Nhập lý do hủy đơn hàng:");
+        var reason = await JS.InvokeAsync<string?>("prompt", "Nh?p l? do h?y ??n h?ng:");
         if (reason == null) return;
         reason = reason.Trim();
         if (string.IsNullOrWhiteSpace(reason))
         {
-            await JS.InvokeVoidAsync("alert", "Vui lòng nhập lý do hủy đơn.");
+            await JS.InvokeVoidAsync("alert", "Vui l?ng nh?p l? do h?y ??n.");
             return;
         }
 
-        var shouldRestoreStock = order.Status is OrderStatus.Confirmed or OrderStatus.InProgress or OrderStatus.Shipping or OrderStatus.Completed;
-        order.Status = OrderStatus.Cancelled;
-        order.Note = string.IsNullOrWhiteSpace(order.Note)
-            ? $"Lý do hủy: {reason}"
-            : $"{order.Note}\nLý do hủy: {reason}";
-
-        // Pending orders have not reserved stock; restoring them would inflate inventory.
-        if (shouldRestoreStock && order.OrderDetails != null)
-        {
-            foreach (var detail in order.OrderDetails)
-            {
-                var prod = await Context.Products.FindAsync(detail.ProductID);
-                if (prod != null)
-                {
-                    prod.Quantity += detail.Quantity;
-                }
-            }
-        }
-
-        await Context.SaveChangesAsync();
+        await OrderService.CancelAsync(order, reason);
         await LoadOrdersAsync();
     }
 

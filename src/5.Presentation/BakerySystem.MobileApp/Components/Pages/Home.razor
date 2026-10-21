@@ -1,5 +1,5 @@
 @page "/"
-@inject IBakeryDbContext DbContext
+@inject BakerySystem.Application.Features.CustomerOrders.CustomerOrderService CustomerOrderService
 @inject CartService CartService
 @inject CustomerSessionService CustomerSession
 @inject IJSRuntime JS
@@ -1693,22 +1693,9 @@ else
         try
         {
             // Tải danh mục và sản phẩm từ cơ sở dữ liệu thật BakerySystem
-            categories = await DbContext.Categories.ToListAsync();
-            products = await DbContext.Products
-                .Include(p => p.Category)
-                .Where(p => p.IsActive)
-                .ToListAsync();
-
-            var now = DateTime.Today;
-            // Tải danh sách voucher & chương trình khuyến mãi
-            promotions = await DbContext.Promotions
-                .Include(p => p.PromotionInvoice)
-                .Where(p => p.Status == PromotionStatus.Active
-                         && p.StartDate <= now
-                         && p.EndDate >= now
-                         && (p.PromotionInvoice == null || p.PromotionInvoice.UsageLimit == null || p.PromotionInvoice.UsedCount < p.PromotionInvoice.UsageLimit))
-                .OrderByDescending(p => p.PromotionInvoice != null ? p.PromotionInvoice.DiscountPercent : 0)
-                .ToListAsync();
+            categories = await CustomerOrderService.GetCategoriesAsync();
+            products = await CustomerOrderService.GetActiveProductsAsync();
+            promotions = await CustomerOrderService.GetActivePromotionsAsync();
 
             await LoadOrdersAsync();
         }
@@ -1789,23 +1776,10 @@ else
     {
         try
         {
-            var query = DbContext.Orders
-                .AsNoTracking()
-                .Include(o => o.OrderDetails)
-                .ThenInclude(od => od.Product)
-                .AsQueryable();
-
-            if (CustomerSession.IsLoggedIn && CustomerSession.CurrentCustomer != null)
-            {
-                query = query.Where(o => o.CustomerID == CustomerSession.CurrentCustomer.CustomerId);
-            }
-            else if (!string.IsNullOrWhiteSpace(lookupPhone))
-            {
-                var cleanPhone = lookupPhone.Trim();
-                query = query.Where(o => o.ReceiverPhone != null && o.ReceiverPhone.Contains(cleanPhone));
-            }
-
-            customerOrders = await query.OrderByDescending(o => o.OrderDate).ToListAsync();
+            int? customerId = CustomerSession.IsLoggedIn && CustomerSession.CurrentCustomer != null
+                ? CustomerSession.CurrentCustomer.CustomerId
+                : null;
+            customerOrders = await CustomerOrderService.GetOrdersAsync(customerId, lookupPhone);
             await SyncOrderStatusesFromWebAdminAsync();
         }
         catch (Exception ex)

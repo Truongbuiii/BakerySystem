@@ -1,7 +1,7 @@
 @page "/reports"
 @rendermode InteractiveServer
 @attribute [Authorize(Roles = "Admin")]
-@inject IBakeryDbContext Context
+@inject BakerySystem.Application.Features.Reports.ReportService ReportService
 @inject IJSRuntime JS
 @inject NavigationManager Navigation
 
@@ -460,44 +460,32 @@
                     break;
             }
 
-            // 1. Lọc Đơn Hàng trong kỳ
-            var ordersQuery = Context.Orders.AsQueryable();
-            if (startDate.HasValue && endDate.HasValue)
-            {
-                ordersQuery = ordersQuery.Where(o => o.OrderDate >= startDate.Value && o.OrderDate <= endDate.Value);
-            }
-
-            var orders = await ordersQuery.ToListAsync();
+            var reportData = await ReportService.GetReportDataAsync(startDate, endDate);
+            var orders = reportData.Orders;
+            var imports = reportData.Imports;
             totalOrdersCount = orders.Count;
             completedOrdersCount = orders.Count(o => o.Status == OrderStatus.Completed);
             cancelledOrdersCount = orders.Count(o => o.Status == OrderStatus.Cancelled);
 
-            // Doanh thu chỉ tính đơn không hủy (chủ yếu là Completed)
             var validOrders = orders.Where(o => o.Status != OrderStatus.Cancelled).ToList();
             totalRevenue = validOrders.Sum(o => o.FinalAmount);
             totalDiscountAmount = validOrders.Sum(o => o.DiscountAmount);
             paymentStats = BuildPaymentStats(validOrders);
 
-            // 2. Lọc Chi Phí Nhập Kho trong kỳ
-            var importQuery = Context.ImportReceipts.AsQueryable();
-            if (startDate.HasValue && endDate.HasValue)
-            {
-                importQuery = importQuery.Where(i => i.ReceiptDate >= startDate.Value && i.ReceiptDate <= endDate.Value);
-            }
-            var imports = await importQuery.ToListAsync();
             totalImportCost = imports.Sum(i => i.TotalAmount);
             importReceiptsCount = imports.Count;
-            suppliersCount = await Context.Suppliers.CountAsync();
+            suppliersCount = reportData.SuppliersCount;
 
-            // 3. Top 5 Món Bánh Bán Chạy Nhất (Best Sellers)
-            var validOrderIds = validOrders.Select(o => o.OrderID).ToList();
-            var detailsQuery = Context.OrderDetails
-                .Include(d => d.Product)
-                .ThenInclude(p => p.Category)
-                .Where(d => validOrderIds.Contains(d.OrderID));
-
-            var groupedDetails = await detailsQuery
-                .GroupBy(d => new { d.ProductID, d.Product.ProductName, d.Product.Price, CategoryName = d.Product.Category != null ? d.Product.Category.CategoryName : "Không rõ" })
+            var groupedDetails = reportData.OrderDetails
+                .GroupBy(d => new
+                {
+                    d.ProductID,
+                    d.Product.ProductName,
+                    d.Product.Price,
+                    CategoryName = d.Product.Category != null
+                        ? d.Product.Category.CategoryName
+                        : "Kh?ng r?"
+                })
                 .Select(g => new TopSellerItem
                 {
                     ProductID = g.Key.ProductID,
@@ -509,26 +497,21 @@
                 })
                 .OrderByDescending(x => x.SoldQuantity)
                 .Take(5)
-                .ToListAsync();
-
+                .ToList();
             topSellingProducts = groupedDetails;
 
-            // 4. Cảnh Báo Tồn Kho (<= 10 cái)
-            lowStockProducts = await Context.Products
-                .Include(p => p.Category)
-                .Where(p => p.Quantity <= 10 && p.IsActive)
-                .OrderBy(p => p.Quantity)
-                .ToListAsync();
+            lowStockProducts = reportData.LowStockProducts;
 
-            // 5. Cơ Cấu Doanh Thu Theo Loại Bánh
-            var categoryData = await detailsQuery
-                .GroupBy(d => d.Product.Category != null ? d.Product.Category.CategoryName : "Không rõ")
+            var categoryData = reportData.OrderDetails
+                .GroupBy(d => d.Product.Category != null
+                    ? d.Product.Category.CategoryName
+                    : "Kh?ng r?")
                 .Select(g => new
                 {
                     CategoryName = g.Key,
                     Revenue = g.Sum(x => x.SubTotal)
                 })
-                .ToListAsync();
+                .ToList();
 
             var totalCatRev = categoryData.Sum(c => c.Revenue);
             var colorPalette = new[] { "#2563eb", "#10b981", "#f59e0b", "#8b5cf6", "#ec4899", "#06b6d4" };
