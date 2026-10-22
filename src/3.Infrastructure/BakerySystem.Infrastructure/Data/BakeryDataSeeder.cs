@@ -33,6 +33,30 @@ public static class BakeryDataSeeder
                     ALTER TABLE [Product] ADD [IsActive] bit NOT NULL DEFAULT 1;
                 END;
 
+                IF OBJECT_ID(N'[SupplierProduct]', N'U') IS NULL
+                BEGIN
+                    CREATE TABLE [SupplierProduct] (
+                        [SupplierID] int NOT NULL,
+                        [ProductID] int NOT NULL,
+                        CONSTRAINT [PK_SupplierProduct] PRIMARY KEY ([SupplierID], [ProductID]),
+                        CONSTRAINT [FK_SupplierProduct_Supplier_SupplierID] FOREIGN KEY ([SupplierID]) REFERENCES [Supplier] ([SupplierID]) ON DELETE CASCADE,
+                        CONSTRAINT [FK_SupplierProduct_Product_ProductID] FOREIGN KEY ([ProductID]) REFERENCES [Product] ([ProductID])
+                    );
+                END;
+
+                -- Giữ các sản phẩm từng nhập với nhà cung cấp trong lịch sử.
+                IF OBJECT_ID(N'[ImportReceiptDetail]', N'U') IS NOT NULL
+                BEGIN
+                    INSERT INTO [SupplierProduct] ([SupplierID], [ProductID])
+                    SELECT DISTINCT r.[SupplierID], d.[ProductID]
+                    FROM [ImportReceipt] r
+                    INNER JOIN [ImportReceiptDetail] d ON d.[ReceiptID] = r.[ReceiptID]
+                    WHERE NOT EXISTS (
+                        SELECT 1 FROM [SupplierProduct] sp
+                        WHERE sp.[SupplierID] = r.[SupplierID] AND sp.[ProductID] = d.[ProductID]
+                    );
+                END;
+
                 -- 3. Đảm bảo bảng PromotionOrderTier tồn tại
                 IF OBJECT_ID(N'[PromotionOrderTier]') IS NULL
                 BEGIN

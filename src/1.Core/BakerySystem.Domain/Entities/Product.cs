@@ -16,4 +16,5 @@ public class Product
     public virtual ICollection<PromotionProduct> PromotionProducts { get; set; } = new List<PromotionProduct>();
     public virtual ICollection<ImportReceiptDetail> ImportReceiptDetails { get; set; } = new List<ImportReceiptDetail>();
     public virtual ICollection<OrderDetail> OrderDetails { get; set; } = new List<OrderDetail>();
+    public virtual ICollection<SupplierProduct> SupplierProducts { get; set; } = new List<SupplierProduct>();
 }

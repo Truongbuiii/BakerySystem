@@ -66,10 +66,24 @@ public class SupplierConfiguration : IEntityTypeConfiguration<Supplier>
     {
         builder.ToTable("Supplier");
         builder.HasKey(s => s.SupplierID);
+        builder.Ignore(s => s.SupplierCode);
         builder.Property(s => s.SupplierName).HasMaxLength(150).IsRequired();
         builder.Property(s => s.Phone).HasMaxLength(20).IsUnicode(false);
         builder.Property(s => s.Address).HasMaxLength(255);
         builder.Property(s => s.IsActive).HasDefaultValue(true);
+    }
+}
+
+public class SupplierProductConfiguration : IEntityTypeConfiguration<SupplierProduct>
+{
+    public void Configure(EntityTypeBuilder<SupplierProduct> builder)
+    {
+        builder.ToTable("SupplierProduct");
+        builder.HasKey(x => new { x.SupplierID, x.ProductID });
+        builder.HasOne(x => x.Supplier).WithMany(x => x.SupplierProducts)
+            .HasForeignKey(x => x.SupplierID).OnDelete(DeleteBehavior.Cascade);
+        builder.HasOne(x => x.Product).WithMany(x => x.SupplierProducts)
+            .HasForeignKey(x => x.ProductID).OnDelete(DeleteBehavior.Restrict);
     }
 }
 

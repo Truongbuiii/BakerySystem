@@ -1,5 +1,6 @@
 using BakerySystem.Application.Common.Interfaces;
 using BakerySystem.Domain.Entities;
+using BakerySystem.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 
 namespace BakerySystem.Application.Features.Inventory;
@@ -11,7 +12,8 @@ public sealed class InventoryService(IBakeryDbContext db)
     public Task<List<Supplier>> GetSuppliersAsync(CancellationToken ct = default) => db.Suppliers
         .AsNoTracking()
         .Include(x => x.ImportReceipts)
-        .OrderBy(x => x.SupplierName)
+        .Include(x => x.SupplierProducts).ThenInclude(x => x.Product)
+        .OrderBy(x => x.SupplierID)
         .ToListAsync(ct);
 
     public Task<List<Supplier>> GetActiveSuppliersAsync(CancellationToken ct = default) => db.Suppliers
@@ -20,22 +22,41 @@ public sealed class InventoryService(IBakeryDbContext db)
         .OrderBy(x => x.SupplierName)
         .ToListAsync(ct);
 
+    public Task<Supplier?> GetSupplierDetailsAsync(int supplierId, CancellationToken ct = default) => db.Suppliers
+        .AsNoTracking()
+        .Include(x => x.SupplierProducts).ThenInclude(x => x.Product)
+        .FirstOrDefaultAsync(x => x.SupplierID == supplierId, ct);
+
     public async Task SaveSupplierAsync(Supplier item, CancellationToken ct = default)
     {
-        if (string.IsNullOrWhiteSpace(item.SupplierName)) throw new InvalidOperationException("Vui lòng nhập tên nhà cung cấp.");
+        item.SupplierName = item.SupplierName?.Trim() ?? string.Empty;
+        item.Phone = item.Phone?.Trim();
+        item.Address = item.Address?.Trim();
+
+        if (item.SupplierName.Length == 0)
+            throw new InvalidOperationException("Vui lòng nhập tên nhà cung cấp.");
+        if (item.SupplierName.Length > 150)
+            throw new InvalidOperationException("Tên nhà cung cấp không được vượt quá 150 ký tự.");
+        if (string.IsNullOrWhiteSpace(item.Phone))
+            throw new InvalidOperationException("Vui lòng nhập số điện thoại nhà cung cấp.");
+        if (item.Phone.Length > 20)
+            throw new InvalidOperationException("Số điện thoại không được vượt quá 20 ký tự.");
+        if (item.Phone.Any(character => !char.IsAsciiDigit(character) && !"+()-. ".Contains(character)) ||
+            item.Phone.Count(char.IsAsciiDigit) is < 8 or > 15)
+            throw new InvalidOperationException("Số điện thoại cần có từ 8 đến 15 chữ số; chỉ dùng số và các ký tự + ( ) - hoặc khoảng trắng.");
+        if (item.Address?.Length > 255)
+            throw new InvalidOperationException("Địa chỉ không được vượt quá 255 ký tự.");
+
         if (item.SupplierID == 0)
         {
-            item.SupplierName = item.SupplierName.Trim();
-            item.Phone = item.Phone?.Trim();
-            item.Address = item.Address?.Trim();
             db.Suppliers.Add(item);
         }
         else
         {
             var current = await db.Suppliers.FindAsync([item.SupplierID], ct) ?? throw new InvalidOperationException("Không tìm thấy nhà cung cấp.");
-            current.SupplierName = item.SupplierName.Trim();
-            current.Phone = item.Phone?.Trim();
-            current.Address = item.Address?.Trim();
+            current.SupplierName = item.SupplierName;
+            current.Phone = item.Phone;
+            current.Address = item.Address;
             current.IsActive = item.IsActive;
         }
         await db.SaveChangesAsync(ct);
@@ -63,6 +84,38 @@ public sealed class InventoryService(IBakeryDbContext db)
         supplier.IsActive = isActive;
         await db.SaveChangesAsync(ct);
     }
+
+    public Task<List<int>> GetSupplierProductIdsAsync(int supplierId, CancellationToken ct = default) =>
+        db.SupplierProducts.AsNoTracking().Where(x => x.SupplierID == supplierId)
+            .Select(x => x.ProductID).ToListAsync(ct);
+
+    public Task<List<Product>> GetProductsForSupplierAsync(int supplierId, CancellationToken ct = default) =>
+        db.SupplierProducts.AsNoTracking()
+            .Where(x => x.SupplierID == supplierId && x.Supplier.IsActive && x.Product.IsActive)
+            .Select(x => x.Product).OrderBy(x => x.ProductName).ToListAsync(ct);
+
+    public async Task SaveSupplierProductsAsync(int supplierId, IReadOnlyCollection<int> productIds, CancellationToken ct = default)
+    {
+        if (!await db.Suppliers.AnyAsync(x => x.SupplierID == supplierId, ct))
+            throw new InvalidOperationException("Không tìm thấy nhà cung cấp.");
+
+        var selectedIds = productIds.Distinct().ToArray();
+        var activeProductCount = await db.Products.CountAsync(x => selectedIds.Contains(x.ProductID) && x.IsActive, ct);
+        if (activeProductCount != selectedIds.Length)
+            throw new InvalidOperationException("Một số sản phẩm không tồn tại hoặc đã ngừng kinh doanh.");
+
+        var current = await db.SupplierProducts.Where(x => x.SupplierID == supplierId).ToListAsync(ct);
+        var remove = current.Where(x => !selectedIds.Contains(x.ProductID)).ToList();
+        if (remove.Count > 0)
+            db.SupplierProducts.RemoveRange(remove);
+
+        var currentIds = current.Select(x => x.ProductID).ToHashSet();
+        foreach (var productId in selectedIds.Where(id => !currentIds.Contains(id)))
+            db.SupplierProducts.Add(new SupplierProduct { SupplierID = supplierId, ProductID = productId });
+
+        await db.SaveChangesAsync(ct);
+    }
+
     public async Task SaveReceiptAsync(ImportReceiptInput input, CancellationToken ct = default)
     {
         var submittedLines = input.Lines ?? [];
@@ -98,9 +151,11 @@ public sealed class InventoryService(IBakeryDbContext db)
         if (!await db.Suppliers.AnyAsync(s => s.SupplierID == input.SupplierID && s.IsActive, ct))
             throw new InvalidOperationException("Nhà cung cấp đã chọn không tồn tại hoặc đã ngừng hoạt động.");
 
-        var employee = await db.Employees.FirstOrDefaultAsync(e => e.EmployeeID == input.EmployeeID, ct);
-        if (employee is null)
-            throw new InvalidOperationException("Nhân viên lập phiếu đã chọn không tồn tại.");
+        var employee = await db.Employees
+            .Include(e => e.Account)
+            .FirstOrDefaultAsync(e => e.EmployeeID == input.EmployeeID, ct);
+        if (employee is null || employee.Account.Status != AccountStatus.Active)
+            throw new InvalidOperationException("Nhân viên lập phiếu không tồn tại hoặc đã bị khóa.");
 
         var productIds = lines.Select(x => x.ProductID).ToArray();
         var products = await db.Products
@@ -109,12 +164,25 @@ public sealed class InventoryService(IBakeryDbContext db)
         if (products.Count != lines.Count)
             throw new InvalidOperationException("Một số sản phẩm không tồn tại hoặc đã ngừng kinh doanh.");
 
+        var mappedProductCount = await db.SupplierProducts.CountAsync(
+            x => x.SupplierID == input.SupplierID && productIds.Contains(x.ProductID), ct);
+        if (mappedProductCount != lines.Count)
+            throw new InvalidOperationException("Chỉ được nhập các sản phẩm đã được gán cho nhà cung cấp đang chọn. Hãy kiểm tra danh sách sản phẩm của nhà cung cấp.");
+
         var receipt = new ImportReceipt { SupplierID = input.SupplierID, EmployeeID = employee.EmployeeID, ReceiptDate = DateTime.Now, Note = input.Note?.Trim(), TotalAmount = lines.Sum(x => x.Quantity * x.UnitPrice) };
         foreach (var line in lines) { products[line.ProductID].Quantity = checked(products[line.ProductID].Quantity + line.Quantity); receipt.ImportReceiptDetails.Add(new ImportReceiptDetail { ProductID = line.ProductID, Quantity = line.Quantity, UnitPrice = line.UnitPrice, SubTotal = line.Quantity * line.UnitPrice }); }
         db.ImportReceipts.Add(receipt);
         await db.SaveChangesAsync(ct);
     }
     public Task<List<ImportReceipt>> GetReceiptsAsync(CancellationToken ct = default) => db.ImportReceipts.AsNoTracking().Include(x => x.Supplier).Include(x => x.Employee).Include(x => x.ImportReceiptDetails).ThenInclude(x => x.Product).OrderByDescending(x => x.ReceiptDate).ToListAsync(ct);
+    public Task<List<ImportReceipt>> GetReceiptsBySupplierAsync(int supplierId, CancellationToken ct = default) => db.ImportReceipts
+        .AsNoTracking()
+        .Where(x => x.SupplierID == supplierId)
+        .Include(x => x.Employee)
+        .Include(x => x.ImportReceiptDetails).ThenInclude(x => x.Product)
+        .OrderByDescending(x => x.ReceiptDate)
+        .ThenByDescending(x => x.ReceiptID)
+        .ToListAsync(ct);
     public Task<List<Product>> GetProductsAsync(CancellationToken ct = default) => db.Products.AsNoTracking().Where(p => p.IsActive).OrderBy(p => p.ProductName).ToListAsync(ct);
 }
 
@@ -141,9 +209,18 @@ public sealed class PromotionService(IBakeryDbContext db)
         campaign.PromotionCode = campaign.PromotionCode.Trim().ToUpperInvariant();
         if (campaign.PromotionCode.Length == 0 || campaign.StartDate.Date > campaign.EndDate.Date ||
             (!useInvoiceCondition && !useProductCondition) ||
-            (useInvoiceCondition && (invoicePercent <= 0 || invoicePercent > 100 || minimum < 0 || invoiceCap < 0)) ||
-            (useProductCondition && (productIds.Count == 0 || productPercent <= 0 || productPercent > 100 || productCap < 0)))
-            throw new InvalidOperationException("Vui lòng chọn ít nhất một điều kiện và kiểm tra các giá trị đã nhập.");
+            (useInvoiceCondition && (invoicePercent <= 0 || invoicePercent > 100 || minimum < 0 || invoiceCap is null || invoiceCap <= 0)) ||
+            (useProductCondition && (productIds.Count == 0 || productPercent <= 0 || productPercent > 100 || productCap is null || productCap <= 0)))
+            throw new InvalidOperationException("Chọn ít nhất một điều kiện; phần trăm, đơn tối thiểu và mức giảm tối đa phải hợp lệ. Mức giảm tối đa phải lớn hơn 0.");
+
+        if (useProductCondition)
+        {
+            var selectedIds = productIds.Distinct().ToArray();
+            var activeProductCount = await db.Products
+                .CountAsync(p => selectedIds.Contains(p.ProductID) && p.IsActive, ct);
+            if (activeProductCount != selectedIds.Length)
+                throw new InvalidOperationException("Một số sản phẩm đã chọn không tồn tại hoặc đã ngừng kinh doanh.");
+        }
         if (await db.Promotions.AnyAsync(p => p.PromotionCode == campaign.PromotionCode, ct)) throw new InvalidOperationException("Mã chương trình đã tồn tại.");
         campaign.PromotionType = (useInvoiceCondition, useProductCondition) switch
         {
@@ -221,9 +298,18 @@ public sealed class PromotionService(IBakeryDbContext db)
         if (!hasBeenUsed)
         {
             if (!useInvoiceCondition && !useProductCondition ||
-                useInvoiceCondition && (invoicePercent <= 0 || invoicePercent > 100 || minimum < 0 || invoiceCap < 0) ||
-                useProductCondition && (productIds.Count == 0 || productPercent <= 0 || productPercent > 100 || productCap < 0))
-                throw new InvalidOperationException("Vui lòng chọn ít nhất một điều kiện và kiểm tra các giá trị đã nhập.");
+                useInvoiceCondition && (invoicePercent <= 0 || invoicePercent > 100 || minimum < 0 || invoiceCap is null || invoiceCap <= 0) ||
+                useProductCondition && (productIds.Count == 0 || productPercent <= 0 || productPercent > 100 || productCap is null || productCap <= 0))
+                throw new InvalidOperationException("Chọn ít nhất một điều kiện; phần trăm, đơn tối thiểu và mức giảm tối đa phải hợp lệ. Mức giảm tối đa phải lớn hơn 0.");
+
+            if (useProductCondition)
+            {
+                var selectedIds = productIds.Distinct().ToArray();
+                var activeProductCount = await db.Products
+                    .CountAsync(p => selectedIds.Contains(p.ProductID) && p.IsActive, ct);
+                if (activeProductCount != selectedIds.Length)
+                    throw new InvalidOperationException("Một số sản phẩm đã chọn không tồn tại hoặc đã ngừng kinh doanh.");
+            }
 
             current.PromotionCode = campaign.PromotionCode;
             current.PromotionType = (useInvoiceCondition, useProductCondition) switch

@@ -9,6 +9,7 @@ public interface IBakeryDbContext
     DbSet<Customer> Customers { get; }
     DbSet<Employee> Employees { get; }
     DbSet<Supplier> Suppliers { get; }
+    DbSet<SupplierProduct> SupplierProducts { get; }
     DbSet<Category> Categories { get; }
     DbSet<Product> Products { get; }
     DbSet<Promotion> Promotions { get; }

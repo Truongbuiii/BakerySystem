@@ -1,5 +1,6 @@
 @page "/promotions"
 @rendermode InteractiveServer
+@attribute [Authorize(Roles = "Admin")]
 @inject PromotionService PromotionManager
 @inject InventoryService InventoryManager
 
@@ -48,7 +49,7 @@
             <div class="grid md:grid-cols-3 gap-4">
                 <label>Giảm giá (%)<input class="bakery-input w-full" type="number" min="0.01" max="100" step="0.01" @bind="invoicePercent" disabled="@editingHasUsed" /></label>
                 <label>Đơn hàng tối thiểu (đ)<input class="bakery-input w-full" type="number" min="0" step="1000" @bind="minimum" disabled="@editingHasUsed" /></label>
-                <label>Mức giảm tối đa (đ)<input class="bakery-input w-full" type="number" min="0" step="1000" @bind="invoiceCap" disabled="@editingHasUsed" /></label>
+                <label>Mức giảm tối đa (đ)<input class="bakery-input w-full" type="number" min="1" step="1000" required @bind="invoiceCap" disabled="@editingHasUsed" /></label>
             </div>
         </div>
     }
@@ -59,7 +60,7 @@
             <h3>Theo sản phẩm</h3>
             <div class="grid md:grid-cols-3 gap-4 mb-3">
                 <label>Giảm giá sản phẩm (%)<input class="bakery-input w-full" type="number" min="0.01" max="100" step="0.01" @bind="productPercent" disabled="@editingHasUsed" /></label>
-                <label>Mức giảm tối đa / sản phẩm (đ)<input class="bakery-input w-full" type="number" min="0" step="1000" @bind="productCap" disabled="@editingHasUsed" /></label>
+                <label>Mức giảm tối đa / sản phẩm (đ)<input class="bakery-input w-full" type="number" min="1" step="1000" required @bind="productCap" disabled="@editingHasUsed" /></label>
             </div>
             <p class="text-sm font-medium mb-2">Chọn sản phẩm áp dụng (@selectedProductIds.Count)</p>
             <div class="promotion-product-list">

@@ -245,6 +245,12 @@ public class ProductService : IProductService
             return (true, $"Sản phẩm '{product.ProductName}' đã có lịch sử đơn hàng/nhập kho nên đã được chuyển sang trạng thái [Ngừng kinh doanh] để bảo toàn dữ liệu.");
         }
 
+        var supplierProductLinks = await _context.SupplierProducts
+            .Where(link => link.ProductID == product.ProductID)
+            .ToListAsync(cancellationToken);
+        if (supplierProductLinks.Count > 0)
+            _context.SupplierProducts.RemoveRange(supplierProductLinks);
+
         _context.Products.Remove(product);
         await _context.SaveChangesAsync(cancellationToken);
         return (true, $"Đã xóa vĩnh viễn sản phẩm '{product.ProductName}' khỏi hệ thống.");

@@ -1,4 +1,4 @@
-using BakerySystem.Infrastructure;
+    using BakerySystem.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,8 +12,7 @@ builder.Services.AddInfrastructureServices(builder.Configuration);
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
+if (app.Environment.IsDevelopment()) 
     app.MapOpenApi();
 }
 

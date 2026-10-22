@@ -1,0 +1,134 @@
+@page "/suppliers/{SupplierId:int}"
+@rendermode InteractiveServer
+@attribute [Authorize(Roles = "Admin")]
+@inject InventoryService Inventory
+
+<PageTitle>Chi tiết nhà cung cấp | BakerySystem</PageTitle>
+
+<div class="bakery-page-header">
+    <div>
+        <a href="/suppliers" class="text-sm text-primary hover:underline">← Danh sách nhà cung cấp</a>
+        @if (supplier is not null)
+        {
+            <h2 class="mt-2 text-2xl font-bold">@supplier.SupplierName</h2>
+            <p class="text-bodytext">Mã NCC <span class="font-mono font-semibold">@supplier.SupplierCode</span> · Lịch sử giao dịch và sản phẩm cung cấp</p>
+        }
+        else
+        {
+            <h2 class="mt-2 text-2xl font-bold">Chi tiết nhà cung cấp</h2>
+        }
+    </div>
+</div>
+
+@if (supplier is null)
+{
+    <div class="bakery-filter-card text-center text-slate-500">Không tìm thấy nhà cung cấp.</div>
+}
+else
+{
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
+        <div class="space-y-4">
+            <div class="bakery-filter-card !p-4">
+                <h3 class="font-bold mb-3">Thông tin nhà cung cấp</h3>
+                <div class="space-y-3">
+                    <div>
+                        <p class="mb-1 text-xs text-slate-500">Trạng thái</p>
+                        <span class="bakery-badge @(supplier.IsActive ? "bakery-badge-success" : "bakery-badge-error")">
+                            @(supplier.IsActive ? "Đang hoạt động" : "Đã ngừng hoạt động")
+                        </span>
+                    </div>
+                    <div>
+                        <p class="mb-1 text-xs text-slate-500">Điện thoại</p>
+                        <strong class="text-sm">@(string.IsNullOrWhiteSpace(supplier.Phone) ? "Chưa cập nhật" : supplier.Phone)</strong>
+                    </div>
+                    <div>
+                        <p class="mb-1 text-xs text-slate-500">Địa chỉ</p>
+                        <strong class="text-sm">@(string.IsNullOrWhiteSpace(supplier.Address) ? "Chưa cập nhật" : supplier.Address)</strong>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bakery-filter-card !p-4">
+                <h3 class="font-bold mb-3">Sản phẩm cung cấp</h3>
+                @if (supplier.SupplierProducts.Count == 0)
+                {
+                    <p class="text-sm text-slate-500 mb-0">Chưa gán sản phẩm cho nhà cung cấp này.</p>
+                }
+                else
+                {
+                    <div class="flex flex-wrap gap-2">
+                        @foreach (var link in supplier.SupplierProducts.OrderBy(x => x.Product.ProductName))
+                        {
+                            <span class="bakery-badge bakery-badge-success">@link.Product.ProductName</span>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+
+        <div class="bakery-filter-card overflow-x-auto lg:col-span-2">
+        <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
+            <div>
+                <h3 class="font-bold mb-1">Lịch sử phiếu nhập</h3>
+                <p class="text-sm text-slate-500 mb-0">@receipts.Count phiếu · Tổng giá trị @receipts.Sum(x => x.TotalAmount).ToString("N0") đ</p>
+            </div>
+            <a class="bakery-btn bakery-btn-secondary" href="/import-receipts">Đến lập phiếu nhập</a>
+        </div>
+
+        @if (receipts.Count == 0)
+        {
+            <p class="p-6 text-center text-slate-500">Nhà cung cấp chưa có phiếu nhập.</p>
+        }
+        else
+        {
+            <table class="w-full text-sm">
+                <thead>
+                    <tr>
+                        <th class="text-left p-3">Mã phiếu</th>
+                        <th class="text-left p-3">Ngày nhập</th>
+                        <th class="text-left p-3">Nhân viên</th>
+                        <th class="text-left p-3">Sản phẩm</th>
+                        <th class="text-left p-3">Ghi chú</th>
+                        <th class="text-right p-3">Tổng tiền</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var receipt in receipts)
+                    {
+                        <tr class="border-t align-top">
+                            <td class="p-3 font-mono font-semibold">PN-@receipt.ReceiptID.ToString("D6")</td>
+                            <td class="p-3 whitespace-nowrap">@receipt.ReceiptDate.ToString("dd/MM/yyyy HH:mm")</td>
+                            <td class="p-3">@receipt.Employee?.FullName</td>
+                            <td class="p-3">
+                                <ul class="space-y-1">
+                                    @foreach (var detail in receipt.ImportReceiptDetails)
+                                    {
+                                        <li>@detail.Product?.ProductName × @detail.Quantity · @detail.UnitPrice.ToString("N0") đ = @detail.SubTotal.ToString("N0") đ</li>
+                                    }
+                                </ul>
+                            </td>
+                            <td class="p-3">@(string.IsNullOrWhiteSpace(receipt.Note) ? "—" : receipt.Note)</td>
+                            <td class="p-3 text-right whitespace-nowrap font-semibold">@receipt.TotalAmount.ToString("N0") đ</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public int SupplierId { get; set; }
+
+    private Supplier? supplier;
+    private List<ImportReceipt> receipts = [];
+
+    protected override async Task OnParametersSetAsync()
+    {
+        supplier = await Inventory.GetSupplierDetailsAsync(SupplierId);
+        receipts = supplier is null
+            ? []
+            : await Inventory.GetReceiptsBySupplierAsync(SupplierId);
+    }
+}

@@ -5,8 +5,179 @@
 @inject EmployeeService EmployeeManager
 <PageTitle>Phiếu nhập kho | BakerySystem</PageTitle>
 <div class="bakery-page-header"><div><h2 class="text-2xl font-bold">Lập phiếu nhập kho</h2><p class="text-bodytext">Lưu phiếu nhập sẽ tự động cộng số lượng vào tồn kho.</p></div></div>
-<div class="bakery-filter-card mb-5"><div class="grid md:grid-cols-3 gap-3"><label>Nhà cung cấp<select class="bakery-input w-full" @bind="supplierId"><option value="0">Chọn nhà cung cấp</option>@foreach(var s in suppliers){<option value="@s.SupplierID">@s.SupplierName</option>}</select></label><label>Nhân viên lập phiếu<select class="bakery-input w-full" @bind="employeeId"><option value="0">Chọn nhân viên</option>@foreach(var e in employees){<option value="@e.EmployeeID">@e.FullName</option>}</select></label><label>Ghi chú<input class="bakery-input w-full" @bind="note" /></label></div>
-@foreach(var line in lines){<div class="grid md:grid-cols-4 gap-3 mt-3 items-end"><label>Sản phẩm<select class="bakery-input w-full" @bind="line.ProductID"><option value="0">Chọn sản phẩm</option>@foreach(var p in products){<option value="@p.ProductID">@p.ProductName (tồn @p.Quantity)</option>}</select></label><label>Số lượng<input class="bakery-input w-full" type="number" min="1" @bind="line.Quantity" /></label><label>Đơn giá vốn<input class="bakery-input w-full" type="number" min="0" step="1000" @bind="line.UnitPrice" /></label><button class="bakery-btn bakery-btn-secondary" @onclick="()=>lines.Remove(line)" disabled="@(lines.Count==1)">Xóa dòng</button></div>}
-<div class="flex flex-wrap justify-between items-center mt-4 gap-3"><button class="bakery-btn bakery-btn-secondary" @onclick="()=>lines.Add(new())">+ Thêm sản phẩm</button><div class="flex items-center gap-4"><strong>Tổng tiền: @Total.ToString("N0") đ</strong><button class="bakery-btn bakery-btn-primary" @onclick="Save">Lưu phiếu nhập</button></div></div>@if(!string.IsNullOrEmpty(message)){<p class="mt-3 text-sm @(saved ? "text-emerald-600" : "text-rose-600")">@message</p>}</div>
-<div class="bakery-filter-card overflow-x-auto"><h3 class="font-bold mb-3">Lịch sử nhập hàng <span class="font-normal text-slate-500">· Tổng đã chi @receipts.Sum(x=>x.TotalAmount).ToString("N0") đ</span></h3><table class="w-full text-sm"><thead><tr><th class="text-left p-3">Ngày</th><th class="text-left p-3">Nhà cung cấp</th><th class="text-left p-3">Nhân viên</th><th class="text-left p-3">Sản phẩm</th><th class="text-right p-3">Thành tiền</th></tr></thead><tbody>@foreach(var r in receipts){<tr class="border-t"><td class="p-3">@r.ReceiptDate.ToString("dd/MM/yyyy HH:mm")</td><td class="p-3">@r.Supplier?.SupplierName</td><td class="p-3">@r.Employee?.FullName</td><td class="p-3">@string.Join(", ",r.ImportReceiptDetails.Select(d=>d.Product?.ProductName+" × "+d.Quantity))</td><td class="p-3 text-right">@r.TotalAmount.ToString("N0") đ</td></tr>}</tbody></table></div>
-@code { List<Supplier> suppliers=[];List<Employee> employees=[];List<Product> products=[];List<ImportReceipt> receipts=[];List<ImportLineInput> lines=[new()];int supplierId;int employeeId;string? note,message;bool saved;decimal Total=>lines.Sum(x=>x.Quantity*x.UnitPrice);protected override async Task OnInitializedAsync()=>await Load();async Task Load(){suppliers=await Inventory.GetActiveSuppliersAsync();employees=await EmployeeManager.GetAllAsync();products=await Inventory.GetProductsAsync();receipts=await Inventory.GetReceiptsAsync();}async Task Save(){try{await Inventory.SaveReceiptAsync(new(){SupplierID=supplierId,EmployeeID=employeeId,Note=note,Lines=lines});message="Đã lưu phiếu và cập nhật tồn kho.";saved=true;supplierId=0;employeeId=0;note=null;lines=[new()];await Load();}catch(Exception ex){message=ex.Message;saved=false;}} }
+<div class="bakery-filter-card mb-5">
+    <div class="grid md:grid-cols-3 gap-3">
+        <label>Nhà cung cấp
+            <select class="bakery-input w-full" value="@supplierId" @onchange="SupplierChanged" disabled="@saving">
+                <option value="0">Chọn nhà cung cấp</option>
+                @foreach (var supplier in suppliers) { <option value="@supplier.SupplierID">@supplier.SupplierCode - @supplier.SupplierName</option> }
+            </select>
+        </label>
+        <label>Nhân viên lập phiếu
+            <select class="bakery-input w-full" @bind="employeeId" disabled="@saving">
+                <option value="0">Chọn nhân viên</option>
+                @foreach (var employee in employees) { <option value="@employee.EmployeeID">@employee.FullName</option> }
+            </select>
+        </label>
+        <label>Ghi chú<input class="bakery-input w-full" @bind="note" disabled="@saving" /></label>
+    </div>
+
+    @foreach (var line in lines)
+    {
+        <div class="grid md:grid-cols-5 gap-3 mt-3 items-end">
+            <label>Sản phẩm
+                <select class="bakery-input w-full" @bind="line.ProductID" disabled="@saving">
+                    <option value="0">Chọn sản phẩm</option>
+                    @foreach (var product in products) { <option value="@product.ProductID">@product.ProductName (tồn @product.Quantity)</option> }
+                </select>
+            </label>
+            <label>Số lượng<input class="bakery-input w-full" type="number" min="1" @bind="line.Quantity" disabled="@saving" /></label>
+            <label>Đơn giá vốn<input class="bakery-input w-full" type="number" min="0" step="1000" @bind="line.UnitPrice" disabled="@saving" /></label>
+            <div class="pb-2">
+                <span class="block text-xs text-slate-500">Thành tiền</span>
+                <strong>@((line.Quantity * line.UnitPrice).ToString("N0")) đ</strong>
+            </div>
+            <button class="bakery-btn bakery-btn-secondary" @onclick="() => lines.Remove(line)" disabled="@(saving || lines.Count == 1)">Xóa dòng</button>
+        </div>
+    }
+
+    <div class="flex flex-wrap justify-between items-center mt-4 gap-3">
+        <button class="bakery-btn bakery-btn-secondary" @onclick="AddLine" disabled="@saving">+ Thêm sản phẩm</button>
+        <div class="flex items-center gap-4">
+            <strong>Tổng tiền: @Total.ToString("N0") đ</strong>
+            <button class="bakery-btn bakery-btn-primary" @onclick="Save" disabled="@saving">
+                @(saving ? "Đang lưu..." : "Lưu phiếu nhập")
+            </button>
+        </div>
+    </div>
+    @if (!string.IsNullOrEmpty(message))
+    {
+        <p class="mt-3 text-sm @(saved ? "text-emerald-600" : "text-rose-600")">@message</p>
+    }
+</div>
+
+<div class="bakery-filter-card overflow-x-auto">
+    <h3 class="font-bold mb-3">Lịch sử nhập hàng <span class="font-normal text-slate-500">· Tổng đã chi @receipts.Sum(x => x.TotalAmount).ToString("N0") đ</span></h3>
+    <table class="w-full text-sm">
+        <thead>
+            <tr>
+                <th class="text-left p-3">Mã phiếu</th>
+                <th class="text-left p-3">Ngày</th>
+                <th class="text-left p-3">Nhà cung cấp</th>
+                <th class="text-left p-3">Nhân viên</th>
+                <th class="text-left p-3">Chi tiết sản phẩm</th>
+                <th class="text-right p-3">Thành tiền</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var receipt in receipts)
+            {
+                <tr class="border-t">
+                    <td class="p-3 font-mono font-semibold">PN-@receipt.ReceiptID.ToString("D6")</td>
+                    <td class="p-3">@receipt.ReceiptDate.ToString("dd/MM/yyyy HH:mm")</td>
+                    <td class="p-3"><span class="font-mono">@receipt.Supplier?.SupplierCode</span> - @receipt.Supplier?.SupplierName</td>
+                    <td class="p-3">@receipt.Employee?.FullName</td>
+                    <td class="p-3">
+                        <ul class="space-y-1">
+                            @foreach (var detail in receipt.ImportReceiptDetails)
+                            {
+                                <li>@detail.Product?.ProductName × @detail.Quantity · @detail.UnitPrice.ToString("N0") đ = @detail.SubTotal.ToString("N0") đ</li>
+                            }
+                        </ul>
+                    </td>
+                    <td class="p-3 text-right font-semibold">@receipt.TotalAmount.ToString("N0") đ</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+@code {
+    private List<Supplier> suppliers = [];
+    private List<Employee> employees = [];
+    private List<Product> products = [];
+    private List<ImportReceipt> receipts = [];
+    private List<ImportLineInput> lines = [new()];
+    private int supplierId;
+    private int employeeId;
+    private string? note;
+    private string? message;
+    private bool saved;
+    private bool saving;
+
+    private decimal Total => lines.Sum(line => line.Quantity * line.UnitPrice);
+
+    protected override async Task OnInitializedAsync() => await Load();
+
+    private async Task Load()
+    {
+        suppliers = await Inventory.GetActiveSuppliersAsync();
+        employees = (await EmployeeManager.GetAllAsync())
+            .Where(employee => employee.Account?.Status == AccountStatus.Active)
+            .ToList();
+        receipts = await Inventory.GetReceiptsAsync();
+    }
+
+    private async Task SupplierChanged(ChangeEventArgs args)
+    {
+        int.TryParse(args.Value?.ToString(), out supplierId);
+        products = supplierId > 0
+            ? await Inventory.GetProductsForSupplierAsync(supplierId)
+            : [];
+
+        var allowedIds = products.Select(product => product.ProductID).ToHashSet();
+        var clearedLineCount = 0;
+        foreach (var line in lines.Where(line => line.ProductID > 0 && !allowedIds.Contains(line.ProductID)))
+        {
+            line.ProductID = 0;
+            line.Quantity = 0;
+            line.UnitPrice = 0;
+            clearedLineCount++;
+        }
+
+        message = supplierId > 0 && products.Count == 0
+            ? "Nhà cung cấp này chưa được gán sản phẩm. Vào trang Nhà cung cấp → Quản lý sản phẩm để thiết lập trước khi lập phiếu."
+            : clearedLineCount > 0
+                ? $"Đã xóa sản phẩm và số liệu ở {clearedLineCount} dòng không thuộc nhà cung cấp mới. Vui lòng chọn lại sản phẩm."
+                : null;
+        saved = false;
+    }
+
+    private void AddLine() => lines.Add(new());
+
+    private async Task Save()
+    {
+        if (saving)
+            return;
+
+        saving = true;
+        try
+        {
+            await Inventory.SaveReceiptAsync(new()
+            {
+                SupplierID = supplierId,
+                EmployeeID = employeeId,
+                Note = note,
+                Lines = lines
+            });
+
+            message = "Đã lưu phiếu và cập nhật tồn kho.";
+            saved = true;
+            supplierId = 0;
+            employeeId = 0;
+            note = null;
+            lines = [new()];
+            products = [];
+            await Load();
+        }
+        catch (Exception ex)
+        {
+            message = ex.Message;
+            saved = false;
+        }
+        finally
+        {
+            saving = false;
+        }
+    }
+}

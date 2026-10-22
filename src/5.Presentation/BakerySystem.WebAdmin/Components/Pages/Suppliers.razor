@@ -15,16 +15,16 @@
 <div class="bakery-filter-card mb-4">
     <div class="grid md:grid-cols-4 gap-3 items-end">
         <label>
-            Tên nhà cung cấp
-            <input class="bakery-input w-full" @bind="form.SupplierName" />
+            Tên nhà cung cấp <span class="text-rose-500">*</span>
+            <input class="bakery-input w-full" maxlength="150" required @bind="form.SupplierName" />
         </label>
         <label>
-            Số điện thoại
-            <input class="bakery-input w-full" @bind="form.Phone" />
+            Số điện thoại <span class="text-rose-500">*</span>
+            <input class="bakery-input w-full" type="tel" maxlength="20" required placeholder="Ví dụ: 0912 345 678" @bind="form.Phone" />
         </label>
         <label>
-            Địa chỉ
-            <input class="bakery-input w-full" @bind="form.Address" />
+            Địa chỉ <span class="text-xs text-slate-400">(không bắt buộc)</span>
+            <input class="bakery-input w-full" maxlength="255" @bind="form.Address" />
         </label>
         <div class="flex gap-2">
             <button class="bakery-btn bakery-btn-primary" @onclick="Save">
@@ -49,10 +49,12 @@
     <table class="w-full text-sm">
         <thead>
             <tr>
+                <th class="text-left p-3">Mã NCC</th>
                 <th class="text-left p-3">Nhà cung cấp</th>
                 <th class="text-left p-3">Số điện thoại</th>
                 <th class="text-left p-3">Địa chỉ</th>
                 <th class="text-left p-3">Trạng thái</th>
+                <th class="text-left p-3">Sản phẩm cung cấp</th>
                 <th class="text-right p-3">Thao tác</th>
             </tr>
         </thead>
@@ -61,13 +63,25 @@
             {
                 var hasReceipts = supplier.ImportReceipts.Count > 0;
                 <tr class="border-t">
-                    <td class="p-3 font-semibold">@supplier.SupplierName</td>
+                    <td class="p-3 font-mono font-semibold">@supplier.SupplierCode</td>
+                    <td class="p-3 font-semibold"><a class="text-primary hover:underline" href="/suppliers/@supplier.SupplierID">@supplier.SupplierName</a></td>
                     <td class="p-3">@supplier.Phone</td>
                     <td class="p-3">@supplier.Address</td>
                     <td class="p-3">
                         <span class="bakery-badge @(supplier.IsActive ? "bakery-badge-success" : "bakery-badge-error")">
                             @(supplier.IsActive ? "Đang hoạt động" : "Đã ẩn")
                         </span>
+                    </td>
+                    <td class="p-3">
+                        @if (supplier.SupplierProducts.Count == 0)
+                        {
+                            <span class="text-slate-500">Chưa gán sản phẩm</span>
+                        }
+                        else
+                        {
+                            <span>@string.Join(", ", supplier.SupplierProducts.Select(x => x.Product.ProductName))</span>
+                        }
+                        <button class="bakery-btn bakery-btn-secondary bakery-btn-sm ml-2" @onclick="() => ManageProducts(supplier)">Quản lý</button>
                     </td>
                     <td class="p-3 text-right whitespace-nowrap">
                         <button class="bakery-btn bakery-btn-secondary bakery-btn-sm" @onclick="() => Edit(supplier)">Sửa</button>
@@ -85,6 +99,47 @@
         <p class="p-6 text-center text-slate-500">Chưa có nhà cung cấp.</p>
     }
 </div>
+
+@if (supplierProductsTarget is not null)
+{
+    <div class="bakery-modal-backdrop" @onclick="CloseProductsModal">
+        <div class="bakery-modal-card max-w-2xl" @onclick:stopPropagation="true">
+            <div class="bakery-modal-header">
+                <div>
+                    <h4 class="text-base font-bold text-slate-900 dark:text-white mb-0">Sản phẩm của nhà cung cấp</h4>
+                    <p class="text-xs text-slate-500 mb-0">@supplierProductsTarget.SupplierName · Chọn những sản phẩm có thể nhập từ nhà cung cấp này.</p>
+                </div>
+                <button type="button" class="text-slate-400 hover:text-slate-600 text-lg" @onclick="CloseProductsModal" aria-label="Đóng">×</button>
+            </div>
+            <div class="bakery-modal-body max-h-96 overflow-y-auto">
+                @if (productCatalog.Count == 0)
+                {
+                    <p class="text-sm text-slate-500">Chưa có sản phẩm đang kinh doanh. Hãy thêm sản phẩm trước.</p>
+                }
+                else
+                {
+                    <div class="grid sm:grid-cols-2 gap-2">
+                        @foreach (var product in productCatalog)
+                        {
+                            <label class="flex items-center gap-2 rounded-lg border border-slate-200 p-3">
+                                <input type="checkbox" checked="@selectedProductIds.Contains(product.ProductID)" @onchange="e => ToggleSupplierProduct(product.ProductID, e)" />
+                                <span>@product.ProductName</span>
+                            </label>
+                        }
+                    </div>
+                }
+                @if (!string.IsNullOrEmpty(productMessage))
+                {
+                    <p class="mt-3 text-sm text-rose-600">@productMessage</p>
+                }
+            </div>
+            <div class="bakery-modal-footer">
+                <button type="button" class="bakery-btn bakery-btn-outline" @onclick="CloseProductsModal">Hủy</button>
+                <button type="button" class="bakery-btn bakery-btn-primary" @onclick="SaveSupplierProducts">Lưu danh sách</button>
+            </div>
+        </div>
+    </div>
+}
 
 @if (supplierDeletePrompt is not null)
 {
@@ -158,12 +213,52 @@
     private List<Supplier> suppliers = [];
     private Supplier form = new();
     private Supplier? supplierDeletePrompt;
+    private Supplier? supplierProductsTarget;
+    private List<Product> productCatalog = [];
+    private HashSet<int> selectedProductIds = [];
+    private string? productMessage;
     private string? message;
     private bool operationSucceeded;
 
     protected override async Task OnInitializedAsync() => await Load();
 
     private async Task Load() => suppliers = await Inventory.GetSuppliersAsync();
+
+    private async Task ManageProducts(Supplier supplier)
+    {
+        supplierProductsTarget = supplier;
+        productMessage = null;
+        productCatalog = await Inventory.GetProductsAsync();
+        selectedProductIds = (await Inventory.GetSupplierProductIdsAsync(supplier.SupplierID)).ToHashSet();
+    }
+
+    private void ToggleSupplierProduct(int productId, ChangeEventArgs args)
+    {
+        if (args.Value is true || string.Equals(args.Value?.ToString(), "true", StringComparison.OrdinalIgnoreCase))
+            selectedProductIds.Add(productId);
+        else
+            selectedProductIds.Remove(productId);
+    }
+
+    private void CloseProductsModal() => supplierProductsTarget = null;
+
+    private async Task SaveSupplierProducts()
+    {
+        if (supplierProductsTarget is null)
+            return;
+        try
+        {
+            await Inventory.SaveSupplierProductsAsync(supplierProductsTarget.SupplierID, selectedProductIds);
+            message = $"Đã cập nhật danh sách sản phẩm của {supplierProductsTarget.SupplierName}.";
+            operationSucceeded = true;
+            supplierProductsTarget = null;
+            await Load();
+        }
+        catch (Exception ex)
+        {
+            productMessage = ex.Message;
+        }
+    }
 
     private void Edit(Supplier supplier)
     {

@@ -15,6 +15,7 @@ public class BakeryDbContext : DbContext, IBakeryDbContext
     public DbSet<Customer> Customers => Set<Customer>();
     public DbSet<Employee> Employees => Set<Employee>();
     public DbSet<Supplier> Suppliers => Set<Supplier>();
+    public DbSet<SupplierProduct> SupplierProducts => Set<SupplierProduct>();
     public DbSet<Category> Categories => Set<Category>();
     public DbSet<Product> Products => Set<Product>();
     public DbSet<Promotion> Promotions => Set<Promotion>();
