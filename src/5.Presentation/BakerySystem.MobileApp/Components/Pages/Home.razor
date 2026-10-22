@@ -1,5 +1,5 @@
 @page "/"
-@inject BakerySystem.Application.Features.CustomerOrders.CustomerOrderService CustomerOrderService
+@inject MobileApiClient ApiClient
 @inject CartService CartService
 @inject CustomerSessionService CustomerSession
 @inject IJSRuntime JS
@@ -1693,9 +1693,9 @@ else
         try
         {
             // Tải danh mục và sản phẩm từ cơ sở dữ liệu thật BakerySystem
-            categories = await CustomerOrderService.GetCategoriesAsync();
-            products = await CustomerOrderService.GetActiveProductsAsync();
-            promotions = await CustomerOrderService.GetActivePromotionsAsync();
+            categories = await ApiClient.GetCategoriesAsync();
+            products = await ApiClient.GetProductsAsync();
+            promotions = await ApiClient.GetPromotionsAsync();
 
             await LoadOrdersAsync();
         }
@@ -1779,7 +1779,7 @@ else
             int? customerId = CustomerSession.IsLoggedIn && CustomerSession.CurrentCustomer != null
                 ? CustomerSession.CurrentCustomer.CustomerId
                 : null;
-            customerOrders = await CustomerOrderService.GetOrdersAsync(customerId, lookupPhone);
+            customerOrders = await ApiClient.GetOrdersAsync(customerId, lookupPhone);
             await SyncOrderStatusesFromWebAdminAsync();
         }
         catch (Exception ex)
@@ -1869,6 +1869,25 @@ else
         if (tab == "orders")
         {
             _ = RefreshOrdersWhenReadyAsync();
+        }
+        else if (tab is "home" or "menu")
+        {
+            _ = RefreshCatalogWhenReadyAsync();
+        }
+    }
+
+    private async Task RefreshCatalogWhenReadyAsync()
+    {
+        try
+        {
+            products = await ApiClient.GetProductsAsync();
+            categories = await ApiClient.GetCategoriesAsync();
+            promotions = await ApiClient.GetPromotionsAsync();
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Catalog refresh error: {ex.Message}");
         }
     }
 
@@ -2480,4 +2499,3 @@ else
         CustomerSession.OnAuthChanged -= HandleAuthChanged;
     }
 }
-

@@ -5,16 +5,16 @@ namespace BakerySystem.MobileApp.Services;
 
 public class CustomerSessionService
 {
-    private readonly IAuthService _authService;
+    private readonly MobileApiClient _apiClient;
 
     public event Action? OnAuthChanged;
 
     public CustomerDto? CurrentCustomer { get; private set; }
     public bool IsLoggedIn => CurrentCustomer != null;
 
-    public CustomerSessionService(IAuthService authService)
+    public CustomerSessionService(MobileApiClient apiClient)
     {
-        _authService = authService;
+        _apiClient = apiClient;
         CurrentCustomer = null;
         ClearSavedSession();
     }
@@ -73,7 +73,7 @@ public class CustomerSessionService
         if (CurrentCustomer == null) return;
         try
         {
-            var fresh = await _authService.GetCustomerProfileAsync(CurrentCustomer.CustomerId);
+            var fresh = await _apiClient.GetProfileAsync(CurrentCustomer.CustomerId);
             if (fresh != null)
             {
                 CurrentCustomer = fresh;
@@ -86,7 +86,7 @@ public class CustomerSessionService
 
     public async Task<CustomerAuthResult> LoginAsync(string username, string password)
     {
-        var result = await _authService.CustomerLoginAsync(new LoginRequest
+        var result = await _apiClient.LoginAsync(new LoginRequest
         {
             Username = username,
             Password = password
@@ -105,14 +105,14 @@ public class CustomerSessionService
     public async Task<CustomerAuthResult> RegisterAsync(CustomerRegisterRequest request)
     {
         // Đăng ký chỉ tạo tài khoản; khách hàng phải đăng nhập riêng để vào ứng dụng.
-        return await _authService.RegisterCustomerAsync(request);
+        return await _apiClient.RegisterAsync(request);
     }
 
     public async Task<bool> UpdateProfileAsync(string fullName, string phone, string address)
     {
         if (CurrentCustomer == null) return false;
 
-        var ok = await _authService.UpdateCustomerProfileAsync(new UpdateCustomerProfileRequest
+        var ok = await _apiClient.UpdateProfileAsync(new UpdateCustomerProfileRequest
         {
             CustomerId = CurrentCustomer.CustomerId,
             FullName = fullName,
@@ -136,7 +136,7 @@ public class CustomerSessionService
     {
         if (CurrentCustomer?.AccountId == null) return false;
 
-        return await _authService.ChangePasswordAsync(new ChangePasswordRequest
+        return await _apiClient.ChangePasswordAsync(new ChangePasswordRequest
         {
             AccountId = CurrentCustomer.AccountId.Value,
             OldPassword = oldPassword,
