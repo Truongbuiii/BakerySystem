@@ -4,3 +4,16 @@ GET {{BakerySystem.API_HostAddress}}/weatherforecast/
 Accept: application/json
 
 ###
+
+GET {{BakerySystem.API_HostAddress}}/api/mobile/products
+Accept: application/json
+
+###
+
+POST {{BakerySystem.API_HostAddress}}/api/mobile/auth/login
+Content-Type: application/json
+
+{
+  "username": "customer",
+  "password": "password"
+}

@@ -1,10 +1,21 @@
-    using BakerySystem.Infrastructure;
+using BakerySystem.Application;
+using BakerySystem.API;
+using BakerySystem.Infrastructure;
+using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
+builder.Services.AddApplicationServices();
+builder.Services.ConfigureHttpJsonOptions(options =>
+    options.SerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles);
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("MobileApp", policy =>
+        policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod());
+});
 
 // Register Clean Architecture Infrastructure Services (EF Core DbContext)
 builder.Services.AddInfrastructureServices(builder.Configuration);
@@ -12,11 +23,16 @@ builder.Services.AddInfrastructureServices(builder.Configuration);
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment()) 
+if (app.Environment.IsDevelopment())
+{
     app.MapOpenApi();
 }
-
-app.UseHttpsRedirection();
+else
+{
+    app.UseHttpsRedirection();
+}
+app.UseCors("MobileApp");
+app.MapMobileApi();
 
 var summaries = new[]
 {

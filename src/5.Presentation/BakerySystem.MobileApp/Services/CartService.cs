@@ -1,7 +1,6 @@
 using BakerySystem.Domain.Entities;
 using BakerySystem.Domain.Enums;
-using BakerySystem.Application.Common.Interfaces;
-using Microsoft.EntityFrameworkCore;
+using BakerySystem.MobileApp.Api;
 
 namespace BakerySystem.MobileApp.Services;
 
@@ -19,19 +18,20 @@ public class CartItem
 
 public class CartService
 {
-    private readonly IBakeryDbContext _context;
+    private readonly MobileApiClient _apiClient;
 
     public event Action? OnChange;
 
     public List<CartItem> Items { get; private set; } = new();
     public string AppliedVoucherCode { get; private set; } = string.Empty;
+    private int? AppliedPromotionId { get; set; }
     public decimal DiscountPercent { get; private set; } = 0;
     public decimal MaxDiscountAmount { get; private set; } = 0;
     public decimal MinOrderAmount { get; private set; } = 0;
 
-    public CartService(IBakeryDbContext context)
+    public CartService(MobileApiClient apiClient)
     {
-        _context = context;
+        _apiClient = apiClient;
     }
 
     public int TotalItemsCount => Items.Sum(i => i.Quantity);
@@ -126,6 +126,7 @@ public class CartService
     {
         Items.Clear();
         AppliedVoucherCode = string.Empty;
+        AppliedPromotionId = null;
         DiscountPercent = 0;
         MaxDiscountAmount = 0;
         MinOrderAmount = 0;
@@ -135,6 +136,7 @@ public class CartService
     public void RemoveVoucher()
     {
         AppliedVoucherCode = string.Empty;
+        AppliedPromotionId = null;
         DiscountPercent = 0;
         MaxDiscountAmount = 0;
         MinOrderAmount = 0;
@@ -145,26 +147,17 @@ public class CartService
     {
         if (string.IsNullOrWhiteSpace(code)) return false;
 
-        var now = DateTime.Today;
-        var promo = await _context.Promotions
-            .Include(p => p.PromotionInvoice)
-            .FirstOrDefaultAsync(p => p.PromotionCode.ToUpper() == code.Trim().ToUpper() 
-                                 && p.Status == PromotionStatus.Active
-                                 && p.StartDate <= now
-                                 && p.EndDate >= now
-                                 && (p.PromotionInvoice.UsageLimit == null || p.PromotionInvoice.UsedCount < p.PromotionInvoice.UsageLimit));
+        var promo = await _apiClient.FindPromotionAsync(code);
+        if (promo?.PromotionInvoice == null)
+            return false;
 
-        if (promo?.PromotionInvoice != null)
-        {
-            AppliedVoucherCode = promo.PromotionCode;
-            DiscountPercent = promo.PromotionInvoice.DiscountPercent;
-            MaxDiscountAmount = promo.PromotionInvoice.MaxDiscountAmount ?? 100000m;
-            MinOrderAmount = promo.PromotionInvoice.MinOrderAmount;
-            NotifyStateChanged();
-            return true;
-        }
-
-        return false;
+        AppliedVoucherCode = promo.PromotionCode;
+        AppliedPromotionId = promo.PromotionID;
+        DiscountPercent = promo.PromotionInvoice.DiscountPercent;
+        MaxDiscountAmount = promo.PromotionInvoice.MaxDiscountAmount ?? 100000m;
+        MinOrderAmount = promo.PromotionInvoice.MinOrderAmount;
+        NotifyStateChanged();
+        return true;
     }
 
     public Task<Order?> PlaceOrderAsync(string receiverName, string phone, string address, string note, string paymentMethod)
@@ -176,69 +169,31 @@ public class CartService
     {
         if (!Items.Any()) return null;
 
-        int finalCustomerId;
-        if (customerId.HasValue && customerId.Value > 0)
-        {
-            finalCustomerId = customerId.Value;
-        }
-        else
-        {
-            var customer = await _context.Customers.FirstOrDefaultAsync(c => c.Phone == phone)
-                           ?? await _context.Customers.FirstOrDefaultAsync();
-            finalCustomerId = customer?.CustomerID ?? 1;
-        }
+        var request = new CreateMobileOrderRequest(
+            customerId,
+            receiverName,
+            phone,
+            address,
+            note,
+            paymentMethod,
+            SubTotalAmount,
+            DiscountAmount,
+            FinalAmount,
+            AppliedPromotionId,
+            Items.Select(item => new CreateMobileOrderLine(
+                item.ProductID,
+                item.Quantity,
+                item.UnitPrice,
+                item.SubTotal)).ToList());
 
-        var order = new Order
-        {
-            CustomerID = finalCustomerId,
-            OrderDate = DateTime.Now,
-            TotalAmount = SubTotalAmount,
-            DiscountAmount = DiscountAmount,
-            FinalAmount = FinalAmount,
-            ReceiverName = receiverName,
-            ReceiverPhone = phone,
-            ShippingAddress = address,
-            Note = note,
-            PaymentMethod = paymentMethod,
-            PaymentStatus = paymentMethod == PaymentMethod.COD ? PaymentStatus.Unpaid : PaymentStatus.Paid,
-            Status = OrderStatus.Pending
-        };
-
-        foreach (var item in Items)
-        {
-            order.OrderDetails.Add(new OrderDetail
-            {
-                ProductID = item.ProductID,
-                Quantity = item.Quantity,
-                UnitPrice = item.UnitPrice,
-                DiscountAmount = 0,
-                SubTotal = item.SubTotal
-            });
-        }
-
-        _context.Orders.Add(order);
-        await _context.SaveChangesAsync();
-
-        Clear();
+        var order = await _apiClient.CreateOrderAsync(request);
+        if (order != null)
+            Clear();
         return order;
     }
 
-    public async Task<bool> CancelOrderAsync(int orderId, int? customerId = null)
-    {
-        var order = await _context.Orders.FirstOrDefaultAsync(o => o.OrderID == orderId);
-        if (order == null) return false;
-
-        if (customerId.HasValue && customerId.Value > 0 && order.CustomerID != customerId.Value)
-            return false;
-
-        // Chỉ cho phép khách hàng hủy đơn khi đang ở trạng thái 'Pending' (Chờ duyệt)
-        if (order.Status != OrderStatus.Pending)
-            return false;
-
-        order.Status = OrderStatus.Cancelled;
-        await _context.SaveChangesAsync();
-        return true;
-    }
+    public Task<bool> CancelOrderAsync(int orderId, int? customerId = null) =>
+        _apiClient.CancelOrderAsync(orderId, customerId);
 
     public void ReOrder(Order order)
     {
