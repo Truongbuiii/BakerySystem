@@ -424,7 +424,7 @@
                 <!-- Initial Quantity -->
                 <div>
                     <label class="bakery-label">Số lượng khởi tạo tồn kho</label>
-                    <input type="number" min="0" class="bakery-input" placeholder="10" @bind="newProduct.InitialQuantity" />
+                    <input type="number" min="0" class="bakery-input" placeholder="0" @bind="newProduct.InitialQuantity" />
                     <span class="text-[11px] text-slate-500 mt-1 block">Lưu ý: Sau khi tạo, số lượng tồn kho sẽ được quản lý tự động qua Phiếu Nhập Hàng và Bán Hàng.</span>
                 </div>
 
@@ -932,7 +932,7 @@
         newProduct = new CreateProductDto
         {
             CategoryID = categories.FirstOrDefault()?.CategoryID ?? 1,
-            InitialQuantity = 10,
+            InitialQuantity = 0,
             ImageURL = "/assets/images/products/default-bakery.svg",
             IsActive = true
         };
