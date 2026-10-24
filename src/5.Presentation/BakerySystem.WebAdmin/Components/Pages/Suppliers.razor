@@ -23,8 +23,8 @@
             <input class="bakery-input w-full" type="tel" maxlength="20" required placeholder="Ví dụ: 0912 345 678" @bind="form.Phone" />
         </label>
         <label>
-            Địa chỉ <span class="text-xs text-slate-400">(không bắt buộc)</span>
-            <input class="bakery-input w-full" maxlength="255" @bind="form.Address" />
+            Địa chỉ <span class="text-rose-500">*</span>
+            <input class="bakery-input w-full" maxlength="255" required @bind="form.Address" />
         </label>
         <div class="flex gap-2">
             <button class="bakery-btn bakery-btn-primary" @onclick="Save">

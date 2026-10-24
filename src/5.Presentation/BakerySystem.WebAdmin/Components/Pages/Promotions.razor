@@ -104,6 +104,7 @@
                     <td class="p-3">
                         <span class="promotion-status @(p.Status == "Active" ? "promotion-status-active" : "")">@GetStatusText(p.Status)</span>
                         <div class="mt-2 flex gap-2">
+                            <a class="bakery-btn bakery-btn-secondary bakery-btn-sm" href="/promotions/@p.PromotionID">Chi tiết</a>
                             <button type="button" class="bakery-btn bakery-btn-outline bakery-btn-sm" @onclick="() => BeginEdit(p)">Sửa</button>
                             <button type="button" class="bakery-btn bakery-btn-secondary bakery-btn-sm" title="Không xóa chương trình; chỉ ẩn khỏi các đơn hàng mới." @onclick="() => ToggleStatus(p)">
                                 @(p.Status == "Active" ? "Ẩn" : "Kích hoạt")
@@ -136,10 +137,19 @@
     private string? message;
     private bool saved;
 
+    [SupplyParameterFromQuery(Name = "edit")]
+    public int? EditPromotionId { get; set; }
+
     protected override async Task OnInitializedAsync()
     {
         campaigns = await PromotionManager.GetAsync();
         products = await InventoryManager.GetProductsAsync();
+        if (EditPromotionId is int editId)
+        {
+            var toEdit = campaigns.FirstOrDefault(p => p.PromotionID == editId);
+            if (toEdit is not null)
+                await BeginEdit(toEdit);
+        }
     }
 
     private void SetProductSelection(int productId, ChangeEventArgs args)

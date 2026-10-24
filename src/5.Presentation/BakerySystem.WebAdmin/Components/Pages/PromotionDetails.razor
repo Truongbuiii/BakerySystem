@@ -1,0 +1,231 @@
+@page "/promotions/{PromotionId:int}"
+@rendermode InteractiveServer
+@attribute [Authorize(Roles = "Admin")]
+@inject PromotionService PromotionManager
+
+<PageTitle>Chi tiết khuyến mãi | BakerySystem</PageTitle>
+
+<div class="bakery-page-header">
+    <div>
+        <a href="/promotions" class="text-sm text-primary hover:underline">← Danh sách khuyến mãi</a>
+        @if (promotion is not null)
+        {
+            <h2 class="mt-2 text-2xl font-bold tracking-tight">@promotion.PromotionName</h2>
+            <p class="mt-1 text-sm text-slate-500">Mã khuyến mãi <span class="ml-1 rounded-md bg-slate-100 px-2 py-1 font-mono font-semibold text-slate-700">@promotion.PromotionCode</span></p>
+        }
+        else
+        {
+            <h2 class="mt-2 text-2xl font-bold">Chi tiết khuyến mãi</h2>
+        }
+    </div>
+    @if (promotion is not null)
+    {
+        <div class="flex flex-wrap gap-2">
+            <a class="bakery-btn bakery-btn-primary" href="/promotions?edit=@PromotionId">Sửa khuyến mãi</a>
+            <button type="button" class="bakery-btn bakery-btn-secondary" @onclick="ToggleStatus">
+                @(promotion.Status == "Active" ? "Tạm dừng" : "Kích hoạt lại")
+            </button>
+        </div>
+    }
+</div>
+
+@if (!string.IsNullOrWhiteSpace(actionMessage))
+{
+    <div class="bakery-filter-card mb-4 text-sm">@actionMessage</div>
+}
+
+@if (promotion is null)
+{
+    <div class="bakery-filter-card text-center text-slate-500">Không tìm thấy chương trình khuyến mãi.</div>
+}
+else
+{
+    <div class="space-y-5">
+        <section class="bakery-filter-card !p-6">
+            <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
+                <div>
+                    <h3 class="text-lg font-bold tracking-tight text-slate-800">Thông tin chương trình</h3>
+                    <p class="mt-1 text-sm text-slate-500">Tổng quan về thời hạn và giới hạn sử dụng.</p>
+                </div>
+                <span class="promotion-status @(promotion.Status == "Active" ? "promotion-status-active" : "")">@GetStatusText()</span>
+            </div>
+
+            <dl class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                <div class="rounded-xl border border-slate-200 bg-white p-4">
+                    <dt class="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-slate-500"><iconify-icon icon="solar:calendar-date-linear" class="text-base text-blue-500"></iconify-icon>Thời gian áp dụng</dt>
+                    <dd class="mt-2 text-sm font-semibold leading-6 text-slate-800">@promotion.StartDate.ToString("dd/MM/yyyy") – @promotion.EndDate.ToString("dd/MM/yyyy")</dd>
+                </div>
+                <div class="rounded-xl border border-slate-200 bg-white p-4">
+                    <dt class="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-slate-500"><iconify-icon icon="solar:shield-check-linear" class="text-base text-emerald-500"></iconify-icon>Trạng thái quản trị</dt>
+                    <dd class="mt-2 text-sm font-semibold leading-6 text-slate-800">@(promotion.Status == "Active" ? "Đang bật" : "Đang ẩn")</dd>
+                </div>
+                <div class="rounded-xl border border-slate-200 bg-white p-4">
+                    <dt class="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-slate-500"><iconify-icon icon="solar:document-text-linear" class="text-base text-violet-500"></iconify-icon>Mô tả</dt>
+                    <dd class="mt-2 text-sm font-medium leading-6 text-slate-700">@(string.IsNullOrWhiteSpace(promotion.Description) ? "Chưa có mô tả" : promotion.Description)</dd>
+                </div>
+                @if (promotion.PromotionInvoice is { } invoice)
+                {
+                    <div class="rounded-xl border border-blue-100 bg-blue-50/50 p-4">
+                        <dt class="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-slate-500"><iconify-icon icon="solar:ticket-sale-linear" class="text-base text-blue-600"></iconify-icon>Lượt sử dụng</dt>
+                        <dd class="mt-2 text-lg font-bold leading-6 text-slate-900">@invoice.UsedCount <span class="text-sm font-medium text-slate-500">@(invoice.UsageLimit.HasValue ? $"/ {invoice.UsageLimit.Value}" : "lượt")</span></dd>
+                    </div>
+                }
+                <div class="rounded-xl border border-slate-200 bg-white p-4">
+                    <dt class="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-slate-500"><iconify-icon icon="solar:users-group-rounded-linear" class="text-base text-amber-500"></iconify-icon>Giới hạn mỗi khách</dt>
+                    <dd class="mt-2 text-sm font-semibold leading-6 text-slate-700">Chưa cấu hình</dd>
+                </div>
+            </dl>
+        </section>
+
+        <section class="bakery-filter-card !p-6">
+            <div class="mb-5">
+                <h3 class="text-lg font-bold tracking-tight text-slate-800">Điều kiện ưu đãi</h3>
+                <p class="mt-1 text-sm text-slate-500">Quy tắc tính giảm giá của chương trình này.</p>
+            </div>
+            <div class="grid grid-cols-1 gap-4 xl:grid-cols-2">
+                @if (promotion.PromotionInvoice is { } invoiceRule)
+                {
+                    <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-5">
+                        <h4 class="mb-3 flex items-center gap-2 font-semibold text-slate-800"><iconify-icon icon="solar:bill-list-linear" class="text-lg text-blue-500"></iconify-icon>Theo tổng đơn hàng</h4>
+                        <p class="mb-2 text-sm leading-6 text-slate-600">Đơn từ <strong class="text-slate-900">@invoiceRule.MinOrderAmount.ToString("N0") đ</strong> được giảm <strong class="text-slate-900">@(invoiceRule.DiscountPercent.ToString("0.##"))%</strong>.</p>
+                        @if (invoiceRule.MaxDiscountAmount is > 0)
+                        {
+                            <p class="mb-0 text-sm leading-6 text-slate-600">Mức giảm tối đa: <strong class="text-slate-900">@invoiceRule.MaxDiscountAmount.Value.ToString("N0") đ</strong>.</p>
+                        }
+                    </div>
+                }
+
+                @if (promotion.PromotionProducts.Count > 0)
+                {
+                    var productRule = promotion.PromotionProducts.First();
+                    <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-5">
+                        <h4 class="mb-3 flex items-center gap-2 font-semibold text-slate-800"><iconify-icon icon="solar:cup-star-linear" class="text-lg text-rose-500"></iconify-icon>Theo sản phẩm</h4>
+                        <p class="mb-3 text-sm leading-6 text-slate-600">Giảm <strong class="text-slate-900">@(productRule.DiscountPercent.ToString("0.##"))%</strong> cho sản phẩm được chọn.</p>
+                        @if (productRule.MaxDiscountAmount is > 0)
+                        {
+                        <p class="mb-3 text-sm leading-6 text-slate-600">Tối đa <strong class="text-slate-900">@productRule.MaxDiscountAmount.Value.ToString("N0") đ</strong> mỗi sản phẩm.</p>
+                        }
+                        <div class="flex flex-wrap gap-2">
+                            @foreach (var item in promotion.PromotionProducts.OrderBy(item => item.Product?.ProductName))
+                            {
+                                <span class="bakery-badge bakery-badge-success">@(item.Product?.ProductName ?? $"Sản phẩm {item.ProductID}")</span>
+                            }
+                        </div>
+                    </div>
+                    @if (promotion.PromotionInvoice is not null)
+                    {
+                        <p class="text-xs text-slate-500">Ưu đãi theo sản phẩm chỉ áp dụng cho các bánh trong danh sách; ưu đãi theo hóa đơn xét tổng giá trị đơn hàng.</p>
+                    }
+                }
+                else if (promotion.PromotionInvoice is not null)
+                {
+                    <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-5">
+                        <h4 class="mb-2 flex items-center gap-2 font-semibold text-slate-800"><iconify-icon icon="solar:info-circle-linear" class="text-lg text-blue-500"></iconify-icon>Phạm vi áp dụng</h4>
+                        <p class="mb-0 text-sm leading-6 text-slate-600">Điều kiện hóa đơn áp dụng theo tổng giá trị đơn hàng; không giới hạn vào danh mục bánh cụ thể.</p>
+                    </div>
+                }
+
+                @if (promotion.PromotionOrderTier is { } tier)
+                {
+                    <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-5">
+                        <h4 class="mb-3 flex items-center gap-2 font-semibold text-slate-800"><iconify-icon icon="solar:wallet-money-linear" class="text-lg text-emerald-500"></iconify-icon>Theo mức đơn hàng</h4>
+                        <p class="mb-0 text-sm leading-6 text-slate-600">Đơn từ <strong class="text-slate-900">@tier.MinOrderAmount.ToString("N0") đ</strong> được giảm <strong class="text-slate-900">@(tier.DiscountPercent.ToString("0.##"))%</strong>.</p>
+                    </div>
+                }
+
+                @if (promotion.PromotionInvoice is null && promotion.PromotionProducts.Count == 0 && promotion.PromotionOrderTier is null)
+                {
+                    <p class="text-sm text-slate-500">Chương trình chưa có điều kiện ưu đãi.</p>
+                }
+            </div>
+        </section>
+    </div>
+
+    <section class="bakery-filter-card !p-6 mt-5">
+        <div class="mb-5 flex flex-wrap items-start justify-between gap-3">
+            <div>
+                <h3 class="flex items-center gap-2 text-lg font-bold tracking-tight text-slate-800"><iconify-icon icon="solar:chart-2-linear" class="text-xl text-blue-500"></iconify-icon>Thống kê sử dụng</h3>
+                <p class="mt-1 text-sm leading-6 text-slate-500">Số liệu tính từ các đơn hàng có liên kết trực tiếp với mã khuyến mãi.</p>
+            </div>
+            <a class="bakery-btn bakery-btn-secondary bakery-btn-sm" href="/orders">Mở quản lý đơn hàng</a>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
+            <div class="rounded-xl border border-slate-200 bg-white p-4"><div class="text-xs font-medium uppercase tracking-wide text-slate-500">Đơn có chi tiết lịch sử</div><strong class="mt-2 block text-2xl font-bold text-slate-900">@ordersUsing.Count</strong></div>
+            <div class="rounded-xl border border-slate-200 bg-white p-4"><div class="text-xs font-medium uppercase tracking-wide text-slate-500">Tiền giảm lưu trên đơn</div><strong class="mt-2 block text-2xl font-bold text-slate-900">@ordersUsing.Sum(o => o.DiscountAmount).ToString("N0") <span class="text-base font-semibold">đ</span></strong></div>
+            <div class="rounded-xl border border-slate-200 bg-white p-4"><div class="text-xs font-medium uppercase tracking-wide text-slate-500">Giới hạn toàn chiến dịch</div><strong class="mt-2 block text-2xl font-bold text-slate-900">@(promotion.PromotionInvoice?.UsageLimit?.ToString() ?? "Không giới hạn")</strong></div>
+        </div>
+        @if (promotion.PromotionInvoice is { } usageInfo && usageInfo.UsedCount != ordersUsing.Count)
+        {
+            <p class="mb-4 rounded-lg bg-amber-50 p-3 text-sm text-amber-800">
+                Bộ đếm của mã là @usageInfo.UsedCount@(usageInfo.UsageLimit.HasValue ? $"/{usageInfo.UsageLimit.Value}" : "") lượt, nhưng hiện có @ordersUsing.Count đơn liên kết để xem chi tiết. Dữ liệu mẫu hiện khởi tạo bộ đếm lượt dùng riêng, không tạo đơn giả tương ứng; vì vậy lịch sử và tổng tiền bên dưới chỉ tính các đơn đang có liên kết.
+            </p>
+        }
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500"><tr><th class="text-left p-4">Mã đơn</th><th class="text-left p-4">Khách hàng</th><th class="text-left p-4">Thời gian</th><th class="text-right p-4">Số tiền giảm</th></tr></thead>
+                <tbody>
+                    @if (ordersUsing.Count == 0)
+                    {
+                        <tr><td colspan="4" class="p-8 text-center text-slate-500">Chưa có đơn hàng nào được liên kết với mã này.</td></tr>
+                    }
+                    else
+                    {
+                        @foreach (var order in ordersUsing)
+                        {
+                            <tr class="border-t border-slate-100"><td class="p-4 font-semibold"><a class="text-primary hover:underline" href="/orders?order=@order.OrderID">HD-@order.OrderID.ToString("D4")</a></td><td class="p-4">@(order.Customer?.FullName ?? "Khách hàng")</td><td class="p-4 text-slate-600">@order.OrderDate.ToString("dd/MM/yyyy HH:mm")</td><td class="p-4 text-right font-semibold">@order.DiscountAmount.ToString("N0") đ</td></tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+        @if (promotion.PromotionProducts.Count > 0)
+        {
+            <p class="mt-3 text-xs text-amber-700">Lưu ý: mô hình đơn hàng hiện chỉ lưu mã khuyến mãi hóa đơn; lượt giảm riêng theo sản phẩm không được liên kết riêng vào đơn, nên lịch sử này không thể thống kê đầy đủ phần giảm theo bánh.</p>
+        }
+    </section>
+    <div class="mt-4"><a class="bakery-btn bakery-btn-secondary" href="/promotions">Quay về danh sách</a></div>
+}
+
+@code {
+    [Parameter] public int PromotionId { get; set; }
+
+    private Promotion? promotion;
+    private List<Order> ordersUsing = [];
+    private string? actionMessage;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        promotion = await PromotionManager.GetByIdAsync(PromotionId);
+        ordersUsing = await PromotionManager.GetOrdersUsingAsync(PromotionId);
+    }
+
+    private async Task ToggleStatus()
+    {
+        if (promotion is null)
+            return;
+        var next = promotion.Status == "Active" ? "Hidden" : "Active";
+        try
+        {
+            await PromotionManager.SetStatusAsync(PromotionId, next);
+            promotion.Status = next;
+            actionMessage = next == "Active" ? "Đã kích hoạt lại khuyến mãi." : "Đã tạm dừng khuyến mãi.";
+        }
+        catch (Exception ex)
+        {
+            actionMessage = $"Không thể cập nhật trạng thái: {ex.Message}";
+        }
+    }
+
+    private string GetStatusText()
+    {
+        if (promotion is null)
+            return string.Empty;
+        if (promotion.Status != "Active")
+            return "Đã ẩn";
+        if (DateTime.Today < promotion.StartDate.Date)
+            return "Sắp diễn ra";
+        if (DateTime.Today > promotion.EndDate.Date)
+            return "Đã hết hạn";
+        return "Đang diễn ra";
+    }
+}

@@ -75,6 +75,17 @@ else
             <a class="bakery-btn bakery-btn-secondary" href="/import-receipts">Đến lập phiếu nhập</a>
         </div>
 
+        @if (receipts.Count > pageSize)
+        {
+            <div class="mb-3 flex flex-wrap items-center justify-between gap-2 text-sm">
+                <span class="text-slate-500">Trang @currentPage / @PageCount</span>
+                <div class="flex gap-2">
+                    <button class="bakery-btn bakery-btn-secondary bakery-btn-sm" @onclick="PreviousReceiptPage" disabled="@(currentPage <= 1)">Trước</button>
+                    <button class="bakery-btn bakery-btn-secondary bakery-btn-sm" @onclick="NextReceiptPage" disabled="@(currentPage >= PageCount)">Sau</button>
+                </div>
+            </div>
+        }
+
         @if (receipts.Count == 0)
         {
             <p class="p-6 text-center text-slate-500">Nhà cung cấp chưa có phiếu nhập.</p>
@@ -93,7 +104,7 @@ else
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach (var receipt in receipts)
+                    @foreach (var receipt in PagedReceipts)
                     {
                         <tr class="border-t align-top">
                             <td class="p-3 font-mono font-semibold">PN-@receipt.ReceiptID.ToString("D6")</td>
@@ -123,10 +134,20 @@ else
 
     private Supplier? supplier;
     private List<ImportReceipt> receipts = [];
+    private const int pageSize = 10;
+    private int currentPage = 1;
+
+    private int PageCount => Math.Max(1, (int)Math.Ceiling(receipts.Count / (double)pageSize));
+    private IEnumerable<ImportReceipt> PagedReceipts => receipts.Skip((currentPage - 1) * pageSize).Take(pageSize);
+
+    private void PreviousReceiptPage() => currentPage = Math.Max(1, currentPage - 1);
+
+    private void NextReceiptPage() => currentPage = Math.Min(PageCount, currentPage + 1);
 
     protected override async Task OnParametersSetAsync()
     {
         supplier = await Inventory.GetSupplierDetailsAsync(SupplierId);
+        currentPage = 1;
         receipts = supplier is null
             ? []
             : await Inventory.GetReceiptsBySupplierAsync(SupplierId);

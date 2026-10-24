@@ -285,6 +285,23 @@ public static class BakeryDataSeeder
             }
         }
 
+        var adminAccountsWithoutEmployee = await context.Accounts
+            .Where(account => account.Role == AccountRole.Admin &&
+                !context.Employees.Any(employee => employee.AccountID == account.AccountID))
+            .ToListAsync();
+        foreach (var account in adminAccountsWithoutEmployee)
+        {
+            context.Employees.Add(new Employee
+            {
+                AccountID = account.AccountID,
+                FullName = account.Username == "admin" ? "Quản trị viên" : account.Username,
+                Position = "Quản lý"
+            });
+        }
+
+        if (adminAccountsWithoutEmployee.Count > 0)
+            await context.SaveChangesAsync();
+
         // 4. Seed Categories if empty
         if (!await context.Categories.AnyAsync())
         {

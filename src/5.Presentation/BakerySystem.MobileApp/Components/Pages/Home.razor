@@ -322,6 +322,9 @@ else
                 <div class="product-grid">
                     @foreach (var prod in FilteredProducts)
                     {
+                        var productDiscount = CartService.GetProductDiscountAmount(prod.ProductID, prod.Price);
+                        var discountedPrice = prod.Price - productDiscount;
+                        var productDiscountPercent = CartService.GetProductDiscountPercent(prod.ProductID);
                         <div class="mobile-product-card" @onclick="() => OpenProductModal(prod)">
                             <div class="product-img-wrap">
                                 <img src="@GetProductImageUrl(prod)" alt="@prod.ProductName" class="product-img" style="@(prod.Quantity <= 0 ? "opacity: 0.5; filter: grayscale(40%);" : "")" onerror="this.src='/assets/images/products/default-bakery.svg';" />
@@ -339,7 +342,18 @@ else
                                 <span class="product-category">Thủ công</span>
                                 <h6 class="product-name">@prod.ProductName</h6>
                                 <div class="product-price-row">
-                                    <span class="product-price">@($"{prod.Price:N0}đ")</span>
+                                    @if (productDiscount > 0)
+                                    {
+                                        <span class="product-price">
+                                            <del style="font-size: 11px; color: #9C8E84; font-weight: 500;">@($"{prod.Price:N0}đ")</del>
+                                            <strong style="display: block; color: #E76F51;">@($"{discountedPrice:N0}đ")</strong>
+                                            <small style="display: block; color: #16A34A;">Giảm @($"{productDiscountPercent:0.##}%")</small>
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="product-price">@($"{prod.Price:N0}đ")</span>
+                                    }
                                     @if (prod.Quantity > 0)
                                     {
                                         <button class="btn-quick-add" @onclick:stopPropagation="true" @onclick="() => QuickAddToCart(prod)" title="Thêm nhanh">
@@ -389,6 +403,9 @@ else
             <div class="product-grid">
                 @foreach (var prod in FilteredProducts)
                 {
+                    var productDiscount = CartService.GetProductDiscountAmount(prod.ProductID, prod.Price);
+                    var discountedPrice = prod.Price - productDiscount;
+                    var productDiscountPercent = CartService.GetProductDiscountPercent(prod.ProductID);
                     <div class="mobile-product-card" @onclick="() => OpenProductModal(prod)">
                         <div class="product-img-wrap">
                             <img src="@GetProductImageUrl(prod)" alt="@prod.ProductName" class="product-img" style="@(prod.Quantity <= 0 ? "opacity: 0.5; filter: grayscale(40%);" : "")" onerror="this.src='/assets/images/products/default-bakery.svg';" />
@@ -406,7 +423,18 @@ else
                             <h6 class="product-name">@prod.ProductName</h6>
                             <p style="font-size: 11px; color: #9C8E84; margin: 0 0 6px; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden;">@prod.Description</p>
                             <div class="product-price-row">
-                                <span class="product-price">@($"{prod.Price:N0}đ")</span>
+                                @if (productDiscount > 0)
+                                {
+                                    <span class="product-price">
+                                        <del style="font-size: 11px; color: #9C8E84; font-weight: 500;">@($"{prod.Price:N0}đ")</del>
+                                        <strong style="display: block; color: #E76F51;">@($"{discountedPrice:N0}đ")</strong>
+                                        <small style="display: block; color: #16A34A;">Giảm @($"{productDiscountPercent:0.##}%")</small>
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="product-price">@($"{prod.Price:N0}đ")</span>
+                                }
                                 @if (prod.Quantity > 0)
                                 {
                                     <button class="btn-quick-add" @onclick:stopPropagation="true" @onclick="() => QuickAddToCart(prod)">
@@ -877,9 +905,15 @@ else
                     @foreach (var promo in promotions)
                     {
                         var isApplied = CartService.AppliedVoucherCode.Equals(promo.PromotionCode, StringComparison.OrdinalIgnoreCase);
-                        var discountPct = promo.PromotionInvoice?.DiscountPercent ?? 10;
+                        var discountPct = promo.PromotionInvoice?.DiscountPercent
+                            ?? promo.PromotionProducts.FirstOrDefault()?.DiscountPercent
+                            ?? 0;
                         var minOrder = promo.PromotionInvoice?.MinOrderAmount ?? 0;
-                        var maxDiscount = promo.PromotionInvoice?.MaxDiscountAmount ?? 50000;
+                        var invoiceCap = promo.PromotionInvoice?.MaxDiscountAmount;
+                        var productCap = promo.PromotionProducts.FirstOrDefault()?.MaxDiscountAmount;
+                        var productNames = string.Join(", ", promo.PromotionProducts
+                            .Select(item => item.Product?.ProductName)
+                            .Where(name => !string.IsNullOrWhiteSpace(name)));
 
                         <div class="voucher-ticket @(isApplied ? "active-applied" : "")">
                             <div class="voucher-stub">
@@ -888,8 +922,22 @@ else
                             </div>
                             <div class="voucher-details">
                                 <h6 class="voucher-title">@promo.PromotionName</h6>
-                                <p class="voucher-cond">Đơn tối thiểu: <strong>@($"{minOrder:N0}đ")</strong></p>
-                                <p class="voucher-cond">Giảm tối đa: <strong>@($"{maxDiscount:N0}đ")</strong></p>
+                                @if (promo.PromotionInvoice is not null)
+                                {
+                                    <p class="voucher-cond">Đơn tối thiểu: <strong>@($"{minOrder:N0}đ")</strong></p>
+                                    @if (invoiceCap.HasValue && invoiceCap.Value > 0)
+                                    {
+                                        <p class="voucher-cond">Giảm tối đa trên đơn: <strong>@($"{invoiceCap.Value:N0}đ")</strong></p>
+                                    }
+                                }
+                                @if (promo.PromotionProducts.Count > 0)
+                                {
+                                    <p class="voucher-cond">Áp dụng @($"{promo.PromotionProducts.First().DiscountPercent:0.##}%") cho: <strong>@productNames</strong></p>
+                                    @if (productCap.HasValue && productCap.Value > 0)
+                                    {
+                                        <p class="voucher-cond">Giảm tối đa mỗi bánh: <strong>@($"{productCap.Value:N0}đ")</strong></p>
+                                    }
+                                }
                                 <div class="voucher-expiry">
                                     <iconify-icon icon="solar:clock-circle-linear" style="font-size: 11px;"></iconify-icon>
                                     <span>HSD: @promo.EndDate.ToString("dd/MM/yyyy")</span>
@@ -1000,7 +1048,18 @@ else
                         <span style="font-size: 11px; font-weight: 700; color: #E76F51; text-transform: uppercase;">@selectedProduct?.Category?.CategoryName</span>
                         <h4 style="margin: 2px 0 0; font-size: 17px; font-weight: 800; color: #2B2118;">@selectedProduct?.ProductName</h4>
                     </div>
-                    <span style="font-size: 18px; font-weight: 800; color: #E76F51;">@($"{selectedProduct?.Price ?? 0:N0}đ")</span>
+                    @if (selectedProduct is not null && SelectedProductDiscountAmount > 0)
+                    {
+                        <div style="text-align: right;">
+                            <del style="display: block; font-size: 12px; color: #9C8E84;">@($"{selectedProduct.Price:N0}đ")</del>
+                            <span style="font-size: 18px; font-weight: 800; color: #E76F51;">@($"{(selectedProduct.Price * modalQuantity - SelectedProductDiscountAmount) / Math.Max(1, modalQuantity):N0}đ")</span>
+                            <small style="display: block; color: #16A34A;">Giảm @($"{CartService.GetProductDiscountPercent(selectedProduct.ProductID):0.##}%")</small>
+                        </div>
+                    }
+                    else
+                    {
+                        <span style="font-size: 18px; font-weight: 800; color: #E76F51;">@($"{selectedProduct?.Price ?? 0:N0}đ")</span>
+                    }
                 </div>
 
                 <p style="font-size: 13px; color: #6E6259; line-height: 1.5; margin-bottom: 16px;">
@@ -1051,7 +1110,7 @@ else
                 @if (selectedProduct != null && selectedProduct.Quantity > 0)
                 {
                     <button class="btn-bk-primary" @onclick="AddToCartFromModal">
-                        Thêm vào giỏ hàng • @($"{((selectedProduct.Price) * modalQuantity):N0}đ")
+                        Thêm vào giỏ hàng • @($"{(selectedProduct.Price * modalQuantity - SelectedProductDiscountAmount):N0}đ")
                     </button>
                 }
                 else
@@ -1093,7 +1152,7 @@ else
                                         </div>
                                         <div>
                                             <span style="font-size: 12px; font-weight: 800; color: #2B2118;">Đã lưu mã: @CartService.AppliedVoucherCode</span>
-                                            <div style="font-size: 11px; color: #6E6259;">Giảm @($"{CartService.DiscountPercent:0}%") khi thêm bánh vào giỏ!</div>
+                                            <div style="font-size: 11px; color: #6E6259;">@CartService.AppliedPromotionSummary</div>
                                         </div>
                                     </div>
                                     <button style="border: none; background: #FEE2E2; color: #DC2626; border-radius: 6px; padding: 4px 8px; font-size: 11px; font-weight: 700; cursor: pointer;"
@@ -1159,11 +1218,7 @@ else
                                     <div>
                                         <div style="font-size: 12px; font-weight: 800; color: #2B2118;">Mã: @CartService.AppliedVoucherCode</div>
                                         <div style="font-size: 11px; color: #6E6259;">
-                                            Giảm @($"{CartService.DiscountPercent:0}%") @(CartService.MaxDiscountAmount > 0 ? $"(tối đa {CartService.MaxDiscountAmount:N0}đ)" : "")
-                                            @if (CartService.MinOrderAmount > 0)
-                                            {
-                                                <span> • Đơn từ @($"{CartService.MinOrderAmount:N0}đ")</span>
-                                            }
+                                            @CartService.AppliedPromotionSummary
                                         </div>
                                     </div>
                                 </div>
@@ -1268,14 +1323,21 @@ else
                             <span>Tạm tính tiền bánh:</span>
                             <span style="font-weight: 700;">@($"{CartService.SubTotalAmount:N0}đ")</span>
                         </div>
-                        @if (CartService.DiscountAmount > 0)
+                        @if (CartService.InvoiceDiscountAmount > 0)
                         {
                             <div style="display: flex; justify-content: space-between; font-size: 12px; color: #E76F51; margin-bottom: 4px;">
-                                <span>Giảm giá voucher (@CartService.AppliedVoucherCode):</span>
-                                <span style="font-weight: 700;">-@($"{CartService.DiscountAmount:N0}đ")</span>
+                                <span>Giảm theo tổng đơn:</span>
+                                <span style="font-weight: 700;">-@($"{CartService.InvoiceDiscountAmount:N0}đ")</span>
                             </div>
                         }
-                        else if (!string.IsNullOrEmpty(CartService.AppliedVoucherCode) && CartService.RemainingForVoucher > 0)
+                        @if (CartService.ProductDiscountAmount > 0)
+                        {
+                            <div style="display: flex; justify-content: space-between; font-size: 12px; color: #E76F51; margin-bottom: 4px;">
+                                <span>Giảm theo sản phẩm:</span>
+                                <span style="font-weight: 700;">-@($"{CartService.ProductDiscountAmount:N0}đ")</span>
+                            </div>
+                        }
+                        @if (CartService.DiscountAmount == 0 && !string.IsNullOrEmpty(CartService.AppliedVoucherCode) && CartService.RemainingForVoucher > 0)
                         {
                             <div style="font-size: 11px; color: #D97706; margin-bottom: 4px; font-weight: 600; background: #FEF3C7; padding: 4px 8px; border-radius: 6px;">
                                 ⚠️ Cần mua thêm @($"{CartService.RemainingForVoucher:N0}đ") để áp dụng mã @CartService.AppliedVoucherCode!
@@ -1607,6 +1669,9 @@ else
     private List<Order> customerOrders = new();
 
     private Product? selectedProduct;
+    private decimal SelectedProductDiscountAmount => selectedProduct is null
+        ? 0
+        : CartService.GetProductDiscountAmount(selectedProduct.ProductID, selectedProduct.Price * modalQuantity);
     private int modalQuantity = 1;
 
     private bool isCartOpen = false;

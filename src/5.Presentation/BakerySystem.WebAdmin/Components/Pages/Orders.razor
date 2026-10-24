@@ -668,6 +668,9 @@
     private string searchQuery = "";
     private Order? selectedOrder;
 
+    [SupplyParameterFromQuery(Name = "order")]
+    public int? OrderIdFromQuery { get; set; }
+
     private List<Order> filteredOrders => orders
         .Where(o => selectedStatus == "All" || o.Status == selectedStatus)
         .Where(o => string.IsNullOrWhiteSpace(searchQuery) ||
@@ -679,6 +682,8 @@
     protected override async Task OnInitializedAsync()
     {
         await LoadOrdersAsync();
+        if (OrderIdFromQuery is int orderId)
+            selectedOrder = orders.FirstOrDefault(o => o.OrderID == orderId);
     }
 
     private async Task LoadOrdersAsync()

@@ -31,7 +31,7 @@ public sealed class InventoryService(IBakeryDbContext db)
     {
         item.SupplierName = item.SupplierName?.Trim() ?? string.Empty;
         item.Phone = item.Phone?.Trim();
-        item.Address = item.Address?.Trim();
+        item.Address = item.Address?.Trim() ?? string.Empty;
 
         if (item.SupplierName.Length == 0)
             throw new InvalidOperationException("Vui lòng nhập tên nhà cung cấp.");
@@ -44,6 +44,8 @@ public sealed class InventoryService(IBakeryDbContext db)
         if (item.Phone.Any(character => !char.IsAsciiDigit(character) && !"+()-. ".Contains(character)) ||
             item.Phone.Count(char.IsAsciiDigit) is < 8 or > 15)
             throw new InvalidOperationException("Số điện thoại cần có từ 8 đến 15 chữ số; chỉ dùng số và các ký tự + ( ) - hoặc khoảng trắng.");
+        if (item.Address.Length == 0)
+            throw new InvalidOperationException("Vui lòng nhập địa chỉ nhà cung cấp.");
         if (item.Address?.Length > 255)
             throw new InvalidOperationException("Địa chỉ không được vượt quá 255 ký tự.");
 
@@ -193,6 +195,20 @@ public sealed class PromotionService(IBakeryDbContext db)
         .Include(p => p.PromotionOrderTier)
         .Include(p => p.PromotionProducts).ThenInclude(x => x.Product)
         .OrderByDescending(p => p.StartDate).ToListAsync(ct);
+
+    public Task<Promotion?> GetByIdAsync(int promotionId, CancellationToken ct = default) => db.Promotions
+        .AsNoTracking()
+        .Include(p => p.PromotionInvoice)
+        .Include(p => p.PromotionOrderTier)
+        .Include(p => p.PromotionProducts).ThenInclude(x => x.Product)
+        .FirstOrDefaultAsync(p => p.PromotionID == promotionId, ct);
+
+    public Task<List<Order>> GetOrdersUsingAsync(int promotionId, CancellationToken ct = default) => db.Orders
+        .AsNoTracking()
+        .Include(o => o.Customer)
+        .Where(o => o.PromotionID == promotionId)
+        .OrderByDescending(o => o.OrderDate)
+        .ToListAsync(ct);
 
     public async Task SaveAsync(
         Promotion campaign,

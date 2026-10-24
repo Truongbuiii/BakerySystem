@@ -25,6 +25,7 @@ public class CartService
     public List<CartItem> Items { get; private set; } = new();
     public string AppliedVoucherCode { get; private set; } = string.Empty;
     private int? AppliedPromotionId { get; set; }
+    private Promotion? appliedPromotion;
     public decimal DiscountPercent { get; private set; } = 0;
     public decimal MaxDiscountAmount { get; private set; } = 0;
     public decimal MinOrderAmount { get; private set; } = 0;
@@ -41,20 +42,98 @@ public class CartService
     public bool IsVoucherEligible => !string.IsNullOrEmpty(AppliedVoucherCode) && (MinOrderAmount <= 0 || SubTotalAmount >= MinOrderAmount);
     public decimal RemainingForVoucher => Math.Max(0, MinOrderAmount - SubTotalAmount);
 
-    public decimal DiscountAmount
+    public decimal InvoiceDiscountAmount
     {
         get
         {
-            if (DiscountPercent <= 0) return 0;
-            if (MinOrderAmount > 0 && SubTotalAmount < MinOrderAmount) return 0;
-            var discount = SubTotalAmount * (DiscountPercent / 100m);
-            if (MaxDiscountAmount > 0 && discount > MaxDiscountAmount)
-                return MaxDiscountAmount;
-            return discount;
+            var invoicePromotion = appliedPromotion?.PromotionInvoice;
+            if (invoicePromotion is null || SubTotalAmount < invoicePromotion.MinOrderAmount)
+                return 0;
+
+            var discount = SubTotalAmount * (invoicePromotion.DiscountPercent / 100m);
+            if (invoicePromotion.MaxDiscountAmount is > 0 && discount > invoicePromotion.MaxDiscountAmount.Value)
+                discount = invoicePromotion.MaxDiscountAmount.Value;
+            return Math.Min(SubTotalAmount, discount);
         }
     }
 
+    public decimal ProductDiscountAmount
+    {
+        get
+        {
+            if (appliedPromotion is null || appliedPromotion.PromotionProducts.Count == 0)
+                return 0;
+
+            decimal discountTotal = 0;
+            foreach (var item in Items)
+            {
+                var condition = appliedPromotion.PromotionProducts
+                    .FirstOrDefault(product => product.ProductID == item.ProductID);
+                if (condition is null)
+                    continue;
+
+                var discount = item.SubTotal * (condition.DiscountPercent / 100m);
+                if (condition.MaxDiscountAmount is > 0)
+                    discount = Math.Min(discount, condition.MaxDiscountAmount.Value);
+                discountTotal += Math.Min(item.SubTotal, discount);
+            }
+
+            return Math.Min(Math.Max(0, SubTotalAmount - InvoiceDiscountAmount), discountTotal);
+        }
+    }
+
+    public decimal DiscountAmount => Math.Min(SubTotalAmount, InvoiceDiscountAmount + ProductDiscountAmount);
+
     public decimal FinalAmount => Math.Max(0, SubTotalAmount - DiscountAmount);
+
+    public decimal GetProductDiscountPercent(int productId) => appliedPromotion?.PromotionProducts
+        .FirstOrDefault(item => item.ProductID == productId)?.DiscountPercent ?? 0;
+
+    public decimal GetProductDiscountAmount(int productId, decimal lineSubtotal)
+    {
+        var condition = appliedPromotion?.PromotionProducts
+            .FirstOrDefault(item => item.ProductID == productId);
+        if (condition is null || lineSubtotal <= 0)
+            return 0;
+
+        var discount = lineSubtotal * condition.DiscountPercent / 100m;
+        if (condition.MaxDiscountAmount is > 0)
+            discount = Math.Min(discount, condition.MaxDiscountAmount.Value);
+        return Math.Min(lineSubtotal, discount);
+    }
+
+    public string AppliedPromotionSummary
+    {
+        get
+        {
+            if (appliedPromotion is null)
+                return string.Empty;
+
+            var summaries = new List<string>();
+            if (appliedPromotion.PromotionInvoice is { } invoice)
+            {
+                var cap = invoice.MaxDiscountAmount is > 0
+                    ? $" (tối đa {invoice.MaxDiscountAmount.Value:N0}đ)"
+                    : string.Empty;
+                summaries.Add($"giảm {invoice.DiscountPercent:0.##}% đơn từ {invoice.MinOrderAmount:N0}đ{cap}");
+            }
+
+            if (appliedPromotion.PromotionProducts.Count > 0)
+            {
+                var names = string.Join(", ", appliedPromotion.PromotionProducts
+                    .Select(item => item.Product?.ProductName)
+                    .Where(name => !string.IsNullOrWhiteSpace(name)));
+                var percent = appliedPromotion.PromotionProducts.First().DiscountPercent;
+                var productCap = appliedPromotion.PromotionProducts.First().MaxDiscountAmount;
+                var cap = productCap is > 0
+                    ? $" (tối đa {productCap.Value:N0}đ/bánh)"
+                    : string.Empty;
+                summaries.Add($"giảm {percent:0.##}% cho {names}{cap}");
+            }
+
+            return string.Join("; ", summaries);
+        }
+    }
 
     public void AddItem(Product product, int quantity = 1)
     {
@@ -127,6 +206,7 @@ public class CartService
         Items.Clear();
         AppliedVoucherCode = string.Empty;
         AppliedPromotionId = null;
+        appliedPromotion = null;
         DiscountPercent = 0;
         MaxDiscountAmount = 0;
         MinOrderAmount = 0;
@@ -137,6 +217,7 @@ public class CartService
     {
         AppliedVoucherCode = string.Empty;
         AppliedPromotionId = null;
+        appliedPromotion = null;
         DiscountPercent = 0;
         MaxDiscountAmount = 0;
         MinOrderAmount = 0;
@@ -148,14 +229,19 @@ public class CartService
         if (string.IsNullOrWhiteSpace(code)) return false;
 
         var promo = await _apiClient.FindPromotionAsync(code);
-        if (promo?.PromotionInvoice == null)
+        if (promo is null || (promo.PromotionInvoice is null && promo.PromotionProducts.Count == 0))
             return false;
 
         AppliedVoucherCode = promo.PromotionCode;
         AppliedPromotionId = promo.PromotionID;
-        DiscountPercent = promo.PromotionInvoice.DiscountPercent;
-        MaxDiscountAmount = promo.PromotionInvoice.MaxDiscountAmount ?? 100000m;
-        MinOrderAmount = promo.PromotionInvoice.MinOrderAmount;
+        appliedPromotion = promo;
+        DiscountPercent = promo.PromotionInvoice?.DiscountPercent
+            ?? promo.PromotionProducts.FirstOrDefault()?.DiscountPercent
+            ?? 0;
+        MaxDiscountAmount = promo.PromotionInvoice?.MaxDiscountAmount
+            ?? promo.PromotionProducts.FirstOrDefault()?.MaxDiscountAmount
+            ?? 0;
+        MinOrderAmount = promo.PromotionInvoice?.MinOrderAmount ?? 0;
         NotifyStateChanged();
         return true;
     }

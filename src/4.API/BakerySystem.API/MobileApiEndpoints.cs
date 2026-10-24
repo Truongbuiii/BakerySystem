@@ -98,6 +98,8 @@ public static class MobileApiEndpoints
             var promotions = await db.Promotions
                 .AsNoTracking()
                 .Include(p => p.PromotionInvoice)
+                .Include(p => p.PromotionProducts)
+                    .ThenInclude(pp => pp.Product)
                 .Where(p => p.Status == PromotionStatus.Active
                     && p.StartDate <= today
                     && p.EndDate >= today
@@ -120,8 +122,15 @@ public static class MobileApiEndpoints
             var promotion = await db.Promotions
                 .AsNoTracking()
                 .Include(p => p.PromotionInvoice)
+                .Include(p => p.PromotionProducts)
+                    .ThenInclude(pp => pp.Product)
                 .FirstOrDefaultAsync(p => p.PromotionCode.ToUpper() == code.Trim().ToUpper()
-                    && p.Status == PromotionStatus.Active, ct);
+                    && p.Status == PromotionStatus.Active
+                    && p.StartDate <= DateTime.Today
+                    && p.EndDate >= DateTime.Today
+                    && (p.PromotionInvoice == null
+                        || p.PromotionInvoice.UsageLimit == null
+                        || p.PromotionInvoice.UsedCount < p.PromotionInvoice.UsageLimit), ct);
             return promotion is null ? Results.NotFound() : Results.Ok(promotion);
         })
         .WithSummary("Find a promotion by code");
@@ -167,26 +176,94 @@ public static class MobileApiEndpoints
             if (customer is null)
                 return Results.BadRequest("Customer was not found. Please sign in or register before ordering.");
 
-            var productIds = request.Lines.Select(line => line.ProductId).ToArray();
+            var submittedLines = request.Lines
+                .GroupBy(line => line.ProductId)
+                .Select(group => new
+                {
+                    ProductId = group.Key,
+                    Quantity = group.Sum(line => line.Quantity)
+                })
+                .ToList();
+            if (submittedLines.Any(line => line.Quantity <= 0))
+                return Results.BadRequest("Product quantities must be greater than zero.");
+
+            var productIds = submittedLines.Select(line => line.ProductId).ToArray();
             var products = await db.Products
-                .Where(p => productIds.Contains(p.ProductID))
+                .Where(p => productIds.Contains(p.ProductID) && p.IsActive)
                 .ToDictionaryAsync(p => p.ProductID, ct);
 
-            foreach (var line in request.Lines)
+            decimal totalAmount = 0;
+            var orderLines = new List<OrderDetail>();
+            foreach (var line in submittedLines)
             {
                 if (!products.TryGetValue(line.ProductId, out var product)
                     || line.Quantity <= 0
                     || product.Quantity < line.Quantity)
                     return Results.Conflict($"Insufficient stock for product {line.ProductId}.");
+
+                var subTotal = product.Price * line.Quantity;
+                totalAmount += subTotal;
+                orderLines.Add(new OrderDetail
+                {
+                    ProductID = product.ProductID,
+                    Quantity = line.Quantity,
+                    UnitPrice = product.Price,
+                    SubTotal = subTotal
+                });
             }
+
+            decimal discountAmount = 0;
+            Promotion? promotion = null;
+            if (request.PromotionId.HasValue)
+            {
+                var today = DateTime.Today;
+                promotion = await db.Promotions
+                    .Include(p => p.PromotionInvoice)
+                    .Include(p => p.PromotionProducts)
+                    .FirstOrDefaultAsync(p => p.PromotionID == request.PromotionId.Value
+                        && p.Status == PromotionStatus.Active
+                        && p.StartDate <= today
+                        && p.EndDate >= today, ct);
+
+                if (promotion is null
+                    || promotion.PromotionInvoice is { UsageLimit: not null } invoice
+                        && invoice.UsedCount >= invoice.UsageLimit)
+                    return Results.BadRequest("Promotion is inactive, expired, or no longer available.");
+
+                if (promotion.PromotionInvoice is { } invoiceCondition
+                    && totalAmount >= invoiceCondition.MinOrderAmount)
+                {
+                    var invoiceDiscount = totalAmount * invoiceCondition.DiscountPercent / 100m;
+                    if (invoiceCondition.MaxDiscountAmount is > 0)
+                        invoiceDiscount = Math.Min(invoiceDiscount, invoiceCondition.MaxDiscountAmount.Value);
+                    discountAmount += invoiceDiscount;
+                }
+
+                foreach (var line in orderLines)
+                {
+                    var productCondition = promotion.PromotionProducts
+                        .FirstOrDefault(condition => condition.ProductID == line.ProductID);
+                    if (productCondition is null)
+                        continue;
+
+                    var productDiscount = line.SubTotal * productCondition.DiscountPercent / 100m;
+                    if (productCondition.MaxDiscountAmount is > 0)
+                        productDiscount = Math.Min(productDiscount, productCondition.MaxDiscountAmount.Value);
+                    discountAmount += Math.Min(line.SubTotal, productDiscount);
+                }
+
+                if (discountAmount <= 0)
+                    return Results.BadRequest("Promotion conditions are not met for the products in this order.");
+            }
+            discountAmount = Math.Min(totalAmount, discountAmount);
 
             var order = new Order
             {
                 CustomerID = customer.CustomerID,
                 OrderDate = DateTime.Now,
-                TotalAmount = request.TotalAmount,
-                DiscountAmount = request.DiscountAmount,
-                FinalAmount = request.FinalAmount,
+                TotalAmount = totalAmount,
+                DiscountAmount = discountAmount,
+                FinalAmount = totalAmount - discountAmount,
                 ReceiverName = request.ReceiverName,
                 ReceiverPhone = request.Phone,
                 ShippingAddress = request.Address,
@@ -196,19 +273,14 @@ public static class MobileApiEndpoints
                     ? PaymentStatus.Unpaid
                     : PaymentStatus.Paid,
                 Status = OrderStatus.Pending,
-                PromotionID = request.PromotionId
+                PromotionID = promotion?.PromotionID
             };
 
-            foreach (var line in request.Lines)
-            {
-                order.OrderDetails.Add(new OrderDetail
-                {
-                    ProductID = line.ProductId,
-                    Quantity = line.Quantity,
-                    UnitPrice = line.UnitPrice,
-                    SubTotal = line.SubTotal
-                });
-            }
+            foreach (var orderLine in orderLines)
+                order.OrderDetails.Add(orderLine);
+
+            if (promotion?.PromotionInvoice is { } usedInvoice)
+                usedInvoice.UsedCount++;
 
             db.Orders.Add(order);
             await db.SaveChangesAsync(ct);
