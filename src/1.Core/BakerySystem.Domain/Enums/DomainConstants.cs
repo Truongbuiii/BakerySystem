@@ -42,6 +42,8 @@ public static class PromotionStatus
 {
     public const string Active = "Active";
     public const string Inactive = "Inactive";
+    public const string Draft = "Draft";
+    public const string Hidden = "Hidden";
 }
 
 public static class PromotionType

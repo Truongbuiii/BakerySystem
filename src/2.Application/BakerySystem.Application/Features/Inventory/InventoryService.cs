@@ -244,7 +244,7 @@ public sealed class PromotionService(IBakeryDbContext db)
             (true, false) => "Invoice",
             _ => "Product"
         };
-        campaign.Status = "Active";
+        campaign.Status = PromotionStatus.Draft;
         db.Promotions.Add(campaign);
         if (useInvoiceCondition)
             campaign.PromotionInvoice = new PromotionInvoice
@@ -270,12 +270,34 @@ public sealed class PromotionService(IBakeryDbContext db)
     public Task<bool> HasBeenUsedAsync(int promotionId, CancellationToken ct = default) =>
         db.Orders.AnyAsync(o => o.PromotionID == promotionId, ct);
 
+    public async Task<HashSet<int>> GetUsedPromotionIdsAsync(CancellationToken ct = default) =>
+        (await db.Orders.AsNoTracking()
+            .Where(o => o.PromotionID.HasValue)
+            .Select(o => o.PromotionID!.Value)
+            .Distinct()
+            .ToListAsync(ct))
+        .ToHashSet();
+
+    public async Task DeleteUnusedAsync(int promotionId, CancellationToken ct = default)
+    {
+        var promotion = await db.Promotions.FirstOrDefaultAsync(p => p.PromotionID == promotionId, ct)
+            ?? throw new InvalidOperationException("Không tìm thấy chương trình khuyến mãi.");
+        if (await HasBeenUsedAsync(promotionId, ct))
+            throw new InvalidOperationException("Khuyến mãi đã được dùng trong đơn hàng nên không thể xóa. Hãy giữ hồ sơ để bảo toàn lịch sử.");
+        if (promotion.Status == PromotionStatus.Active && promotion.EndDate.Date >= DateTime.Today)
+            throw new InvalidOperationException("Khuyến mãi còn hạn và đang hoạt động. Hãy tạm dừng trước khi xóa.");
+        db.Promotions.Remove(promotion);
+        await db.SaveChangesAsync(ct);
+    }
+
     public async Task SetStatusAsync(int promotionId, string status, CancellationToken ct = default)
     {
         var promotion = await db.Promotions.FindAsync([promotionId], ct)
             ?? throw new InvalidOperationException("Không tìm thấy chương trình khuyến mãi.");
-        if (status is not ("Active" or "Hidden"))
+        if (status is not (PromotionStatus.Active or PromotionStatus.Hidden or PromotionStatus.Draft))
             throw new InvalidOperationException("Trạng thái chương trình không hợp lệ.");
+        if (status == PromotionStatus.Draft && await HasBeenUsedAsync(promotionId, ct))
+            throw new InvalidOperationException("Khuyến mãi đã được dùng trong đơn hàng, không thể chuyển về nháp.");
         promotion.Status = status;
         await db.SaveChangesAsync(ct);
     }

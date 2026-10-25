@@ -82,7 +82,7 @@
             {
                 <button class="bakery-btn bakery-btn-secondary" @onclick="CancelEdit" disabled="@saving">Hủy</button>
             }
-            <button class="bakery-btn bakery-btn-primary" @onclick="Save" disabled="@saving">@(saving ? "Đang lưu..." : isEditing ? "Lưu thay đổi" : "Tạo chiến dịch")</button>
+            <button class="bakery-btn bakery-btn-primary" @onclick="Save" disabled="@saving">@(saving ? "Đang lưu..." : isEditing ? "Lưu thay đổi" : "Lưu bản nháp")</button>
         </div>
     </div>
     @if (!string.IsNullOrEmpty(message))
@@ -106,9 +106,14 @@
                         <div class="mt-2 flex gap-2">
                             <a class="bakery-btn bakery-btn-secondary bakery-btn-sm" href="/promotions/@p.PromotionID">Chi tiết</a>
                             <button type="button" class="bakery-btn bakery-btn-outline bakery-btn-sm" @onclick="() => BeginEdit(p)">Sửa</button>
-                            <button type="button" class="bakery-btn bakery-btn-secondary bakery-btn-sm" title="Không xóa chương trình; chỉ ẩn khỏi các đơn hàng mới." @onclick="() => ToggleStatus(p)">
-                                @(p.Status == "Active" ? "Ẩn" : "Kích hoạt")
+                            <button type="button" class="bakery-btn bakery-btn-secondary bakery-btn-sm" @onclick="() => ToggleStatus(p)">
+                                @(p.Status == PromotionStatus.Active ? "Tạm dừng" : "Kích hoạt")
                             </button>
+                            @if (!usedPromotionIds.Contains(p.PromotionID) &&
+                                (p.Status != PromotionStatus.Active || p.EndDate.Date < DateTime.Today))
+                            {
+                                <button type="button" class="bakery-btn bakery-btn-outline bakery-btn-sm text-rose-600" title="Chỉ xóa được mã chưa dùng; mã còn hạn đang hoạt động cần tạm dừng trước." @onclick="() => RequestDelete(p)">Xóa</button>
+                            }
                         </div>
                     </td>
                 </tr>
@@ -117,9 +122,39 @@
     </table>
 </div>
 
+@if (pendingDeletePromotion is { } deleteTarget)
+{
+    <div class="promotion-confirm-backdrop" @onclick="CancelDelete">
+        <section class="promotion-confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="promotion-delete-title" @onclick:stopPropagation="true">
+            <div class="promotion-confirm-icon"><iconify-icon icon="solar:trash-bin-trash-linear"></iconify-icon></div>
+            <h3 id="promotion-delete-title" class="promotion-confirm-title">Xóa khuyến mãi?</h3>
+            <p class="promotion-confirm-copy">Bạn đang chuẩn bị xóa mã <strong>@deleteTarget.PromotionCode</strong> – @deleteTarget.PromotionName.</p>
+            <div class="promotion-confirm-note"><iconify-icon icon="solar:info-circle-linear"></iconify-icon><span>Chỉ mã chưa được sử dụng mới có thể xóa. Thao tác này không thể hoàn tác.</span></div>
+            @if (!string.IsNullOrWhiteSpace(deleteError))
+            {
+                <p class="promotion-confirm-error">@deleteError</p>
+            }
+            <div class="promotion-confirm-actions">
+                <button type="button" class="bakery-btn bakery-btn-secondary" @onclick="CancelDelete" disabled="@deleting">Hủy</button>
+                <button type="button" class="promotion-confirm-delete" @onclick="ConfirmDelete" disabled="@deleting">
+                    @if (deleting)
+                    {
+                        <span>Đang xóa...</span>
+                    }
+                    else
+                    {
+                        <iconify-icon icon="solar:trash-bin-trash-linear"></iconify-icon><span>Xóa khuyến mãi</span>
+                    }
+                </button>
+            </div>
+        </section>
+    </div>
+}
+
 @code {
     private List<Promotion> campaigns = [];
     private List<Product> products = [];
+    private HashSet<int> usedPromotionIds = [];
     private Promotion campaign = new();
     private readonly HashSet<int> selectedProductIds = [];
     private bool useInvoiceCondition;
@@ -136,6 +171,9 @@
     private DateTime end = DateTime.Today.AddDays(7);
     private string? message;
     private bool saved;
+    private Promotion? pendingDeletePromotion;
+    private bool deleting;
+    private string? deleteError;
 
     [SupplyParameterFromQuery(Name = "edit")]
     public int? EditPromotionId { get; set; }
@@ -144,6 +182,7 @@
     {
         campaigns = await PromotionManager.GetAsync();
         products = await InventoryManager.GetProductsAsync();
+        usedPromotionIds = await PromotionManager.GetUsedPromotionIdsAsync();
         if (EditPromotionId is int editId)
         {
             var toEdit = campaigns.FirstOrDefault(p => p.PromotionID == editId);
@@ -176,10 +215,11 @@
             else
                 await PromotionManager.SaveAsync(campaign, useInvoiceCondition, useProductCondition,
                     invoicePercent, minimum, invoiceCap, selectedProductIds, productPercent, productCap);
-            message = isEditing ? "Đã cập nhật chương trình khuyến mãi." : "Đã tạo chương trình khuyến mãi.";
+            message = isEditing ? "Đã cập nhật chương trình khuyến mãi." : "Đã lưu bản nháp. Kiểm tra lại điều kiện rồi bấm Kích hoạt khi sẵn sàng phát hành.";
             saved = true;
             ResetForm();
             campaigns = await PromotionManager.GetAsync();
+            usedPromotionIds = await PromotionManager.GetUsedPromotionIdsAsync();
         }
         catch (Exception ex)
         {
@@ -234,16 +274,62 @@
     {
         try
         {
-            var nextStatus = promotion.Status == "Active" ? "Hidden" : "Active";
+            var nextStatus = promotion.Status == PromotionStatus.Active ? PromotionStatus.Hidden : PromotionStatus.Active;
             await PromotionManager.SetStatusAsync(promotion.PromotionID, nextStatus);
             promotion.Status = nextStatus;
-            message = nextStatus == "Active" ? "Đã kích hoạt lại chương trình." : "Đã ẩn chương trình khỏi các đơn hàng mới.";
+            message = nextStatus == PromotionStatus.Active ? "Đã kích hoạt khuyến mãi. Khách có thể dùng khi mã còn hạn và còn lượt." : "Đã tạm dừng khuyến mãi; khách không thể áp dụng cho đơn mới.";
             saved = true;
         }
         catch (Exception ex)
         {
             message = $"Không thể cập nhật trạng thái: {ex.Message}";
             saved = false;
+        }
+    }
+
+    private void RequestDelete(Promotion promotion)
+    {
+        if (usedPromotionIds.Contains(promotion.PromotionID))
+        {
+            message = "Mã đã phát sinh đơn hàng nên không thể xóa; hãy tạm dừng để giữ lịch sử.";
+            saved = false;
+            return;
+        }
+
+        pendingDeletePromotion = promotion;
+        deleteError = null;
+    }
+
+    private void CancelDelete()
+    {
+        if (deleting)
+            return;
+        pendingDeletePromotion = null;
+        deleteError = null;
+    }
+
+    private async Task ConfirmDelete()
+    {
+        if (pendingDeletePromotion is not { } promotion || deleting)
+            return;
+
+        deleting = true;
+        try
+        {
+            await PromotionManager.DeleteUnusedAsync(promotion.PromotionID);
+            campaigns.RemoveAll(p => p.PromotionID == promotion.PromotionID);
+            pendingDeletePromotion = null;
+            message = $"Đã xóa khuyến mãi {promotion.PromotionCode}.";
+            saved = true;
+        }
+        catch (Exception ex)
+        {
+            usedPromotionIds = await PromotionManager.GetUsedPromotionIdsAsync();
+            deleteError = ex.Message;
+        }
+        finally
+        {
+            deleting = false;
         }
     }
 
@@ -265,7 +351,12 @@
         end = DateTime.Today.AddDays(7);
     }
 
-    private static string GetStatusText(string status) => status == "Active" ? "Đang hoạt động" : "Đã ẩn";
+    private static string GetStatusText(string status) => status switch
+    {
+        PromotionStatus.Active => "Đang hoạt động",
+        PromotionStatus.Draft => "Bản nháp",
+        _ => "Đã tạm dừng"
+    };
 
     private static string GetConditionSummary(Promotion promotion)
     {

@@ -2,6 +2,7 @@
 @rendermode InteractiveServer
 @attribute [Authorize(Roles = "Admin")]
 @inject PromotionService PromotionManager
+@inject NavigationManager Navigation
 
 <PageTitle>Chi tiết khuyến mãi | BakerySystem</PageTitle>
 
@@ -23,11 +24,45 @@
         <div class="flex flex-wrap gap-2">
             <a class="bakery-btn bakery-btn-primary" href="/promotions?edit=@PromotionId">Sửa khuyến mãi</a>
             <button type="button" class="bakery-btn bakery-btn-secondary" @onclick="ToggleStatus">
-                @(promotion.Status == "Active" ? "Tạm dừng" : "Kích hoạt lại")
+                @(promotion.Status == PromotionStatus.Active ? "Tạm dừng" : "Kích hoạt")
             </button>
+            @if (!hasBeenUsed &&
+                (promotion.Status != PromotionStatus.Active || promotion.EndDate.Date < DateTime.Today))
+            {
+                <button type="button" class="bakery-btn bakery-btn-outline text-rose-600" @onclick="() => showDeleteConfirmation = true">Xóa (chưa sử dụng)</button>
+            }
         </div>
     }
 </div>
+
+@if (showDeleteConfirmation && promotion is not null)
+{
+    <div class="promotion-confirm-backdrop" @onclick="CancelDelete">
+        <section class="promotion-confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="promotion-detail-delete-title" @onclick:stopPropagation="true">
+            <div class="promotion-confirm-icon"><iconify-icon icon="solar:trash-bin-trash-linear"></iconify-icon></div>
+            <h3 id="promotion-detail-delete-title" class="promotion-confirm-title">Xóa khuyến mãi?</h3>
+            <p class="promotion-confirm-copy">Bạn đang chuẩn bị xóa mã <strong>@promotion.PromotionCode</strong> – @promotion.PromotionName.</p>
+            <div class="promotion-confirm-note"><iconify-icon icon="solar:info-circle-linear"></iconify-icon><span>Chỉ mã chưa được sử dụng mới có thể xóa. Thao tác này không thể hoàn tác.</span></div>
+            @if (!string.IsNullOrWhiteSpace(deleteError))
+            {
+                <p class="promotion-confirm-error">@deleteError</p>
+            }
+            <div class="promotion-confirm-actions">
+                <button type="button" class="bakery-btn bakery-btn-secondary" @onclick="CancelDelete" disabled="@deleting">Hủy</button>
+                <button type="button" class="promotion-confirm-delete" @onclick="DeletePromotion" disabled="@deleting">
+                    @if (deleting)
+                    {
+                        <span>Đang xóa...</span>
+                    }
+                    else
+                    {
+                        <iconify-icon icon="solar:trash-bin-trash-linear"></iconify-icon><span>Xóa khuyến mãi</span>
+                    }
+                </button>
+            </div>
+        </section>
+    </div>
+}
 
 @if (!string.IsNullOrWhiteSpace(actionMessage))
 {
@@ -57,7 +92,7 @@ else
                 </div>
                 <div class="rounded-xl border border-slate-200 bg-white p-4">
                     <dt class="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-slate-500"><iconify-icon icon="solar:shield-check-linear" class="text-base text-emerald-500"></iconify-icon>Trạng thái quản trị</dt>
-                    <dd class="mt-2 text-sm font-semibold leading-6 text-slate-800">@(promotion.Status == "Active" ? "Đang bật" : "Đang ẩn")</dd>
+                    <dd class="mt-2 text-sm font-semibold leading-6 text-slate-800">@(promotion.Status switch { PromotionStatus.Active => "Đang hoạt động", PromotionStatus.Draft => "Bản nháp", _ => "Đã tạm dừng" })</dd>
                 </div>
                 <div class="rounded-xl border border-slate-200 bg-white p-4">
                     <dt class="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-slate-500"><iconify-icon icon="solar:document-text-linear" class="text-base text-violet-500"></iconify-icon>Mô tả</dt>
@@ -192,23 +227,28 @@ else
     private Promotion? promotion;
     private List<Order> ordersUsing = [];
     private string? actionMessage;
+    private bool hasBeenUsed;
+    private bool showDeleteConfirmation;
+    private bool deleting;
+    private string? deleteError;
 
     protected override async Task OnParametersSetAsync()
     {
         promotion = await PromotionManager.GetByIdAsync(PromotionId);
         ordersUsing = await PromotionManager.GetOrdersUsingAsync(PromotionId);
+        hasBeenUsed = await PromotionManager.HasBeenUsedAsync(PromotionId);
     }
 
     private async Task ToggleStatus()
     {
         if (promotion is null)
             return;
-        var next = promotion.Status == "Active" ? "Hidden" : "Active";
+        var next = promotion.Status == PromotionStatus.Active ? PromotionStatus.Hidden : PromotionStatus.Active;
         try
         {
             await PromotionManager.SetStatusAsync(PromotionId, next);
             promotion.Status = next;
-            actionMessage = next == "Active" ? "Đã kích hoạt lại khuyến mãi." : "Đã tạm dừng khuyến mãi.";
+            actionMessage = next == PromotionStatus.Active ? "Đã kích hoạt khuyến mãi. Khách có thể dùng khi mã còn hạn và còn lượt." : "Đã tạm dừng khuyến mãi; khách không thể áp dụng cho đơn mới.";
         }
         catch (Exception ex)
         {
@@ -216,12 +256,43 @@ else
         }
     }
 
+    private async Task DeletePromotion()
+    {
+        if (hasBeenUsed || promotion is null || deleting)
+            return;
+        deleting = true;
+        try
+        {
+            await PromotionManager.DeleteUnusedAsync(PromotionId);
+            Navigation.NavigateTo("/promotions");
+        }
+        catch (Exception ex)
+        {
+            hasBeenUsed = await PromotionManager.HasBeenUsedAsync(PromotionId);
+            deleteError = ex.Message;
+        }
+        finally
+        {
+            deleting = false;
+        }
+    }
+
+    private void CancelDelete()
+    {
+        if (deleting)
+            return;
+        showDeleteConfirmation = false;
+        deleteError = null;
+    }
+
     private string GetStatusText()
     {
         if (promotion is null)
             return string.Empty;
-        if (promotion.Status != "Active")
-            return "Đã ẩn";
+        if (promotion.Status == PromotionStatus.Draft)
+            return "Bản nháp";
+        if (promotion.Status != PromotionStatus.Active)
+            return "Đã tạm dừng";
         if (DateTime.Today < promotion.StartDate.Date)
             return "Sắp diễn ra";
         if (DateTime.Today > promotion.EndDate.Date)
