@@ -17,6 +17,14 @@
     // Run theme init immediately to prevent flash of wrong theme
     initTheme();
 
+    function initSidebarState() {
+        if (localStorage.getItem('bakery-admin-sidebar-collapsed') === 'true') {
+            document.querySelector('.bakery-layout-root')?.classList.add('sidebar-collapsed');
+        }
+    }
+
+    initSidebarState();
+
     window.bakeryAdmin = {
         toggleTheme: function () {
             const isDark = document.documentElement.classList.toggle('dark');
@@ -40,6 +48,18 @@
             if (backdrop) {
                 backdrop.classList.toggle('hidden');
             }
+        },
+        toggleSidebarCollapse: function () {
+            const layout = document.querySelector('.bakery-layout-root');
+            if (!layout) return;
+
+            const isCollapsed = layout.classList.toggle('sidebar-collapsed');
+            localStorage.setItem('bakery-admin-sidebar-collapsed', isCollapsed ? 'true' : 'false');
+
+            document.querySelectorAll('.bakery-sidebar-collapse-toggle').forEach(button => {
+                button.title = isCollapsed ? 'Mở rộng menu' : 'Thu gọn menu';
+                button.setAttribute('aria-label', button.title);
+            });
         },
         closeSidebar: function () {
             const sidebar = document.getElementById('admin-sidebar');

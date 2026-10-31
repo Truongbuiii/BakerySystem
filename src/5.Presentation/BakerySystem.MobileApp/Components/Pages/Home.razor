@@ -1307,13 +1307,6 @@ else
                                 <iconify-icon icon="solar:card-transfer-bold" style="font-size: 18px; color: #0284C7;"></iconify-icon>
                             </label>
 
-                            <label style="display: flex; align-items: center; justify-content: space-between; background: @(selectedPaymentMethod == PaymentMethod.VNPAY ? "#FDF0ED" : "#FFFFFF"); border: 1.5px solid @(selectedPaymentMethod == PaymentMethod.VNPAY ? "#E76F51" : "#EFE8DE"); border-radius: 12px; padding: 10px 14px; cursor: pointer;">
-                                <div style="display: flex; align-items: center; gap: 10px;">
-                                    <input type="radio" name="paymentMethod" checked="@(selectedPaymentMethod == PaymentMethod.VNPAY)" @onchange="() => selectedPaymentMethod = PaymentMethod.VNPAY" />
-                                    <span style="font-size: 12px; font-weight: 700; color: #2B2118;">Ví điện tử VNPAY</span>
-                                </div>
-                                <iconify-icon icon="solar:smartphone-bold" style="font-size: 18px; color: #16A34A;"></iconify-icon>
-                            </label>
                         </div>
                     </div>
 
@@ -1358,10 +1351,14 @@ else
             @if (CartService.Items.Any())
             {
                 <div class="sheet-footer">
-                    <button class="btn-bk-primary" @onclick="PlaceOrder" disabled="@isSubmittingOrder">
+                    <button class="btn-bk-primary" @onclick="RequestPlaceOrder" disabled="@isSubmittingOrder">
                         @if (isSubmittingOrder)
                         {
                             <span>Đang gửi đơn hàng vào hệ thống...</span>
+                        }
+                        else if (selectedPaymentMethod == PaymentMethod.BankTransfer)
+                        {
+                            <span>Hiển thị mã QR thanh toán • @($"{CartService.FinalAmount:N0}đ")</span>
                         }
                         else
                         {
@@ -1370,6 +1367,44 @@ else
                     </button>
                 </div>
             }
+        </div>
+    </div>
+}
+
+<!-- 7. Mock QR payment modal -->
+@if (isMockQrPaymentOpen)
+{
+    <div class="bottom-sheet-backdrop" @onclick="CloseMockQrPayment">
+        <div class="bottom-sheet-panel" @onclick:stopPropagation="true" style="padding: 20px; text-align: center;">
+            <div class="sheet-handle"></div>
+            <div style="display: flex; align-items: center; justify-content: space-between; text-align: left; margin-bottom: 12px;">
+                <div>
+                    <h5 style="margin: 0; font-size: 16px; font-weight: 800; color: #2B2118;">Thanh toán chuyển khoản QR</h5>
+                    <span style="font-size: 11px; color: #9C8E84;">Mã QR giả lập cho đơn hàng của bạn</span>
+                </div>
+                <button type="button" aria-label="Đóng" style="border: 0; background: transparent; color: #9C8E84; font-size: 22px;" @onclick="CloseMockQrPayment">
+                    <iconify-icon icon="solar:close-circle-linear"></iconify-icon>
+                </button>
+            </div>
+            <div class="mobile-fake-qr" aria-label="Mã QR giả lập">
+                @for (var row = 0; row < 21; row++)
+                {
+                    @for (var column = 0; column < 21; column++)
+                    {
+                        <span class="@(IsFakeQrCellDark(row, column) ? "dark" : "")"></span>
+                    }
+                }
+            </div>
+            <div style="color: #6E6259; font-size: 12px;">Số tiền cần thanh toán</div>
+            <div style="color: #E76F51; font-size: 24px; font-weight: 800; line-height: 1.25;">@($"{CartService.FinalAmount:N0}đ")</div>
+            <div style="display: flex; align-items: flex-start; gap: 6px; background: #EFF6FF; color: #1D4ED8; border-radius: 9px; padding: 9px 10px; margin: 14px 0; font-size: 11px; text-align: left;">
+                <iconify-icon icon="solar:info-circle-linear" style="font-size: 15px; flex-shrink: 0;"></iconify-icon>
+                Đây là mô phỏng thanh toán. Không cần quét QR hoặc kết nối ngân hàng.
+            </div>
+            <button type="button" class="btn-bk-primary" @onclick="ConfirmMockPayment">
+                <iconify-icon icon="solar:check-circle-bold"></iconify-icon>
+                Tôi đã thanh toán
+            </button>
         </div>
     </div>
 }
@@ -1676,6 +1711,7 @@ else
 
     private bool isCartOpen = false;
     private bool isSubmittingOrder = false;
+    private bool isMockQrPaymentOpen = false;
     private string voucherInput = string.Empty;
     private string quickVoucherCode = string.Empty;
     private string voucherMessage = string.Empty;
@@ -2185,6 +2221,46 @@ else
         {
             voucherMessage = "Mã voucher không hợp lệ hoặc đã hết hạn!";
         }
+    }
+
+    private void RequestPlaceOrder()
+    {
+        if (isSubmittingOrder) return;
+
+        if (selectedPaymentMethod == PaymentMethod.BankTransfer)
+        {
+            isMockQrPaymentOpen = true;
+            return;
+        }
+
+        _ = PlaceOrder();
+    }
+
+    private void CloseMockQrPayment() => isMockQrPaymentOpen = false;
+
+    private async Task ConfirmMockPayment()
+    {
+        isMockQrPaymentOpen = false;
+        await PlaceOrder();
+    }
+
+    private static bool IsFakeQrCellDark(int row, int column)
+    {
+        static bool InFinder(int r, int c, int startRow, int startColumn)
+        {
+            var localRow = r - startRow;
+            var localColumn = c - startColumn;
+            return localRow is >= 0 and < 7 && localColumn is >= 0 and < 7
+                && (localRow is 0 or 6 || localColumn is 0 or 6
+                    || (localRow is >= 2 and <= 4 && localColumn is >= 2 and <= 4));
+        }
+
+        if (InFinder(row, column, 0, 0)
+            || InFinder(row, column, 0, 14)
+            || InFinder(row, column, 14, 0))
+            return true;
+
+        return ((row * 13 + column * 7 + row * column) % 5) < 2;
     }
 
     private async Task PlaceOrder()

@@ -25,6 +25,27 @@
     --bk-font: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
+.mobile-fake-qr {
+    display: grid;
+    grid-template-columns: repeat(21, 1fr);
+    width: min(220px, 72vw);
+    height: min(220px, 72vw);
+    gap: 0;
+    margin: 4px auto 14px;
+    padding: 10px;
+    background: #FFFFFF;
+    border: 1px solid var(--bk-border);
+    border-radius: 12px;
+}
+
+.mobile-fake-qr span {
+    background: #FFFFFF;
+}
+
+.mobile-fake-qr span.dark {
+    background: var(--bk-dark);
+}
+
 * {
     box-sizing: border-box;
     -webkit-tap-highlight-color: transparent;
@@ -1334,5 +1355,3 @@ body, html {
     line-height: 1.5;
     max-width: 320px;
 }
-
-

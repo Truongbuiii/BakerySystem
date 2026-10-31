@@ -1,5 +1,9 @@
 using BakerySystem.MobileApp.Services;
 using Microsoft.Extensions.Logging;
+#if MAUI_DEVFLOW
+using Microsoft.Maui.DevFlow.Agent;
+using Microsoft.Maui.DevFlow.Blazor;
+#endif
 
 namespace BakerySystem.MobileApp;
 
@@ -16,6 +20,10 @@ public static class MauiProgram
             });
 
         builder.Services.AddMauiBlazorWebView();
+#if MAUI_DEVFLOW
+        builder.AddMauiDevFlowAgent();
+        builder.AddMauiBlazorDevFlowTools();
+#endif
         builder.Services.AddHttpClient<MobileApiClient>(client =>
         {
             client.BaseAddress = new Uri(ApiConfiguration.BaseUrl);
