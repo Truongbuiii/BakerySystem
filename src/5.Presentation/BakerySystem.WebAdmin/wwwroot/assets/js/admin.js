@@ -25,6 +25,59 @@
 
     initSidebarState();
 
+    function setupSidebarTooltips() {
+        const sidebar = document.getElementById('admin-sidebar');
+        if (!sidebar || sidebar.dataset.tooltipsReady === 'true') return;
+
+        const tooltip = document.createElement('div');
+        tooltip.className = 'bakery-sidebar-tooltip';
+        tooltip.setAttribute('role', 'tooltip');
+        document.body.appendChild(tooltip);
+
+        let activeLink = null;
+        const hideTooltip = function () {
+            activeLink = null;
+            tooltip.classList.remove('is-visible');
+        };
+
+        sidebar.addEventListener('mouseover', function (event) {
+            const link = event.target.closest('.bakery-nav-link');
+            if (!link || !sidebar.contains(link)) return;
+
+            const label = link.getAttribute('aria-label') || link.getAttribute('title');
+            if (!label) return;
+
+            activeLink = link;
+            tooltip.textContent = label;
+            const rect = link.getBoundingClientRect();
+            tooltip.style.left = `${rect.right + 10}px`;
+            tooltip.style.top = `${rect.top + rect.height / 2}px`;
+            tooltip.classList.add('is-visible');
+        });
+
+        sidebar.addEventListener('mouseout', function (event) {
+            const link = event.target.closest('.bakery-nav-link');
+            if (link && (!event.relatedTarget || !link.contains(event.relatedTarget))) {
+                hideTooltip();
+            }
+        });
+
+        window.addEventListener('resize', hideTooltip);
+        window.addEventListener('scroll', hideTooltip, true);
+        sidebar.dataset.tooltipsReady = 'true';
+    }
+
+    setupSidebarTooltips();
+    if (!document.getElementById('admin-sidebar')) {
+        const sidebarObserver = new MutationObserver(function () {
+            if (document.getElementById('admin-sidebar')) {
+                setupSidebarTooltips();
+                sidebarObserver.disconnect();
+            }
+        });
+        sidebarObserver.observe(document.body, { childList: true, subtree: true });
+    }
+
     window.bakeryAdmin = {
         toggleTheme: function () {
             const isDark = document.documentElement.classList.toggle('dark');
@@ -60,6 +113,7 @@
                 button.title = isCollapsed ? 'Mở rộng menu' : 'Thu gọn menu';
                 button.setAttribute('aria-label', button.title);
             });
+            document.querySelector('.bakery-sidebar-tooltip')?.classList.remove('is-visible');
         },
         closeSidebar: function () {
             const sidebar = document.getElementById('admin-sidebar');

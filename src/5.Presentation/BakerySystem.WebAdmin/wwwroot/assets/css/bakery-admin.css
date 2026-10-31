@@ -207,6 +207,31 @@ html.dark .bakery-sidebar {
     flex-shrink: 0 !important;
 }
 
+.bakery-sidebar-tooltip {
+    position: fixed;
+    z-index: 9999;
+    max-width: 240px;
+    padding: 8px 11px;
+    border: 1px solid #334155;
+    border-radius: 6px;
+    background: #0f172a;
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.3;
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-50%);
+    transition: opacity 0.12s ease, visibility 0.12s ease;
+}
+
+.bakery-sidebar-tooltip.is-visible {
+    opacity: 1;
+    visibility: visible;
+}
+
 html.dark .bakery-sidebar-brand {
     background-color: var(--bakery-bg-dark) !important;
     border-bottom-color: var(--bakery-border-dark) !important;
@@ -272,7 +297,7 @@ html.dark .bakery-sidebar-divider {
     .bakery-layout-root.sidebar-collapsed .nav-scrollable {
         padding-left: 0.5rem !important;
         padding-right: 0.5rem !important;
-        overflow-x: hidden !important;
+        overflow-x: visible !important;
     }
 
     .bakery-layout-root.sidebar-collapsed .nav-scrollable > div:last-child {
@@ -288,6 +313,14 @@ html.dark .bakery-sidebar-divider {
         padding-right: 0 !important;
         gap: 0 !important;
         overflow: hidden !important;
+    }
+
+    .bakery-layout-root.sidebar-collapsed .bakery-nav-link.active,
+    .bakery-layout-root.sidebar-collapsed a.active.bakery-nav-link {
+        background: #dbeafe !important;
+        border: 1px solid #93c5fd !important;
+        color: var(--bakery-primary) !important;
+        box-shadow: inset 3px 0 0 var(--bakery-primary) !important;
     }
 
     .bakery-layout-root.sidebar-collapsed .bakery-nav-link iconify-icon {
