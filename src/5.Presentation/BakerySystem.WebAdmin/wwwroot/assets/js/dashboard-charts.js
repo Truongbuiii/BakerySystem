@@ -405,3 +405,100 @@ window.initBakeryReportsCharts = function (categories, revenueSeries, costSeries
 document.addEventListener("DOMContentLoaded", function () {
     setTimeout(window.initBakeryDashboardCharts, 200);
 });
+
+
+// Reports Page Charts Integration
+window.initBakeryReportsCharts = function (labels, revSeries, costSeries, donutSeries, donutLabels) {
+    if (typeof ApexCharts === 'undefined') {
+        setTimeout(function() {
+            window.initBakeryReportsCharts(labels, revSeries, costSeries, donutSeries, donutLabels);
+        }, 120);
+        return;
+    }
+
+    const isDark = document.documentElement.classList.contains('dark');
+
+    // 1. Comparison Bar Chart (Revenue vs Cost)
+    const finChartEl = document.querySelector("#reports-financial-chart");
+    if (finChartEl) {
+        finChartEl.innerHTML = "";
+        const options = {
+            series: [
+                { name: 'Doanh thu', data: revSeries },
+                { name: 'Chi phí vốn', data: costSeries }
+            ],
+            chart: {
+                type: 'bar',
+                height: 250,
+                toolbar: { show: false },
+                fontFamily: 'inherit'
+            },
+            colors: ['#2563eb', '#f59e0b'],
+            plotOptions: {
+                bar: {
+                    horizontal: false,
+                    columnWidth: '45%',
+                    borderRadius: 4
+                }
+            },
+            dataLabels: { enabled: false },
+            stroke: { show: true, width: 2, colors: ['transparent'] },
+            xaxis: {
+                categories: labels,
+                labels: {
+                    style: { colors: isDark ? '#94a3b8' : '#64748b', fontSize: '11px' }
+                }
+            },
+            yaxis: {
+                labels: {
+                    style: { colors: isDark ? '#94a3b8' : '#64748b', fontSize: '11px' },
+                    formatter: function (val) {
+                        if (val >= 1000000) return (val / 1000000).toFixed(1) + ' tr';
+                        if (val >= 1000) return (val / 1000).toFixed(0) + ' k';
+                        return val;
+                    }
+                }
+            },
+            fill: { opacity: 1 },
+            tooltip: {
+                theme: isDark ? 'dark' : 'light',
+                y: {
+                    formatter: function (val) {
+                        return new Intl.NumberFormat('vi-VN').format(val) + ' đ';
+                    }
+                }
+            },
+            legend: { show: false }
+        };
+        const chart = new ApexCharts(finChartEl, options);
+        chart.render();
+    }
+
+    // 2. Category Donut Chart
+    const donutEl = document.querySelector("#reports-category-donut");
+    if (donutEl && donutSeries && donutSeries.length > 0) {
+        donutEl.innerHTML = "";
+        const donutOptions = {
+            series: donutSeries,
+            labels: donutLabels,
+            chart: {
+                type: 'donut',
+                height: 200,
+                fontFamily: 'inherit'
+            },
+            colors: ['#2563eb', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4'],
+            dataLabels: { enabled: false },
+            legend: { show: false },
+            tooltip: {
+                theme: isDark ? 'dark' : 'light',
+                y: {
+                    formatter: function (val) {
+                        return new Intl.NumberFormat('vi-VN').format(val) + ' đ';
+                    }
+                }
+            }
+        };
+        const donutChart = new ApexCharts(donutEl, donutOptions);
+        donutChart.render();
+    }
+};
