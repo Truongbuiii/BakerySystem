@@ -211,3 +211,80 @@
         }
     });
 })();
+
+
+// Excel & PDF Helpers for BakeryAdmin
+window.bakeryExcel = {
+    exportToExcel: function (tableId, fileName) {
+        const table = document.getElementById(tableId);
+        if (!table) {
+            console.error('Table not found: ' + tableId);
+            return;
+        }
+
+        // Tạo nội dung HTML tương thích Excel XML
+        let html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">';
+        html += '<head><meta charset="utf-8"><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet>';
+        html += '<x:Name>DuLieu</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--></head>';
+        html += '<body>';
+        
+        // Clone table để loại bỏ cột Thao Tác (nếu có)
+        const clone = table.cloneNode(true);
+        const headers = clone.querySelectorAll('th');
+        let actionColIdx = -1;
+        headers.forEach((th, idx) => {
+            if (th.innerText.includes('Thao Tác') || th.innerText.includes('Thao tác')) {
+                actionColIdx = idx;
+                th.remove();
+            }
+        });
+
+        if (actionColIdx !== -1) {
+            const rows = clone.querySelectorAll('tbody tr');
+            rows.forEach(tr => {
+                const cells = tr.querySelectorAll('td');
+                if (cells[actionColIdx]) {
+                    cells[actionColIdx].remove();
+                }
+            });
+        }
+
+        html += clone.outerHTML;
+        html += '</body></html>';
+
+        const blob = new Blob([html], { type: 'application/vnd.ms-excel;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = (fileName || 'DuLieu') + '.xls';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    },
+
+    downloadTemplate: function (fileName, csvContent) {
+        const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = (fileName || 'BieuMau') + '.csv';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+};
+
+window.bakeryPdf = {
+    printReportToPdf: function (title) {
+        const originalTitle = document.title;
+        if (title) {
+            document.title = title;
+        }
+        window.print();
+        setTimeout(() => {
+            document.title = originalTitle;
+        }, 1000);
+    }
+};

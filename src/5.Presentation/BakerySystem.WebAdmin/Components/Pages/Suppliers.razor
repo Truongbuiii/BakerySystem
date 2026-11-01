@@ -42,6 +42,22 @@
     }
 </div>
 
+<div class="bakery-filter-card">
+    <div class="bakery-filter-toolbar">
+        <div class="bakery-filter-search-box">
+            <iconify-icon icon="solar:magnifer-linear"></iconify-icon>
+            <input class="w-full" placeholder="Tìm theo mã, tên, số điện thoại hoặc địa chỉ..."
+                   @bind="searchTerm" @bind:event="oninput" />
+        </div>
+        <select class="bakery-input" @bind="statusFilter">
+            <option value="all">Tất cả trạng thái</option>
+            <option value="active">Đang hoạt động</option>
+            <option value="inactive">Đã ẩn</option>
+        </select>
+        <button class="bakery-btn bakery-btn-outline" @onclick="ResetSearch">Đặt lại</button>
+    </div>
+</div>
+
 <div class="bakery-filter-card overflow-x-auto">
     <div class="mb-3 text-sm text-slate-500">
         Nhà cung cấp đã có phiếu nhập sẽ được giữ trong lịch sử; bạn có thể ngừng hoạt động để ẩn khỏi danh sách chọn khi nhập kho.
@@ -59,7 +75,7 @@
             </tr>
         </thead>
         <tbody>
-            @foreach (var supplier in suppliers)
+            @foreach (var supplier in FilteredSuppliers)
             {
                 var hasReceipts = supplier.ImportReceipts.Count > 0;
                 <tr class="border-t">
@@ -219,6 +235,22 @@
     private string? productMessage;
     private string? message;
     private bool operationSucceeded;
+    private string searchTerm = string.Empty;
+    private string statusFilter = "all";
+
+    private IEnumerable<Supplier> FilteredSuppliers => suppliers.Where(s =>
+        (statusFilter == "all" ||
+         (statusFilter == "active" && s.IsActive) ||
+         (statusFilter == "inactive" && !s.IsActive)) &&
+        (string.IsNullOrWhiteSpace(searchTerm) ||
+         $"{s.SupplierCode} {s.SupplierName} {s.Phone} {s.Address}"
+             .Contains(searchTerm.Trim(), StringComparison.OrdinalIgnoreCase)));
+
+    private void ResetSearch()
+    {
+        searchTerm = string.Empty;
+        statusFilter = "all";
+    }
 
     protected override async Task OnInitializedAsync() => await Load();
 

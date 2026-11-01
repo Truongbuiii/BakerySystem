@@ -41,11 +41,19 @@
             </button>
 
             <button type="button" 
-                    class="bakery-btn bakery-btn-secondary bakery-btn-sm"
+                    class="bakery-btn bakery-btn-outline bakery-btn-sm"
+                    @onclick="ExportReportToExcel"
+                    title="Xuất bảng báo cáo thống kê ra Excel">
+                <iconify-icon icon="solar:file-download-linear" class="text-base text-emerald-600"></iconify-icon>
+                <span>Xuất Excel</span>
+            </button>
+
+            <button type="button" 
+                    class="bakery-btn bakery-btn-primary bakery-btn-sm shadow-sm"
                     @onclick="PrintReport"
-                    title="In bảng báo cáo này">
+                    title="In ấn hoặc lưu báo cáo này dạng PDF">
                 <iconify-icon icon="solar:printer-linear" class="text-base"></iconify-icon>
-                <span>In báo cáo</span>
+                <span>In / Xuất PDF Báo Cáo</span>
             </button>
         </div>
     </div>
@@ -289,7 +297,7 @@
         </div>
 
         <div class="bakery-table-responsive overflow-x-auto">
-            <table class="bakery-table">
+            <table id="report-timeline-table" class="bakery-table">
                 <thead>
                     <tr>
                         <th class="py-2 px-3 text-left">Mốc thời gian</th>
@@ -1020,9 +1028,30 @@
         }
     }
 
+    private async Task ExportReportToExcel()
+    {
+        try
+        {
+            var fileName = $"Bao_Cao_Thong_Ke_{filterType}_{DateTime.Now:yyyyMMdd_HHmmss}";
+            await JS.InvokeVoidAsync("bakeryExcel.exportToExcel", "report-timeline-table", fileName);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Lỗi xuất Excel báo cáo: " + ex.Message);
+        }
+    }
+
     private async Task PrintReport()
     {
-        await JS.InvokeVoidAsync("window.print");
+        try
+        {
+            var title = $"Bao_Cao_Doanh_Thu_BakerySystem_{DateTime.Now:yyyyMMdd}";
+            await JS.InvokeVoidAsync("bakeryPdf.printReportToPdf", title);
+        }
+        catch
+        {
+            await JS.InvokeVoidAsync("window.print");
+        }
     }
 
     public class TimelineRowItem

@@ -30,6 +30,22 @@
                 <iconify-icon icon="solar:restart-linear" class="text-base"></iconify-icon>
                 <span>Làm mới</span>
             </button>
+            <button class="bakery-btn bakery-btn-outline bakery-btn-sm" @onclick="ExportToExcel" title="Xuất toàn bộ danh sách sản phẩm ra Excel">
+                <iconify-icon icon="solar:file-download-linear" class="text-base text-emerald-600"></iconify-icon>
+                <span>Xuất Excel</span>
+            </button>
+            <AuthorizeView Roles="Admin">
+                <Authorized>
+                    <button class="bakery-btn bakery-btn-outline bakery-btn-sm" @onclick="() => isImportModalOpen = true" title="Nhập danh sách sản phẩm từ file Excel/CSV">
+                        <iconify-icon icon="solar:file-send-linear" class="text-base text-blue-600"></iconify-icon>
+                        <span>Nhập Excel</span>
+                    </button>
+                </Authorized>
+            </AuthorizeView>
+            <button class="bakery-btn bakery-btn-secondary bakery-btn-sm" @onclick="PrintToPdf" title="In hoặc lưu danh sách dạng PDF">
+                <iconify-icon icon="solar:printer-linear" class="text-base"></iconify-icon>
+                <span>In / Xuất PDF</span>
+            </button>
             <AuthorizeView Roles="Admin">
                 <Authorized>
                     <button class="bakery-btn bakery-btn-outline bakery-btn-sm" @onclick="OpenCreateCategoryModal">
@@ -103,7 +119,7 @@
         </div>
     </div>
 
-    <!-- 3. Sleek Search & Filter Toolbar -->
+    <!-- 3. Sleek Search & Advanced Filter Toolbar -->
     <div class="bakery-filter-card">
         <div class="bakery-filter-toolbar">
             <!-- Search Keyword -->
@@ -111,7 +127,7 @@
                 <input type="text" 
                        class="bakery-input" 
                        style="padding-left: 2.25rem;"
-                       placeholder="Tìm kiếm theo tên món bánh, mã hoặc mô tả..." 
+                       placeholder="Tìm kiếm theo tên món bánh, mã SP, mô tả..." 
                        @bind="searchKeyword" 
                        @bind:event="oninput" 
                        @onkeyup="HandleSearchKeyUp" />
@@ -141,13 +157,18 @@
                 </select>
             </div>
 
-            <!-- Active Status Filter -->
-            <div class="bakery-filter-select">
-                <select class="bakery-input" @bind="selectedActiveFilter" @bind:after="ApplyFiltersAsync">
-                    <option value="">Tất cả trạng thái</option>
-                    <option value="true">Đang kinh doanh</option>
-                    <option value="false">Ngừng kinh doanh</option>
-                </select>
+            <!-- Nút bật tắt Tìm Kiếm Nâng Cao -->
+            <div class="bakery-filter-btn">
+                <button class="bakery-btn @(showAdvancedSearch ? "bakery-btn-primary" : "bakery-btn-outline") w-full flex items-center justify-center gap-1.5" 
+                        @onclick="() => showAdvancedSearch = !showAdvancedSearch"
+                        title="Mở bảng tìm kiếm nâng cao (theo khoảng giá, lượng đã bán, v.v.)">
+                    <iconify-icon icon="solar:tuning-square-2-linear" class="text-base"></iconify-icon>
+                    <span>Bộ lọc nâng cao</span>
+                    @if (HasActiveAdvancedFilters)
+                    {
+                        <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                    }
+                </button>
             </div>
 
             <!-- Reset Filter Button -->
@@ -158,6 +179,40 @@
                 </button>
             </div>
         </div>
+
+        <!-- BẢNG TÌM KIẾM NÂNG CAO MỞ RỘNG (KHOẢNG GIÁ, KHOẢNG TỒN KHO, ĐÃ BÁN, TRẠNG THÁI) -->
+        @if (showAdvancedSearch)
+        {
+            <div class="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 bg-slate-50/60 dark:bg-slate-800/40 p-3 rounded-xl">
+                <!-- Khoảng giá từ -->
+                <div>
+                    <label class="bakery-label mb-1">Giá bán từ (VNĐ):</label>
+                    <input type="number" step="5000" class="bakery-input w-full text-xs" placeholder="0" @bind="minPrice" @bind:after="ApplyFiltersAsync" />
+                </div>
+
+                <!-- Khoảng giá đến -->
+                <div>
+                    <label class="bakery-label mb-1">Đến mức giá (VNĐ):</label>
+                    <input type="number" step="5000" class="bakery-input w-full text-xs" placeholder="Không giới hạn" @bind="maxPrice" @bind:after="ApplyFiltersAsync" />
+                </div>
+
+                <!-- Tồn kho tối thiểu -->
+                <div>
+                    <label class="bakery-label mb-1">Số lượng tồn kho từ:</label>
+                    <input type="number" class="bakery-input w-full text-xs" placeholder="Tất cả" @bind="minStock" @bind:after="ApplyFiltersAsync" />
+                </div>
+
+                <!-- Trạng thái kinh doanh -->
+                <div>
+                    <label class="bakery-label mb-1">Trạng thái bán:</label>
+                    <select class="bakery-input w-full text-xs" @bind="selectedActiveFilter" @bind:after="ApplyFiltersAsync">
+                        <option value="">Tất cả (Đang bán & Tạm ngưng)</option>
+                        <option value="true">Chỉ sản phẩm Đang bán</option>
+                        <option value="false">Chỉ sản phẩm Tạm ngưng</option>
+                    </select>
+                </div>
+            </div>
+        }
     </div>
 
     <!-- 4. Enterprise Master-Detail Split View -->
@@ -206,7 +261,7 @@
         else
         {
             <div class="bakery-table-responsive">
-                <table class="bakery-table">
+                <table id="products-table" class="bakery-table">
                     <thead>
                         <tr>
                             <th style="width: 85px;">Mã</th>
@@ -855,6 +910,60 @@
 }
 
 <!-- ========================================================
+     MODAL NHẬP DỮ LIỆU TỪ EXCEL / CSV
+     ======================================================== -->
+@if (isImportModalOpen)
+{
+    <div class="bakery-modal-backdrop" @onclick="() => isImportModalOpen = false">
+        <div class="bakery-modal-card max-w-lg" @onclick:stopPropagation="true">
+            <div class="bakery-modal-header">
+                <div class="flex items-center gap-2.5">
+                    <div class="bakery-modal-icon-badge blue">
+                        <iconify-icon icon="solar:file-send-bold"></iconify-icon>
+                    </div>
+                    <div>
+                        <h4 class="text-base font-bold text-dark dark:text-white mb-0">Nhập Danh Sách Món Ăn Bằng Excel / CSV</h4>
+                        <p class="text-xs text-slate-500 mb-0">Tải lên file định dạng CSV/Excel chứa danh sách sản phẩm</p>
+                    </div>
+                </div>
+                <button type="button" class="text-slate-400 hover:text-slate-600 text-lg" @onclick="() => isImportModalOpen = false">
+                    <iconify-icon icon="solar:close-circle-linear"></iconify-icon>
+                </button>
+            </div>
+
+            <div class="bakery-modal-body space-y-4">
+                <div class="p-3 rounded-xl bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900/50 text-xs text-blue-800 dark:text-blue-300">
+                    <div class="font-bold flex items-center gap-1.5 mb-1">
+                        <iconify-icon icon="solar:info-circle-bold" class="text-base"></iconify-icon>
+                        <span>Cấu trúc cột dữ liệu yêu cầu:</span>
+                    </div>
+                    <p class="mb-2">File CSV cần có thứ tự cột: <code>Tên món, Phân loại, Giá bán, Tồn kho, Mô tả</code></p>
+                    <button type="button" class="bakery-btn bakery-btn-outline bakery-btn-sm bg-white dark:bg-slate-800" @onclick="DownloadTemplateExcel">
+                        <iconify-icon icon="solar:download-linear"></iconify-icon> Tải file mẫu (.csv)
+                    </button>
+                </div>
+
+                <div>
+                    <label class="bakery-label mb-2">Chọn file từ máy tính của bạn:</label>
+                    <InputFile OnChange="HandleImportFileSelected" accept=".csv,.txt" class="bakery-input w-full" />
+                </div>
+
+                @if (!string.IsNullOrEmpty(importStatusMessage))
+                {
+                    <div class="p-3 rounded-lg text-xs font-semibold @(importIsSuccess ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-rose-50 text-rose-700 border border-rose-200")">
+                        @importStatusMessage
+                    </div>
+                }
+            </div>
+
+            <div class="bakery-modal-footer">
+                <button type="button" class="bakery-btn bakery-btn-outline" @onclick="() => isImportModalOpen = false">Đóng</button>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- ========================================================
      TOAST NOTIFICATION BANNER (FLOAT BOTTOM RIGHT)
      ======================================================== -->
 @if (toastMessage != null)
@@ -873,6 +982,121 @@
 }
 
 @code {
+    // EXCEL & PDF
+    private bool isImportModalOpen = false;
+    private string? importStatusMessage = null;
+    private bool importIsSuccess = false;
+
+    private async Task ExportToExcel()
+    {
+        try
+        {
+            var fileName = $"Danh_Sach_San_Pham_Bakery_{DateTime.Now:yyyyMMdd_HHmmss}";
+            await JS.InvokeVoidAsync("bakeryExcel.exportToExcel", "products-table", fileName);
+            ShowToast("Đã xuất file Excel danh sách sản phẩm thành công!", true);
+        }
+        catch (Exception ex)
+        {
+            ShowToast("Lỗi xuất Excel: " + ex.Message, false);
+        }
+    }
+
+    private async Task PrintToPdf()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("bakeryPdf.printReportToPdf", "Danh_Sach_San_Pham_BakerySystem");
+        }
+        catch (Exception ex)
+        {
+            ShowToast("Lỗi in PDF: " + ex.Message, false);
+        }
+    }
+
+    private async Task DownloadTemplateExcel()
+    {
+        var csvHeader = "Tên món,Phân loại,Giá bán,Tồn kho,Mô tả\r\nBánh Mì Phô Mai Tan Chảy,Bánh mì & Croissant,45000,20,Bánh mì phô mai nướng thơm ngon\r\nBánh Kem Bắp Special,Bánh kem sinh nhật,280000,10,Bánh kem bắp sữa béo ngậy ngọt dịu";
+        await JS.InvokeVoidAsync("bakeryExcel.downloadTemplate", "Mau_Nhap_San_Pham_Bakery", csvHeader);
+    }
+
+    private async Task HandleImportFileSelected(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file == null) return;
+
+        try
+        {
+            importStatusMessage = "Đang đọc file và nhập dữ liệu vào cơ sở dữ liệu...";
+            importIsSuccess = true;
+            StateHasChanged();
+
+            using var stream = file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024);
+            using var reader = new StreamReader(stream, System.Text.Encoding.UTF8);
+
+            int successCount = 0;
+            int lineIdx = 0;
+            string? line;
+
+            while ((line = await reader.ReadLineAsync()) != null)
+            {
+                lineIdx++;
+                if (lineIdx == 1 && (line.Contains("Tên món") || line.Contains("ProductName")))
+                {
+                    continue; // Skip header
+                }
+
+                if (string.IsNullOrWhiteSpace(line)) continue;
+
+                var parts = line.Split(',');
+                if (parts.Length >= 3)
+                {
+                    var prodName = parts[0].Trim();
+                    var catName = parts[1].Trim();
+                    decimal.TryParse(parts[2].Trim(), out var price);
+                    int qty = 10;
+                    if (parts.Length >= 4) int.TryParse(parts[3].Trim(), out qty);
+                    string desc = parts.Length >= 5 ? parts[4].Trim() : "";
+
+                    // Find or create category
+                    var cat = categories.FirstOrDefault(c => c.CategoryName.Equals(catName, StringComparison.OrdinalIgnoreCase));
+                    int catId;
+                    if (cat == null)
+                    {
+                        var newCat = await ProductService.CreateCategoryAsync(catName);
+                        catId = newCat.CategoryID;
+                        categories = await ProductService.GetCategoriesAsync();
+                    }
+                    else
+                    {
+                        catId = cat.CategoryID;
+                    }
+
+                    await ProductService.CreateProductAsync(new CreateProductDto
+                    {
+                        ProductName = prodName,
+                        CategoryID = catId,
+                        Price = price,
+                        InitialQuantity = qty,
+                        Description = desc,
+                        IsActive = true
+                    });
+
+                    successCount++;
+                }
+            }
+
+            importStatusMessage = $"Đã nhập thành công {successCount} món bánh vào hệ thống!";
+            importIsSuccess = true;
+            await LoadDataAsync();
+            ShowToast($"Đã nhập thành công {successCount} món từ Excel!", true);
+        }
+        catch (Exception ex)
+        {
+            importStatusMessage = "Lỗi khi nhập dữ liệu: " + ex.Message;
+            importIsSuccess = false;
+        }
+    }
+
     private bool isLoading = true;
     private bool isSubmitting = false;
 
@@ -891,6 +1115,13 @@
     private string selectedStockStatus = "All";
     private string selectedActiveFilter = string.Empty;
     private string sortBy = "newest";
+
+    // BỘ LỌC NÂNG CAO
+    private bool showAdvancedSearch = false;
+    private decimal? minPrice = null;
+    private decimal? maxPrice = null;
+    private int? minStock = null;
+    private bool HasActiveAdvancedFilters => minPrice.HasValue || maxPrice.HasValue || minStock.HasValue || !string.IsNullOrEmpty(selectedActiveFilter);
 
     // Modals
     private bool isCreateModalOpen = false;
@@ -974,13 +1205,28 @@
             isActiveParam = bool.Parse(selectedActiveFilter);
         }
 
-        allProducts = await ProductService.GetProductsAsync(
+        var rawProducts = await ProductService.GetProductsAsync(
             search: searchKeyword,
             categoryId: selectedCategoryId > 0 ? selectedCategoryId : null,
             isActive: isActiveParam,
             stockStatus: selectedStockStatus
         );
 
+        // Áp dụng bộ lọc nâng cao theo khoảng giá và tồn kho
+        if (minPrice.HasValue)
+        {
+            rawProducts = rawProducts.Where(p => p.Price >= minPrice.Value).ToList();
+        }
+        if (maxPrice.HasValue && maxPrice.Value > 0)
+        {
+            rawProducts = rawProducts.Where(p => p.Price <= maxPrice.Value).ToList();
+        }
+        if (minStock.HasValue)
+        {
+            rawProducts = rawProducts.Where(p => p.Quantity >= minStock.Value).ToList();
+        }
+
+        allProducts = rawProducts;
         SortProducts();
     }
 
@@ -1018,6 +1264,9 @@
         selectedStockStatus = "All";
         selectedActiveFilter = string.Empty;
         sortBy = "newest";
+        minPrice = null;
+        maxPrice = null;
+        minStock = null;
         Navigation.NavigateTo("/products", replace: true);
         await ApplyFiltersAsync();
     }

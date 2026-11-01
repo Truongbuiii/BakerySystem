@@ -65,10 +65,20 @@
 
 <div class="bakery-filter-card min-w-0 overflow-x-auto">
     <h3 class="font-bold mb-3">Lịch sử nhập hàng <span class="font-normal text-slate-500">· Tổng đã chi @receipts.Sum(x => x.TotalAmount).ToString("N0") đ</span></h3>
-    @if (receipts.Count > pageSize)
+    <div class="bakery-filter-toolbar mb-3">
+        <div class="bakery-filter-search-box">
+            <iconify-icon icon="solar:magnifer-linear"></iconify-icon>
+            <input class="w-full" placeholder="Tìm mã phiếu, nhà cung cấp, nhân viên hoặc sản phẩm..."
+                   @bind="receiptSearch" @bind:event="oninput" @bind:after="ResetReceiptPage" />
+        </div>
+        <label class="text-sm">Từ ngày<input class="bakery-input" type="date" @bind="receiptFrom" @bind:after="ResetReceiptPage" /></label>
+        <label class="text-sm">Đến ngày<input class="bakery-input" type="date" @bind="receiptTo" @bind:after="ResetReceiptPage" /></label>
+        <button class="bakery-btn bakery-btn-outline" @onclick="ResetReceiptSearch">Đặt lại</button>
+    </div>
+    @if (FilteredReceipts.Count() > pageSize)
     {
         <div class="mb-3 flex flex-wrap items-center justify-between gap-2 text-sm">
-            <span class="text-slate-500">Trang @currentPage / @PageCount · @receipts.Count phiếu nhập</span>
+            <span class="text-slate-500">Trang @currentPage / @PageCount · @FilteredReceipts.Count() phiếu nhập</span>
             <div class="flex gap-2">
                 <button class="bakery-btn bakery-btn-secondary bakery-btn-sm" @onclick="PreviousReceiptPage" disabled="@(currentPage <= 1)">Trước</button>
                 <button class="bakery-btn bakery-btn-secondary bakery-btn-sm" @onclick="NextReceiptPage" disabled="@(currentPage >= PageCount)">Sau</button>
@@ -177,10 +187,30 @@
     private bool saving;
     private const int pageSize = 10;
     private int currentPage = 1;
+    private string receiptSearch = string.Empty;
+    private DateTime? receiptFrom;
+    private DateTime? receiptTo;
 
     private decimal Total => lines.Sum(line => line.Quantity * line.UnitPrice);
-    private int PageCount => Math.Max(1, (int)Math.Ceiling(receipts.Count / (double)pageSize));
-    private IEnumerable<ImportReceipt> PagedReceipts => receipts.Skip((currentPage - 1) * pageSize).Take(pageSize);
+    private IEnumerable<ImportReceipt> FilteredReceipts => receipts.Where(receipt =>
+        (!receiptFrom.HasValue || receipt.ReceiptDate.Date >= receiptFrom.Value.Date) &&
+        (!receiptTo.HasValue || receipt.ReceiptDate.Date <= receiptTo.Value.Date) &&
+        (string.IsNullOrWhiteSpace(receiptSearch) ||
+         ($"PN-{receipt.ReceiptID:D6} {receipt.Supplier?.SupplierCode} {receipt.Supplier?.SupplierName} {receipt.Employee?.FullName} " +
+          $"{string.Join(" ", receipt.ImportReceiptDetails.Select(detail => detail.Product?.ProductName))}")
+             .Contains(receiptSearch.Trim(), StringComparison.OrdinalIgnoreCase)));
+    private int PageCount => Math.Max(1, (int)Math.Ceiling(FilteredReceipts.Count() / (double)pageSize));
+    private IEnumerable<ImportReceipt> PagedReceipts => FilteredReceipts.Skip((currentPage - 1) * pageSize).Take(pageSize);
+
+    private void ResetReceiptPage() => currentPage = 1;
+
+    private void ResetReceiptSearch()
+    {
+        receiptSearch = string.Empty;
+        receiptFrom = null;
+        receiptTo = null;
+        currentPage = 1;
+    }
 
     protected override async Task OnInitializedAsync()
     {

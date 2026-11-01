@@ -151,6 +151,14 @@
                        @bind="searchQuery" 
                        @bind:event="oninput" />
             </div>
+            <select class="bakery-input" @bind="selectedPaymentStatus">
+                <option value="All">Tất cả thanh toán</option>
+                <option value="Paid">Đã thanh toán</option>
+                <option value="Unpaid">Chưa thanh toán</option>
+            </select>
+            <label class="text-xs text-slate-500">Từ ngày<input class="bakery-input" type="date" @bind="dateFrom" /></label>
+            <label class="text-xs text-slate-500">Đến ngày<input class="bakery-input" type="date" @bind="dateTo" /></label>
+            <button class="bakery-btn bakery-btn-outline bakery-btn-sm" @onclick="ResetAdvancedSearch">Đặt lại</button>
         </div>
     </div>
 
@@ -666,6 +674,9 @@
     private List<Order> orders = new();
     private string selectedStatus = "All";
     private string searchQuery = "";
+    private string selectedPaymentStatus = "All";
+    private DateTime? dateFrom;
+    private DateTime? dateTo;
     private Order? selectedOrder;
 
     [SupplyParameterFromQuery(Name = "order")]
@@ -673,11 +684,23 @@
 
     private List<Order> filteredOrders => orders
         .Where(o => selectedStatus == "All" || o.Status == selectedStatus)
+        .Where(o => selectedPaymentStatus == "All" || o.PaymentStatus == selectedPaymentStatus)
+        .Where(o => !dateFrom.HasValue || o.OrderDate.Date >= dateFrom.Value.Date)
+        .Where(o => !dateTo.HasValue || o.OrderDate.Date <= dateTo.Value.Date)
         .Where(o => string.IsNullOrWhiteSpace(searchQuery) ||
                     o.OrderID.ToString().Contains(searchQuery) ||
                     (o.ReceiverName != null && o.ReceiverName.Contains(searchQuery, StringComparison.OrdinalIgnoreCase)) ||
                     (o.ReceiverPhone != null && o.ReceiverPhone.Contains(searchQuery)))
         .ToList();
+
+    private void ResetAdvancedSearch()
+    {
+        searchQuery = string.Empty;
+        selectedStatus = "All";
+        selectedPaymentStatus = "All";
+        dateFrom = null;
+        dateTo = null;
+    }
 
     protected override async Task OnInitializedAsync()
     {

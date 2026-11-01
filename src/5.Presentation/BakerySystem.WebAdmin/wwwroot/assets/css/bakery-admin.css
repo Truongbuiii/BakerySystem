@@ -3534,15 +3534,17 @@ html.dark .bakery-bill-footer {
     background: #1e293b !important;
 }
 
-/* Print Invoice Styling */
+/* Print Invoice & General Report Print Styling */
 @media print {
-    body * {
+    /* 1. Nếu đang mở hóa đơn Modal thì chỉ in Modal hóa đơn */
+    body:has(.bakery-bill-card) * {
         visibility: hidden !important;
     }
-    .bakery-bill-card, .bakery-bill-card * {
+    body:has(.bakery-bill-card) .bakery-bill-card,
+    body:has(.bakery-bill-card) .bakery-bill-card * {
         visibility: visible !important;
     }
-    .bakery-bill-card {
+    body:has(.bakery-bill-card) .bakery-bill-card {
         position: fixed !important;
         left: 0 !important;
         top: 0 !important;
@@ -3551,13 +3553,65 @@ html.dark .bakery-bill-footer {
         border: none !important;
         box-shadow: none !important;
     }
-    .bakery-modal-backdrop {
+    body:has(.bakery-bill-card) .bakery-modal-backdrop {
         position: static !important;
         background: transparent !important;
         padding: 0 !important;
     }
-    .bakery-bill-close-btn, .bakery-bill-footer {
+    body:has(.bakery-bill-card) .bakery-bill-close-btn,
+    body:has(.bakery-bill-card) .bakery-bill-footer {
         display: none !important;
+    }
+
+    /* 2. In ấn toàn trang thông thường (Báo cáo, Danh sách sản phẩm, v.v.) */
+    body:not(:has(.bakery-bill-card)) {
+        background: #ffffff !important;
+        color: #000000 !important;
+    }
+    body:not(:has(.bakery-bill-card)) .bakery-sidebar,
+    body:not(:has(.bakery-bill-card)) .bakery-topbar,
+    body:not(:has(.bakery-bill-card)) .bakery-footer,
+    body:not(:has(.bakery-bill-card)) .bakery-page-actions,
+    body:not(:has(.bakery-bill-card)) .bakery-filter-toolbar,
+    body:not(:has(.bakery-bill-card)) .bakery-btn,
+    body:not(:has(.bakery-bill-card)) .bakery-action-group,
+    body:not(:has(.bakery-bill-card)) .bakery-toast-container,
+    body:not(:has(.bakery-bill-card)) .bakery-table-sort,
+    body:not(:has(.bakery-bill-card)) .bakery-split-detail {
+        display: none !important;
+    }
+    body:not(:has(.bakery-bill-card)) .bakery-page-wrapper {
+        margin: 0 !important;
+        width: 100% !important;
+        padding: 0 !important;
+    }
+    body:not(:has(.bakery-bill-card)) .bakery-main,
+    body:not(:has(.bakery-bill-card)) .bakery-container {
+        padding: 0 !important;
+        max-width: 100% !important;
+        width: 100% !important;
+    }
+    body:not(:has(.bakery-bill-card)) .bakery-card {
+        box-shadow: none !important;
+        border: 1px solid #e2e8f0 !important;
+        break-inside: avoid;
+        margin-bottom: 1rem !important;
+    }
+    body:not(:has(.bakery-bill-card)) .bakery-table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+    }
+    body:not(:has(.bakery-bill-card)) .bakery-table th,
+    body:not(:has(.bakery-bill-card)) .bakery-table td {
+        border: 1px solid #cbd5e1 !important;
+        color: #000000 !important;
+        padding: 6px 10px !important;
+    }
+    body:not(:has(.bakery-bill-card)) .bakery-split-container {
+        display: block !important;
+    }
+    body:not(:has(.bakery-bill-card)) .bakery-split-list {
+        width: 100% !important;
     }
 }
 
@@ -4170,3 +4224,6 @@ html.dark .bakery-detail-kv-val {
 html.dark .bakery-order-selected-row {
     background-color: rgba(30, 64, 175, 0.25) !important;
 }
+
+
+
