@@ -160,8 +160,9 @@
         </div>
     </div>
 
-    <!-- 4. Products Table Card -->
-    <div class="bakery-card">
+    <!-- 4. Enterprise Master-Detail Split View -->
+    <div class="bakery-split-container">
+        <div class="bakery-card bakery-split-list">
         <div class="bakery-table-toolbar">
             <div class="bakery-table-title">
                 <iconify-icon icon="solar:list-bold-duotone" class="text-xl text-primary"></iconify-icon>
@@ -225,7 +226,7 @@
                     <tbody>
                         @foreach (var item in filteredProducts)
                         {
-                            <tr>
+                            <tr class="bakery-row-clickable @(selectedProduct?.ProductID == item.ProductID ? "bakery-row-selected" : "")" @onclick="() => SelectProduct(item)">
                                 <!-- ID -->
                                 <td>
                                     <span class="bakery-code-badge">#SP-@item.ProductID.ToString("D3")</span>
@@ -305,7 +306,7 @@
                                             <button type="button" 
                                                     class="bakery-toggle-pill @(item.IsActive ? "active" : "inactive")"
                                                     title="Bấm để bật/tắt trạng thái kinh doanh"
-                                                    @onclick="() => ToggleStatusAsync(item)">
+                                                    @onclick:stopPropagation="true" @onclick="() => ToggleStatusAsync(item)">
                                                 <span class="bakery-toggle-dot"></span>
                                                 <span>@(item.IsActive ? "Đang bán" : "Tạm ngưng")</span>
                                             </button>
@@ -325,13 +326,13 @@
                                             <div class="bakery-action-group">
                                                 <button class="bakery-action-btn" 
                                                         title="Chỉnh sửa thông tin món"
-                                                        @onclick="() => OpenEditProductModal(item)">
+                                                        @onclick:stopPropagation="true" @onclick="() => OpenEditProductModal(item)">
                                                     <iconify-icon icon="solar:pen-linear"></iconify-icon>
                                                 </button>
 
                                                 <button class="bakery-action-btn bakery-action-btn-danger" 
                                                         title="Xóa hoặc ngừng bán"
-                                                        @onclick="() => OpenDeleteConfirmModal(item)">
+                                                        @onclick:stopPropagation="true" @onclick="() => OpenDeleteConfirmModal(item)">
                                                     <iconify-icon icon="solar:trash-bin-trash-linear"></iconify-icon>
                                                 </button>
                                             </div>
@@ -362,6 +363,115 @@
                 </div>
             </div>
         }
+        </div>
+
+        <!-- RIGHT PANEL: Chi tiết thông tin sản phẩm chuẩn người quản lý -->
+        <div class="bakery-split-detail">
+            @if (selectedProduct == null)
+            {
+                <div class="bakery-detail-placeholder">
+                    <div class="w-16 h-16 mx-auto mb-3 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400">
+                        <iconify-icon icon="solar:cursor-square-linear" class="text-3xl"></iconify-icon>
+                    </div>
+                    <h5 class="text-base font-bold text-dark dark:text-white mb-1">Chưa chọn món nào</h5>
+                    <p class="text-xs text-bodytext mb-0">Bấm vào bất kỳ món bánh nào trong danh sách bên trái để xem nhanh đầy đủ thông số quản lý.</p>
+                </div>
+            }
+            else
+            {
+                <div class="bakery-detail-header-card">
+                    <div>
+                        <div class="flex items-center gap-2 mb-1">
+                            <span class="bakery-code-badge">#SP-@selectedProduct.ProductID.ToString("D3")</span>
+                            <span class="bakery-badge @(selectedProduct.IsActive ? "bakery-badge-success" : "bakery-badge-secondary") text-xs">
+                                @(selectedProduct.IsActive ? "Đang bán" : "Tạm ngưng")
+                            </span>
+                        </div>
+                        <h4 class="text-base font-bold text-dark dark:text-white mb-0">@selectedProduct.ProductName</h4>
+                        <div class="text-xs text-slate-500 mt-0.5">Phân loại: <strong class="text-slate-700 dark:text-slate-300">@selectedProduct.CategoryName</strong></div>
+                    </div>
+                    <button type="button" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200" title="Đóng bảng chi tiết" @onclick="() => selectedProduct = null">
+                        <iconify-icon icon="solar:close-circle-linear" class="text-xl"></iconify-icon>
+                    </button>
+                </div>
+
+                <!-- Product Preview Image -->
+                <div class="relative">
+                    <img src="@(string.IsNullOrWhiteSpace(selectedProduct.ImageURL) ? "/assets/images/products/default-bakery.svg" : selectedProduct.ImageURL)" 
+                         alt="@selectedProduct.ProductName" 
+                         class="bakery-detail-thumb-large"
+                         onerror="this.src='/assets/images/products/default-bakery.svg'" />
+                    <span class="absolute bottom-6 right-2 text-[11px] font-semibold px-2 py-0.5 rounded-md bg-black/60 text-white backdrop-blur-sm">
+                        ID: #@selectedProduct.ProductID
+                    </span>
+                </div>
+
+                <!-- Key Metrics Grid -->
+                <div class="bakery-detail-kv-grid">
+                    <div class="bakery-detail-kv-item">
+                        <div class="bakery-detail-kv-label">Giá niêm yết</div>
+                        <div class="bakery-detail-kv-val text-primary dark:text-blue-400">@($"{selectedProduct.Price:N0} đ")</div>
+                    </div>
+                    <div class="bakery-detail-kv-item">
+                        <div class="bakery-detail-kv-label">Tồn kho hiện tại</div>
+                        <div class="bakery-detail-kv-val @(selectedProduct.Quantity <= 0 ? "text-rose-500" : selectedProduct.Quantity <= 5 ? "text-amber-500" : "text-emerald-600")">
+                            @selectedProduct.Quantity cái
+                        </div>
+                    </div>
+                    <div class="bakery-detail-kv-item">
+                        <div class="bakery-detail-kv-label">Lượng đã bán</div>
+                        <div class="bakery-detail-kv-val text-slate-700 dark:text-slate-200">@selectedProduct.SoldCount đơn</div>
+                    </div>
+                    <div class="bakery-detail-kv-item">
+                        <div class="bakery-detail-kv-label">Tình trạng kho</div>
+                        <div class="bakery-detail-kv-val text-xs pt-1">
+                            @if (selectedProduct.Quantity <= 0)
+                            {
+                                <span class="text-rose-500 font-bold">Hết hàng</span>
+                            }
+                            else if (selectedProduct.Quantity <= 5)
+                            {
+                                <span class="text-amber-500 font-bold">Sắp hết hàng</span>
+                            }
+                            else
+                            {
+                                <span class="text-emerald-600 font-bold">Sẵn sàng bán</span>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Description Box -->
+                <div class="mb-4">
+                    <label class="bakery-label mb-1">Mô tả sản phẩm</label>
+                    <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 text-xs text-slate-700 dark:text-slate-300 leading-relaxed" style="min-height: 60px;">
+                        @(string.IsNullOrWhiteSpace(selectedProduct.Description) ? "Chưa có mô tả chi tiết cho món này." : selectedProduct.Description)
+                    </div>
+                </div>
+
+                <!-- Action Toolbar for Manager -->
+                <AuthorizeView Roles="Admin">
+                    <Authorized>
+                        <div class="space-y-2 pt-2 border-t border-slate-200 dark:border-slate-700">
+                            <button class="bakery-btn bakery-btn-primary w-full flex items-center justify-center gap-2 py-2" @onclick="() => OpenEditProductModal(selectedProduct)">
+                                <iconify-icon icon="solar:pen-linear" class="text-base"></iconify-icon>
+                                <span>Chỉnh sửa thông tin món này</span>
+                            </button>
+                            <div class="grid grid-cols-2 gap-2">
+                                <button class="bakery-btn bakery-btn-outline text-xs flex items-center justify-center gap-1.5" @onclick="() => ToggleStatusAsync(selectedProduct)">
+                                    <iconify-icon icon="solar:restart-linear" class="text-sm"></iconify-icon>
+                                    <span>@(selectedProduct.IsActive ? "Ngừng bán" : "Mở bán lại")</span>
+                                </button>
+                                <button class="bakery-btn bakery-btn-danger text-xs flex items-center justify-center gap-1.5" @onclick="() => OpenDeleteConfirmModal(selectedProduct)">
+                                    <iconify-icon icon="solar:trash-bin-trash-linear" class="text-sm"></iconify-icon>
+                                    <span>Xóa món</span>
+                                </button>
+                            </div>
+                        </div>
+                    </Authorized>
+                </AuthorizeView>
+            }
+        </div>
     </div>
 </div>
 
@@ -793,6 +903,7 @@
     private CreateProductDto newProduct = new();
     private UpdateProductDto? editProduct = null;
     private ProductDto? targetProduct = null;
+    private ProductDto? selectedProduct = null;
     private string newCategoryName = string.Empty;
 
     // Image Upload State
@@ -889,7 +1000,15 @@
             "sold_desc" => allProducts.OrderByDescending(p => p.SoldCount).ToList(),
             _ => allProducts.OrderByDescending(p => p.ProductID).ToList()
         };
+
+        if (selectedProduct != null)
+        {
+            selectedProduct = filteredProducts.FirstOrDefault(p => p.ProductID == selectedProduct.ProductID);
+        }
+        selectedProduct ??= filteredProducts.FirstOrDefault();
     }
+
+    private void SelectProduct(ProductDto p) => selectedProduct = p;
 
     private async Task ResetFiltersAsync()
     {

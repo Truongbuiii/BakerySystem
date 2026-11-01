@@ -426,7 +426,7 @@ html.dark .bakery-footer {
 
 .bakery-container {
     width: 100%;
-    max-width: 1240px;
+    max-width: 1560px;
     margin-left: auto;
     margin-right: auto;
     padding: 1.25rem 1.25rem 2.5rem 1.25rem;
@@ -4014,4 +4014,159 @@ html.dark .bakery-profile-logout:hover { background: rgba(127, 29, 29, .22); }
     .bakery-profile-trigger { gap: .4rem; padding-right: .35rem; }
     .bakery-profile-trigger-name { max-width: 92px; }
     .bakery-profile-trigger-role, .bakery-profile-chevron { display: none; }
+}
+
+
+/* ========================================================
+   ENTERPRISE MASTER-DETAIL SPLIT VIEW (2-COLUMN LAYOUT)
+   ======================================================== */
+.bakery-split-container {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+    align-items: start;
+    width: 100%;
+}
+
+@media (min-width: 1024px) {
+    .bakery-split-container {
+        grid-template-columns: 1fr 400px;
+    }
+}
+
+@media (min-width: 1440px) {
+    .bakery-split-container {
+        grid-template-columns: 1fr 440px;
+    }
+}
+
+.bakery-split-list {
+    min-width: 0;
+    width: 100%;
+}
+
+.bakery-split-detail {
+    position: sticky;
+    top: 72px;
+    max-height: calc(100vh - 88px);
+    overflow-y: auto;
+    background: #ffffff;
+    border: 1px solid var(--bakery-border);
+    border-radius: 16px;
+    padding: 1.25rem;
+    box-shadow: 0 4px 12px -2px rgba(15, 23, 42, 0.05);
+}
+
+html.dark .bakery-split-detail {
+    background: var(--bakery-card-dark, #1e293b);
+    border-color: var(--bakery-border-dark, #334155);
+}
+
+.bakery-table tr.bakery-row-selected {
+    background-color: #eff6ff !important;
+}
+
+html.dark .bakery-table tr.bakery-row-selected {
+    background-color: rgba(30, 64, 175, 0.25) !important;
+}
+
+.bakery-table tr.bakery-row-clickable {
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+}
+
+.bakery-table tr.bakery-row-clickable:hover {
+    background-color: #f8fafc;
+}
+
+html.dark .bakery-table tr.bakery-row-clickable:hover {
+    background-color: #1e293b;
+}
+
+.bakery-detail-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 3.5rem 1.5rem;
+    color: #64748b;
+}
+
+.bakery-detail-header-card {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--bakery-border);
+    margin-bottom: 1rem;
+}
+
+html.dark .bakery-detail-header-card {
+    border-bottom-color: var(--bakery-border-dark, #334155);
+}
+
+.bakery-detail-thumb-large {
+    width: 100%;
+    height: 190px;
+    object-fit: cover;
+    border-radius: 12px;
+    border: 1px solid var(--bakery-border);
+    margin-bottom: 1rem;
+    background-color: #f8fafc;
+}
+
+html.dark .bakery-detail-thumb-large {
+    border-color: var(--bakery-border-dark, #334155);
+    background-color: #0f172a;
+}
+
+.bakery-detail-kv-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+}
+
+.bakery-detail-kv-item {
+    background: #f8fafc;
+    border: 1px solid var(--bakery-border);
+    border-radius: 10px;
+    padding: 0.6rem 0.75rem;
+}
+
+html.dark .bakery-detail-kv-item {
+    background: #0f172a;
+    border-color: #334155;
+}
+
+.bakery-detail-kv-label {
+    font-size: 0.7rem;
+    font-weight: 500;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+    margin-bottom: 0.2rem;
+}
+
+.bakery-detail-kv-val {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--bakery-dark, #0f172a);
+}
+
+html.dark .bakery-detail-kv-val {
+    color: #f8fafc;
+}
+
+
+
+/* Master-detail layout for Orders */
+.bakery-order-selected-row {
+    background-color: #eff6ff !important;
+}
+
+html.dark .bakery-order-selected-row {
+    background-color: rgba(30, 64, 175, 0.25) !important;
 }
