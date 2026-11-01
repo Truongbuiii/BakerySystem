@@ -8,7 +8,7 @@
 <PageTitle>Báo Cáo Doanh Thu & Thống Kê | BakeryAdmin</PageTitle>
 
 <div class="space-y-5">
-    <!-- 1. Header Trang & Bộ lọc thời gian -->
+    <!-- 1. Header Trang & Tiêu đề -->
     <div class="bakery-page-header pb-2 border-b border-border dark:border-darkborder flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <div>
             <div class="flex items-center gap-2 text-xs text-slate-500 mb-1">
@@ -23,43 +23,14 @@
                 <span class="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800 flex items-center justify-center shrink-0">
                     <iconify-icon icon="solar:chart-2-bold" class="text-xl"></iconify-icon>
                 </span>
-                Báo Cáo Doanh Thu, Tồn Kho & Hiệu Suất (Module 7)
+                Báo Cáo Doanh Thu, Tồn Kho & Lợi Nhuận
             </h2>
             <p class="text-xs sm:text-sm text-slate-500 mb-0">
-                Tổng hợp doanh thu thực tế, chi phí vốn nhập kho, phân tích lợi nhuận gộp và cảnh báo mức tồn an toàn.
+                Thống kê toàn diện doanh thu thực tế, chi phí vốn nhập kho, phân tích lợi nhuận gộp theo chu kỳ tùy chọn.
             </p>
         </div>
 
-        <!-- Bộ lọc thời gian & Nút chức năng -->
-        <div class="flex flex-wrap items-center gap-2">
-            <div class="inline-flex rounded-xl p-1 bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700">
-                <button type="button" 
-                        class="px-3 py-1.5 text-xs font-semibold rounded-lg transition-all @(filterPeriod == "today" ? "bg-white dark:bg-slate-700 text-primary shadow-sm" : "text-slate-600 dark:text-slate-400 hover:text-slate-900")"
-                        @onclick='() => ChangePeriod("today")'>
-                    Hôm nay
-                </button>
-                <button type="button" 
-                        class="px-3 py-1.5 text-xs font-semibold rounded-lg transition-all @(filterPeriod == "week" ? "bg-white dark:bg-slate-700 text-primary shadow-sm" : "text-slate-600 dark:text-slate-400 hover:text-slate-900")"
-                        @onclick='() => ChangePeriod("week")'>
-                    7 ngày
-                </button>
-                <button type="button" 
-                        class="px-3 py-1.5 text-xs font-semibold rounded-lg transition-all @(filterPeriod == "month" ? "bg-white dark:bg-slate-700 text-primary shadow-sm" : "text-slate-600 dark:text-slate-400 hover:text-slate-900")"
-                        @onclick='() => ChangePeriod("month")'>
-                    Tháng này
-                </button>
-                <button type="button" 
-                        class="px-3 py-1.5 text-xs font-semibold rounded-lg transition-all @(filterPeriod == "year" ? "bg-white dark:bg-slate-700 text-primary shadow-sm" : "text-slate-600 dark:text-slate-400 hover:text-slate-900")"
-                        @onclick='() => ChangePeriod("year")'>
-                    Năm nay
-                </button>
-                <button type="button" 
-                        class="px-3 py-1.5 text-xs font-semibold rounded-lg transition-all @(filterPeriod == "all" ? "bg-white dark:bg-slate-700 text-primary shadow-sm" : "text-slate-600 dark:text-slate-400 hover:text-slate-900")"
-                        @onclick='() => ChangePeriod("all")'>
-                    Tất cả
-                </button>
-            </div>
-
+        <div class="flex items-center gap-2">
             <button type="button" 
                     class="bakery-btn bakery-btn-outline bakery-btn-sm"
                     @onclick="LoadReportDataAsync"
@@ -79,7 +50,148 @@
         </div>
     </div>
 
-    <!-- 2. Top 4 KPI Metric Cards (Đồng bộ thiết kế hiện đại) -->
+    <!-- 2. BỘ LỌC THỐNG KÊ TOÀN DIỆN (Từ ngày - đến ngày & Theo tháng / quý / năm) -->
+    <div class="bakery-card p-4">
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <!-- Mode Switcher: Nhanh / Tùy chọn ngày / Theo tháng / Theo quý / Theo năm -->
+            <div class="flex flex-wrap items-center gap-2">
+                <div class="inline-flex rounded-xl p-1 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                    <button type="button"
+                            class="px-3 py-1.5 text-xs font-semibold rounded-lg transition-all @(filterType == "quick" ? "bg-white dark:bg-slate-700 text-primary shadow-sm" : "text-slate-600 dark:text-slate-400 hover:text-slate-900")"
+                            @onclick='() => SetFilterType("quick")'>
+                        Chu kỳ nhanh
+                    </button>
+                    <button type="button"
+                            class="px-3 py-1.5 text-xs font-semibold rounded-lg transition-all @(filterType == "custom" ? "bg-white dark:bg-slate-700 text-primary shadow-sm" : "text-slate-600 dark:text-slate-400 hover:text-slate-900")"
+                            @onclick='() => SetFilterType("custom")'>
+                        Từ ngày A &rarr; B
+                    </button>
+                    <button type="button"
+                            class="px-3 py-1.5 text-xs font-semibold rounded-lg transition-all @(filterType == "month" ? "bg-white dark:bg-slate-700 text-primary shadow-sm" : "text-slate-600 dark:text-slate-400 hover:text-slate-900")"
+                            @onclick='() => SetFilterType("month")'>
+                        Theo tháng
+                    </button>
+                    <button type="button"
+                            class="px-3 py-1.5 text-xs font-semibold rounded-lg transition-all @(filterType == "quarter" ? "bg-white dark:bg-slate-700 text-primary shadow-sm" : "text-slate-600 dark:text-slate-400 hover:text-slate-900")"
+                            @onclick='() => SetFilterType("quarter")'>
+                        Theo quý
+                    </button>
+                    <button type="button"
+                            class="px-3 py-1.5 text-xs font-semibold rounded-lg transition-all @(filterType == "year" ? "bg-white dark:bg-slate-700 text-primary shadow-sm" : "text-slate-600 dark:text-slate-400 hover:text-slate-900")"
+                            @onclick='() => SetFilterType("year")'>
+                        Theo năm
+                    </button>
+                </div>
+            </div>
+
+            <!-- Detailed controls based on chosen filterType -->
+            <div class="flex flex-wrap items-center gap-3">
+                @if (filterType == "quick")
+                {
+                    <div class="flex items-center gap-1.5">
+                        <button type="button" class="px-2.5 py-1 text-xs rounded-md border transition-colors @(quickPeriod == "today" ? "bg-blue-50 border-blue-300 text-blue-700 font-bold" : "border-slate-200 text-slate-600 hover:bg-slate-50")"
+                                @onclick='() => ChangeQuickPeriod("today")'>Hôm nay</button>
+                        <button type="button" class="px-2.5 py-1 text-xs rounded-md border transition-colors @(quickPeriod == "week" ? "bg-blue-50 border-blue-300 text-blue-700 font-bold" : "border-slate-200 text-slate-600 hover:bg-slate-50")"
+                                @onclick='() => ChangeQuickPeriod("week")'>7 ngày qua</button>
+                        <button type="button" class="px-2.5 py-1 text-xs rounded-md border transition-colors @(quickPeriod == "month" ? "bg-blue-50 border-blue-300 text-blue-700 font-bold" : "border-slate-200 text-slate-600 hover:bg-slate-50")"
+                                @onclick='() => ChangeQuickPeriod("month")'>Tháng này</button>
+                        <button type="button" class="px-2.5 py-1 text-xs rounded-md border transition-colors @(quickPeriod == "all" ? "bg-blue-50 border-blue-300 text-blue-700 font-bold" : "border-slate-200 text-slate-600 hover:bg-slate-50")"
+                                @onclick='() => ChangeQuickPeriod("all")'>Toàn thời gian</button>
+                    </div>
+                }
+                else if (filterType == "custom")
+                {
+                    <div class="flex items-center gap-2">
+                        <div class="flex items-center gap-1.5">
+                            <span class="text-xs text-slate-500 font-medium">Từ ngày:</span>
+                            <input type="date" class="bakery-input py-1 px-2.5 text-xs" style="height: 34px; width: auto;" @bind="customStartDate" />
+                        </div>
+                        <span class="text-slate-400">&rarr;</span>
+                        <div class="flex items-center gap-1.5">
+                            <span class="text-xs text-slate-500 font-medium">Đến ngày:</span>
+                            <input type="date" class="bakery-input py-1 px-2.5 text-xs" style="height: 34px; width: auto;" @bind="customEndDate" />
+                        </div>
+                        <button type="button" class="bakery-btn bakery-btn-primary bakery-btn-sm" @onclick="LoadReportDataAsync">
+                            Xem thống kê
+                        </button>
+                    </div>
+                }
+                else if (filterType == "month")
+                {
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs text-slate-500 font-medium">Chọn tháng:</span>
+                        <select class="bakery-input py-1 px-2.5 text-xs" style="height: 34px; width: auto;" @bind="selectedMonth">
+                            @for (int m = 1; m <= 12; m++)
+                            {
+                                <option value="@m">Tháng @m</option>
+                            }
+                        </select>
+                        <span class="text-xs text-slate-500 font-medium">Năm:</span>
+                        <select class="bakery-input py-1 px-2.5 text-xs" style="height: 34px; width: auto;" @bind="selectedYear">
+                            @for (int y = DateTime.Now.Year - 3; y <= DateTime.Now.Year + 1; y++)
+                            {
+                                <option value="@y">Năm @y</option>
+                            }
+                        </select>
+                        <button type="button" class="bakery-btn bakery-btn-primary bakery-btn-sm" @onclick="LoadReportDataAsync">
+                            Xem tháng
+                        </button>
+                    </div>
+                }
+                else if (filterType == "quarter")
+                {
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs text-slate-500 font-medium">Chọn quý:</span>
+                        <select class="bakery-input py-1 px-2.5 text-xs" style="height: 34px; width: auto;" @bind="selectedQuarter">
+                            <option value="1">Quý 1 (Tháng 1 - 3)</option>
+                            <option value="2">Quý 2 (Tháng 4 - 6)</option>
+                            <option value="3">Quý 3 (Tháng 7 - 9)</option>
+                            <option value="4">Quý 4 (Tháng 10 - 12)</option>
+                        </select>
+                        <span class="text-xs text-slate-500 font-medium">Năm:</span>
+                        <select class="bakery-input py-1 px-2.5 text-xs" style="height: 34px; width: auto;" @bind="selectedYear">
+                            @for (int y = DateTime.Now.Year - 3; y <= DateTime.Now.Year + 1; y++)
+                            {
+                                <option value="@y">Năm @y</option>
+                            }
+                        </select>
+                        <button type="button" class="bakery-btn bakery-btn-primary bakery-btn-sm" @onclick="LoadReportDataAsync">
+                            Xem quý
+                        </button>
+                    </div>
+                }
+                else if (filterType == "year")
+                {
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs text-slate-500 font-medium">Chọn năm:</span>
+                        <select class="bakery-input py-1 px-2.5 text-xs" style="height: 34px; width: auto;" @bind="selectedYear">
+                            @for (int y = DateTime.Now.Year - 3; y <= DateTime.Now.Year + 1; y++)
+                            {
+                                <option value="@y">Năm @y</option>
+                            }
+                        </select>
+                        <button type="button" class="bakery-btn bakery-btn-primary bakery-btn-sm" @onclick="LoadReportDataAsync">
+                            Xem cả năm
+                        </button>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <div class="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 text-xs text-slate-500 flex items-center justify-between">
+            <div>
+                Đang hiển thị thống kê cho chu kỳ: <strong class="text-primary dark:text-blue-400">@GetPeriodDisplayName()</strong>
+            </div>
+            @if (activeStartDate.HasValue && activeEndDate.HasValue)
+            {
+                <div class="font-mono text-[11px] text-slate-400">
+                    [@activeStartDate.Value.ToString("dd/MM/yyyy HH:mm")] &rarr; [@activeEndDate.Value.ToString("dd/MM/yyyy HH:mm")]
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- 3. Top 4 KPI Metric Cards -->
     <div class="bakery-kpi-grid">
         <!-- Card 1: Doanh Thu Thực Thu -->
         <div class="bakery-kpi-card">
@@ -163,13 +275,125 @@
         </div>
     }
 
+    <!-- 4. BẢNG BIỂU THỐNG KÊ CHI TIẾT THEO CHU KỲ (TIMELINE TABLE) -->
+    <div class="bakery-card p-4">
+        <div class="flex items-center justify-between mb-3 pb-2 border-b border-slate-100 dark:border-slate-800">
+            <div>
+                <h3 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1.5 mb-0.5">
+                    <iconify-icon icon="solar:calendar-date-bold" class="text-primary text-base"></iconify-icon>
+                    Bảng Thống Kê Chi Tiết Theo Mốc Thời Gian (@GetPeriodDisplayName())
+                </h3>
+                <p class="text-[11px] text-slate-500 mb-0">Phân rã số liệu doanh thu, vốn nhập, lợi nhuận gộp theo từng mốc trong chu kỳ.</p>
+            </div>
+            <span class="bakery-badge bakery-badge-primary text-xs">@timelineBreakdown.Count mốc thời gian</span>
+        </div>
+
+        <div class="bakery-table-responsive overflow-x-auto">
+            <table class="bakery-table">
+                <thead>
+                    <tr>
+                        <th class="py-2 px-3 text-left">Mốc thời gian</th>
+                        <th class="py-2 px-3 text-center">Số đơn hàng</th>
+                        <th class="py-2 px-3 text-right">Doanh thu bán</th>
+                        <th class="py-2 px-3 text-right">Chi phí vốn</th>
+                        <th class="py-2 px-3 text-right">Lợi nhuận gộp</th>
+                        <th class="py-2 px-3 text-center">Tỷ suất lãi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!timelineBreakdown.Any())
+                    {
+                        <tr>
+                            <td colspan="6" class="text-center py-6 text-slate-400 text-xs">
+                                Chưa có phát sinh doanh thu hoặc phiếu nhập kho trong chu kỳ này.
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var row in timelineBreakdown)
+                        {
+                            <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/40">
+                                <td class="py-2 px-3 font-semibold text-slate-800 dark:text-white">
+                                    @row.TimeLabel
+                                </td>
+                                <td class="py-2 px-3 text-center">
+                                    <span class="inline-block px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-300">
+                                        @row.OrderCount đơn
+                                    </span>
+                                </td>
+                                <td class="py-2 px-3 text-right font-mono font-bold text-blue-700 dark:text-blue-400">
+                                    @($"{row.Revenue:N0} đ")
+                                </td>
+                                <td class="py-2 px-3 text-right font-mono font-semibold text-amber-700 dark:text-amber-400">
+                                    @($"{row.Cost:N0} đ")
+                                </td>
+                                <td class="py-2 px-3 text-right font-mono font-bold @(row.GrossProfit >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600")">
+                                    @($"{row.GrossProfit:N0} đ")
+                                </td>
+                                <td class="py-2 px-3 text-center">
+                                    <span class="bakery-badge @(row.Margin >= 20 ? "bakery-badge-success" : row.Margin > 0 ? "bakery-badge-warning" : "bakery-badge-danger") text-xs">
+                                        @(row.Margin.ToString("F1"))%
+                                    </span>
+                                </td>
+                            </tr>
+                        }
+                        <!-- Dòng tổng cộng -->
+                        <tr class="bg-slate-50 dark:bg-slate-800/80 font-bold border-t-2 border-slate-300 dark:border-slate-700">
+                            <td class="py-2.5 px-3 uppercase text-slate-900 dark:text-white">Tổng cộng chu kỳ</td>
+                            <td class="py-2.5 px-3 text-center text-primary font-bold">@timelineBreakdown.Sum(x => x.OrderCount) đơn</td>
+                            <td class="py-2.5 px-3 text-right font-mono text-blue-700 dark:text-blue-400">@($"{timelineBreakdown.Sum(x => x.Revenue):N0} đ")</td>
+                            <td class="py-2.5 px-3 text-right font-mono text-amber-700 dark:text-amber-400">@($"{timelineBreakdown.Sum(x => x.Cost):N0} đ")</td>
+                            <td class="py-2.5 px-3 text-right font-mono @(grossProfit >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600")">@($"{grossProfit:N0} đ")</td>
+                            <td class="py-2.5 px-3 text-center">
+                                <span class="bakery-badge bakery-badge-primary text-xs font-bold">
+                                    @(profitMargin.ToString("F1"))%
+                                </span>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 5. BIỂU ĐỒ SO SÁNH DOANH THU & VỐN -->
+    <div class="bakery-card p-3 mb-4">
+        <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 mb-3 pb-2 border-b border-slate-100 dark:border-slate-800">
+            <div>
+                <h3 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1.5 mb-0.5">
+                    Biểu Đồ So Sánh Doanh Thu Thực Thu vs Chi Phí Vốn Nhập Hàng
+                </h3>
+                <p class="text-[10px] text-slate-500 mb-0">Theo chu kỳ @GetPeriodDisplayName()</p>
+            </div>
+            <div class="flex flex-wrap items-center gap-2 text-[10px] font-semibold">
+                <span class="inline-flex items-center gap-1.5 text-slate-600 dark:text-slate-300">
+                    <span class="w-2.5 h-2.5 rounded-full bg-blue-600"></span>Doanh thu
+                </span>
+                <span class="inline-flex items-center gap-1.5 text-slate-600 dark:text-slate-300">
+                    <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>Chi phí vốn
+                </span>
+            </div>
+        </div>
+
+        <div id="reports-financial-chart" style="min-height: 250px;">
+            @if (isLoading)
+            {
+                <div class="flex items-center justify-center h-56">
+                    <span class="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin"></span>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- 6. HAI BẢNG: CƠ CẤU DOANH THU LOẠI BÁNH & PHƯƠNG THỨC THANH TOÁN -->
     <div class="bakery-report-two-col">
         <div class="bakery-card p-3 h-full flex flex-col min-h-0">
             <div class="mb-2 pb-2 border-b border-slate-100 dark:border-slate-800 flex-shrink-0">
                 <h3 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1.5 mb-0.5">
                     Cơ Cấu Doanh Thu Theo Loại Bánh
                 </h3>
-                <p class="text-[10px] text-slate-500 mb-0">Tỷ lệ đóng góp doanh thu</p>
+                <p class="text-[10px] text-slate-500 mb-0">Tỷ lệ đóng góp doanh thu của các phân loại bánh</p>
             </div>
 
             <div class="flex-1 flex items-center justify-center min-h-0" style="max-height: 200px;">
@@ -184,7 +408,7 @@
                             <span class="w-2 h-2 rounded-full shrink-0" style="background-color: @cat.ColorHex;"></span>
                             <span class="font-medium text-slate-700 dark:text-slate-300 truncate">@cat.CategoryName</span>
                         </div>
-                        <span class="shrink-0 font-mono font-semibold text-slate-900 dark:text-white">@($"{cat.Revenue:N0}đ")</span>
+                        <span class="shrink-0 font-mono font-semibold text-slate-900 dark:text-white">@($"{cat.Revenue:N0}đ") (@cat.Percentage.ToString("F1")%)</span>
                     </div>
                 }
             </div>
@@ -194,7 +418,7 @@
             <div class="flex items-center justify-between mb-2 pb-2 border-b border-slate-100 dark:border-slate-800">
                 <div>
                     <h3 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1.5 mb-0.5">
-                        Thống Kê Doanh Thu Theo Phương Thức Thanh Toán
+                        Thống Kê Theo Phương Thức Thanh Toán
                     </h3>
                 </div>
                 <span class="bakery-badge bakery-badge-primary text-[10px] font-bold">@($"{paymentStats.Sum(x => x.Amount):N0}đ")</span>
@@ -233,45 +457,18 @@
         </div>
     </div>
 
-    <div class="bakery-card p-3 mb-4">
-        <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 mb-3 pb-2 border-b border-slate-100 dark:border-slate-800">
-            <div>
-                <h3 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1.5 mb-0.5">
-                    So Sánh Doanh Thu Thực Thu vs Chi Phí Vốn Nhập Hàng
-                </h3>
-                <p class="text-[10px] text-slate-500 mb-0">Theo chu kỳ @GetPeriodDisplayName()</p>
-            </div>
-            <div class="flex flex-wrap items-center gap-2 text-[10px] font-semibold">
-                <span class="inline-flex items-center gap-1.5 text-slate-600 dark:text-slate-300">
-                    <span class="w-2.5 h-2.5 rounded-full bg-blue-600"></span>Doanh thu
-                </span>
-                <span class="inline-flex items-center gap-1.5 text-slate-600 dark:text-slate-300">
-                    <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>Chi phí vốn
-                </span>
-            </div>
-        </div>
-
-        <div id="reports-financial-chart" style="min-height: 230px;">
-            @if (isLoading)
-            {
-                <div class="flex items-center justify-center h-56">
-                    <span class="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin"></span>
-                </div>
-            }
-        </div>
-    </div>
-
+    <!-- 7. TOP BÁN CHẠY VÀ CẢNH BÁO TỒN KHO -->
     <div class="grid grid-cols-1 xl:grid-cols-2 gap-4 mb-5">
         <div class="bakery-card p-3 h-full flex flex-col min-h-0">
             <div class="flex items-center justify-between mb-2 pb-2 border-b border-slate-100 dark:border-slate-800 flex-shrink-0">
                 <div>
-                    <h3 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1.5 mb-0">
-                        Top 5 Bán Chạy Nhất
+                    <h3 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1.5 mb-0.5">
+                        Top 5 Bán Chạy Nhất Trong Kỳ
                     </h3>
                     <p class="text-[10px] text-slate-500 mb-0">Số lượng bán từ đơn hoàn tất</p>
                 </div>
                 <a href="/products" class="text-[10px] font-semibold text-primary hover:underline flex items-center gap-1">
-                    Xem tất cả <iconify-icon icon="solar:arrow-right-linear" class="text-xs"></iconify-icon>
+                    Xem menu <iconify-icon icon="solar:arrow-right-linear" class="text-xs"></iconify-icon>
                 </a>
             </div>
 
@@ -321,11 +518,11 @@
         <div class="bakery-card p-3 h-full flex flex-col min-h-0">
             <div class="flex items-center justify-between mb-2 pb-2 border-b border-slate-100 dark:border-slate-800 flex-shrink-0">
                 <div>
-                    <h3 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1.5 mb-0">
-                        Cảnh Báo Tồn Kho Bánh (Ngưỡng ≤ 10 cái)
+                    <h3 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1.5 mb-0.5">
+                        Cảnh Báo Tồn Kho Bánh (Ngưỡng &le; 10 cái)
                     </h3>
-                    <p class="text-[10px] text-slate-500 mb-0">Các món hết hàng hoặc sắp hết</p>
-                </div>>
+                    <p class="text-[10px] text-slate-500 mb-0">Các món hết hàng hoặc cần nhập thêm nguyên liệu</p>
+                </div>
                 <span class="bakery-badge bakery-badge-danger text-[10px] font-bold">@lowStockProducts.Count món</span>
             </div>
 
@@ -367,10 +564,25 @@
             }
         </div>
     </div>
-    </div>
+</div>
 
 @code {
-    private string filterPeriod = "month";
+    // Mode bộ lọc: "quick" | "custom" | "month" | "quarter" | "year"
+    private string filterType = "quick";
+    private string quickPeriod = "month";
+
+    // Custom date range: Từ ngày a đến ngày b
+    private DateTime customStartDate = DateTime.Today.AddDays(-30);
+    private DateTime customEndDate = DateTime.Today;
+
+    // Month / Quarter / Year
+    private int selectedMonth = DateTime.Now.Month;
+    private int selectedQuarter = (DateTime.Now.Month - 1) / 3 + 1;
+    private int selectedYear = DateTime.Now.Year;
+
+    private DateTime? activeStartDate = null;
+    private DateTime? activeEndDate = null;
+
     private bool isLoading = true;
     private bool hasError = false;
     private string errorMessage = "";
@@ -395,9 +607,12 @@
     // Low Stock Alert
     private List<Product> lowStockProducts = new();
 
-    // Category Breakdown
+    // Category Breakdown & Payment Stats
     private List<CategoryShareItem> categoryShares = new();
     private List<PaymentStatItem> paymentStats = new();
+
+    // Timeline Breakdown Table Data
+    private List<TimelineRowItem> timelineBreakdown = new();
 
     // Chart Time Series Data
     private List<string> chartLabels = new();
@@ -409,19 +624,31 @@
         await LoadReportDataAsync();
     }
 
-    private async Task ChangePeriod(string period)
+    private void SetFilterType(string type)
     {
-        filterPeriod = period;
-        await LoadReportDataAsync();
+        filterType = type;
+        _ = LoadReportDataAsync();
     }
 
-    private string GetPeriodDisplayName() => filterPeriod switch
+    private void ChangeQuickPeriod(string period)
     {
-        "today" => "Hôm nay",
-        "week" => "7 ngày gần nhất",
-        "month" => "Tháng này",
-        "year" => "Năm này",
-        _ => "Toàn bộ thời gian"
+        quickPeriod = period;
+        _ = LoadReportDataAsync();
+    }
+
+    private string GetPeriodDisplayName() => filterType switch
+    {
+        "custom" => $"Từ {customStartDate:dd/MM/yyyy} đến {customEndDate:dd/MM/yyyy}",
+        "month" => $"Tháng {selectedMonth}/{selectedYear}",
+        "quarter" => $"Quý {selectedQuarter} năm {selectedYear}",
+        "year" => $"Cả năm {selectedYear}",
+        _ => quickPeriod switch
+        {
+            "today" => "Hôm nay",
+            "week" => "7 ngày gần nhất",
+            "month" => "Tháng này",
+            _ => "Toàn bộ thời gian"
+        }
     };
 
     private async Task LoadReportDataAsync()
@@ -437,28 +664,50 @@
             DateTime? endDate = null;
             var now = DateTime.Now;
 
-            switch (filterPeriod)
+            switch (filterType)
             {
-                case "today":
-                    startDate = now.Date;
-                    endDate = now.Date.AddDays(1).AddTicks(-1);
-                    break;
-                case "week":
-                    startDate = now.Date.AddDays(-6);
-                    endDate = now.Date.AddDays(1).AddTicks(-1);
+                case "custom":
+                    startDate = customStartDate.Date;
+                    endDate = customEndDate.Date.AddDays(1).AddTicks(-1);
                     break;
                 case "month":
-                    startDate = new DateTime(now.Year, now.Month, 1);
+                    startDate = new DateTime(selectedYear, selectedMonth, 1);
                     endDate = startDate.Value.AddMonths(1).AddTicks(-1);
                     break;
-                case "year":
-                    startDate = new DateTime(now.Year, 1, 1);
-                    endDate = startDate.Value.AddYears(1).AddTicks(-1);
+                case "quarter":
+                    int startMonthOfQuarter = (selectedQuarter - 1) * 3 + 1;
+                    startDate = new DateTime(selectedYear, startMonthOfQuarter, 1);
+                    endDate = startDate.Value.AddMonths(3).AddTicks(-1);
                     break;
-                default:
-                    // "all" - không lọc ngày
+                case "year":
+                    startDate = new DateTime(selectedYear, 1, 1);
+                    endDate = new DateTime(selectedYear, 12, 31, 23, 59, 59, 999);
+                    break;
+                default: // "quick"
+                    switch (quickPeriod)
+                    {
+                        case "today":
+                            startDate = now.Date;
+                            endDate = now.Date.AddDays(1).AddTicks(-1);
+                            break;
+                        case "week":
+                            startDate = now.Date.AddDays(-6);
+                            endDate = now.Date.AddDays(1).AddTicks(-1);
+                            break;
+                        case "month":
+                            startDate = new DateTime(now.Year, now.Month, 1);
+                            endDate = startDate.Value.AddMonths(1).AddTicks(-1);
+                            break;
+                        default: // "all"
+                            startDate = null;
+                            endDate = null;
+                            break;
+                    }
                     break;
             }
+
+            activeStartDate = startDate;
+            activeEndDate = endDate;
 
             var reportData = await ReportService.GetReportDataAsync(startDate, endDate);
             var orders = reportData.Orders;
@@ -484,7 +733,7 @@
                     d.Product.Price,
                     CategoryName = d.Product.Category != null
                         ? d.Product.Category.CategoryName
-                        : "Kh?ng r?"
+                        : "Khác"
                 })
                 .Select(g => new TopSellerItem
                 {
@@ -505,7 +754,7 @@
             var categoryData = reportData.OrderDetails
                 .GroupBy(d => d.Product.Category != null
                     ? d.Product.Category.CategoryName
-                    : "Kh?ng r?")
+                    : "Khác")
                 .Select(g => new
                 {
                     CategoryName = g.Key,
@@ -523,8 +772,8 @@
                 ColorHex = colorPalette[idx % colorPalette.Length]
             }).OrderByDescending(c => c.Revenue).ToList();
 
-            // 6. Xây dựng dữ liệu Chart Time Series
-            BuildChartSeries(validOrders, imports, startDate, endDate);
+            // Xây dựng bảng phân rã chi tiết & Biểu đồ chu kỳ
+            BuildTimelineBreakdown(validOrders, imports, startDate, endDate);
         }
         catch (Exception ex)
         {
@@ -538,68 +787,163 @@
             StateHasChanged();
         }
 
-        // Kích hoạt render lại biểu đồ ApexCharts
         await TriggerChartsRenderAsync();
     }
 
-    private void BuildChartSeries(List<Order> validOrders, List<ImportReceipt> imports, DateTime? start, DateTime? end)
+    private void BuildTimelineBreakdown(List<Order> validOrders, List<ImportReceipt> imports, DateTime? start, DateTime? end)
     {
+        timelineBreakdown.Clear();
         chartLabels.Clear();
         chartRevenueSeries.Clear();
         chartCostSeries.Clear();
 
-        if (filterPeriod == "today")
+        if (filterType == "quick" && quickPeriod == "today")
         {
-            // Chia theo các khung giờ trong ngày (8h, 11h, 14h, 17h, 20h)
-            // Mỗi khung 3 tiếng: 6-9h, 9-12h, 12-15h, 15-18h, 18-21h
-            var hours = new[] { 8, 11, 14, 17, 20 };
-            foreach (var h in hours)
+            // Chia theo khung giờ
+            var intervals = new[] {
+                (Label: "06:00 - 09:00", StartH: 6, EndH: 9),
+                (Label: "09:00 - 12:00", StartH: 9, EndH: 12),
+                (Label: "12:00 - 15:00", StartH: 12, EndH: 15),
+                (Label: "15:00 - 18:00", StartH: 15, EndH: 18),
+                (Label: "18:00 - 21:00", StartH: 18, EndH: 21),
+                (Label: "21:00 - 23:59", StartH: 21, EndH: 24)
+            };
+
+            foreach (var item in intervals)
             {
-                chartLabels.Add($"{h}:00");
-                var rev = validOrders.Where(o => o.OrderDate.Hour >= h - 2 && o.OrderDate.Hour < h + 1).Sum(o => o.FinalAmount);
-                var cost = imports.Where(i => i.ReceiptDate.Hour >= h - 2 && i.ReceiptDate.Hour < h + 1).Sum(i => i.TotalAmount);
+                var ords = validOrders.Where(o => o.OrderDate.Hour >= item.StartH && o.OrderDate.Hour < item.EndH).ToList();
+                var rev = ords.Sum(o => o.FinalAmount);
+                var cost = imports.Where(i => i.ReceiptDate.Hour >= item.StartH && i.ReceiptDate.Hour < item.EndH).Sum(i => i.TotalAmount);
+                timelineBreakdown.Add(new TimelineRowItem
+                {
+                    TimeLabel = item.Label,
+                    OrderCount = ords.Count,
+                    Revenue = rev,
+                    Cost = cost
+                });
+                chartLabels.Add(item.Label);
                 chartRevenueSeries.Add(rev);
                 chartCostSeries.Add(cost);
             }
         }
-        else if (filterPeriod == "week")
+        else if (filterType == "month" || (filterType == "quick" && quickPeriod == "month"))
         {
-            // 7 ngày gần nhất
-            for (int i = 6; i >= 0; i--)
-            {
-                var d = DateTime.Today.AddDays(-i);
-                chartLabels.Add(d.ToString("dd/MM"));
-                var rev = validOrders.Where(o => o.OrderDate.Date == d.Date).Sum(o => o.FinalAmount);
-                var cost = imports.Where(i => i.ReceiptDate.Date == d.Date).Sum(i => i.TotalAmount);
-                chartRevenueSeries.Add(rev);
-                chartCostSeries.Add(cost);
-            }
-        }
-        else if (filterPeriod == "month")
-        {
-            // Chia theo 4 tuần trong tháng (Tuần 1, Tuần 2, Tuần 3, Tuần 4)
-            chartLabels.AddRange(new[] { "Tuần 1", "Tuần 2", "Tuần 3", "Tuần 4" });
+            // Chia theo 4 tuần trong tháng
             for (int w = 1; w <= 4; w++)
             {
                 int dayStart = (w - 1) * 7 + 1;
                 int dayEnd = w == 4 ? 31 : w * 7;
-                var rev = validOrders.Where(o => o.OrderDate.Day >= dayStart && o.OrderDate.Day <= dayEnd).Sum(o => o.FinalAmount);
+                var ords = validOrders.Where(o => o.OrderDate.Day >= dayStart && o.OrderDate.Day <= dayEnd).ToList();
+                var rev = ords.Sum(o => o.FinalAmount);
                 var cost = imports.Where(i => i.ReceiptDate.Day >= dayStart && i.ReceiptDate.Day <= dayEnd).Sum(i => i.TotalAmount);
+                string label = $"Tuần {w} (Ngày {dayStart} - {dayEnd})";
+                timelineBreakdown.Add(new TimelineRowItem
+                {
+                    TimeLabel = label,
+                    OrderCount = ords.Count,
+                    Revenue = rev,
+                    Cost = cost
+                });
+                chartLabels.Add($"Tuần {w}");
                 chartRevenueSeries.Add(rev);
                 chartCostSeries.Add(cost);
             }
         }
-        else
+        else if (filterType == "quarter")
         {
-            // Theo 6 tháng gần nhất
-            for (int m = 5; m >= 0; m--)
+            // Chia theo 3 tháng của quý
+            int startM = (selectedQuarter - 1) * 3 + 1;
+            for (int m = startM; m < startM + 3; m++)
             {
-                var targetMonth = DateTime.Today.AddMonths(-m);
-                chartLabels.Add($"T{targetMonth.Month}/{targetMonth.Year}");
-                var rev = validOrders.Where(o => o.OrderDate.Month == targetMonth.Month && o.OrderDate.Year == targetMonth.Year).Sum(o => o.FinalAmount);
-                var cost = imports.Where(i => i.ReceiptDate.Month == targetMonth.Month && i.ReceiptDate.Year == targetMonth.Year).Sum(i => i.TotalAmount);
+                var ords = validOrders.Where(o => o.OrderDate.Month == m && o.OrderDate.Year == selectedYear).ToList();
+                var rev = ords.Sum(o => o.FinalAmount);
+                var cost = imports.Where(i => i.ReceiptDate.Month == m && i.ReceiptDate.Year == selectedYear).Sum(i => i.TotalAmount);
+                string label = $"Tháng {m}/{selectedYear}";
+                timelineBreakdown.Add(new TimelineRowItem
+                {
+                    TimeLabel = label,
+                    OrderCount = ords.Count,
+                    Revenue = rev,
+                    Cost = cost
+                });
+                chartLabels.Add($"Tháng {m}");
                 chartRevenueSeries.Add(rev);
                 chartCostSeries.Add(cost);
+            }
+        }
+        else if (filterType == "year")
+        {
+            // Chia theo 12 tháng trong năm
+            for (int m = 1; m <= 12; m++)
+            {
+                var ords = validOrders.Where(o => o.OrderDate.Month == m && o.OrderDate.Year == selectedYear).ToList();
+                var rev = ords.Sum(o => o.FinalAmount);
+                var cost = imports.Where(i => i.ReceiptDate.Month == m && i.ReceiptDate.Year == selectedYear).Sum(i => i.TotalAmount);
+                string label = $"Tháng {m:D2}/{selectedYear}";
+                timelineBreakdown.Add(new TimelineRowItem
+                {
+                    TimeLabel = label,
+                    OrderCount = ords.Count,
+                    Revenue = rev,
+                    Cost = cost
+                });
+                chartLabels.Add($"T{m}");
+                chartRevenueSeries.Add(rev);
+                chartCostSeries.Add(cost);
+            }
+        }
+        else // custom hoặc 7 ngày qua
+        {
+            var s = start ?? (validOrders.Any() ? validOrders.Min(o => o.OrderDate).Date : DateTime.Today.AddDays(-6));
+            var e = end ?? DateTime.Today;
+            var daysCount = (e.Date - s.Date).Days + 1;
+
+            if (daysCount <= 14)
+            {
+                // Chia theo từng ngày
+                for (var cur = s.Date; cur <= e.Date; cur = cur.AddDays(1))
+                {
+                    var day = cur;
+                    var ords = validOrders.Where(o => o.OrderDate.Date == day).ToList();
+                    var rev = ords.Sum(o => o.FinalAmount);
+                    var cost = imports.Where(i => i.ReceiptDate.Date == day).Sum(i => i.TotalAmount);
+                    string label = day.ToString("dd/MM/yyyy");
+                    timelineBreakdown.Add(new TimelineRowItem
+                    {
+                        TimeLabel = label,
+                        OrderCount = ords.Count,
+                        Revenue = rev,
+                        Cost = cost
+                    });
+                    chartLabels.Add(day.ToString("dd/MM"));
+                    chartRevenueSeries.Add(rev);
+                    chartCostSeries.Add(cost);
+                }
+            }
+            else
+            {
+                // Chia theo tháng nếu khoảng cách lớn
+                var cur = new DateTime(s.Year, s.Month, 1);
+                var endMonth = new DateTime(e.Year, e.Month, 1);
+                while (cur <= endMonth)
+                {
+                    var targetM = cur;
+                    var ords = validOrders.Where(o => o.OrderDate.Month == targetM.Month && o.OrderDate.Year == targetM.Year).ToList();
+                    var rev = ords.Sum(o => o.FinalAmount);
+                    var cost = imports.Where(i => i.ReceiptDate.Month == targetM.Month && i.ReceiptDate.Year == targetM.Year).Sum(i => i.TotalAmount);
+                    string label = $"Tháng {targetM.Month}/{targetM.Year}";
+                    timelineBreakdown.Add(new TimelineRowItem
+                    {
+                        TimeLabel = label,
+                        OrderCount = ords.Count,
+                        Revenue = rev,
+                        Cost = cost
+                    });
+                    chartLabels.Add($"T{targetM.Month}/{targetM.Year}");
+                    chartRevenueSeries.Add(rev);
+                    chartCostSeries.Add(cost);
+                    cur = cur.AddMonths(1);
+                }
             }
         }
     }
@@ -617,20 +961,10 @@
             .Where(o => string.Equals(o.PaymentMethod, PaymentMethod.BankTransfer, StringComparison.OrdinalIgnoreCase))
             .ToList();
 
-        var onlineOrders = validOrders
-            .Where(o => string.Equals(o.PaymentMethod, PaymentMethod.VNPAY, StringComparison.OrdinalIgnoreCase)
-                || string.Equals(o.PaymentMethod, PaymentMethod.MoMo, StringComparison.OrdinalIgnoreCase))
-            .ToList();
-
-        var knownMethods = new[] { "Cash", PaymentMethod.COD, PaymentMethod.BankTransfer, PaymentMethod.VNPAY, PaymentMethod.MoMo };
-        var otherOrders = validOrders
-            .Where(o => !knownMethods.Contains(o.PaymentMethod ?? string.Empty, StringComparer.OrdinalIgnoreCase))
-            .ToList();
-
         var result = new List<PaymentStatItem>
         {
             CreatePaymentStat("Tiền mặt / COD", cashOrders, total, "solar:wallet-money-bold", "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300"),
-            CreatePaymentStat("Chuyển khoản", transferOrders, total, "solar:card-transfer-bold", "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300")
+            CreatePaymentStat("Chuyển khoản / Quét QR", transferOrders, total, "solar:card-transfer-bold", "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300")
         };
 
         return result;
@@ -671,7 +1005,6 @@
         }
         catch (Exception ex) when (ex is JSDisconnectedException || ex is TaskCanceledException)
         {
-            // Silently ignore navigation disconnects
         }
         catch (Exception ex)
         {
@@ -690,6 +1023,16 @@
     private async Task PrintReport()
     {
         await JS.InvokeVoidAsync("window.print");
+    }
+
+    public class TimelineRowItem
+    {
+        public string TimeLabel { get; set; } = "";
+        public int OrderCount { get; set; }
+        public decimal Revenue { get; set; }
+        public decimal Cost { get; set; }
+        public decimal GrossProfit => Revenue - Cost;
+        public decimal Margin => Revenue > 0 ? (GrossProfit / Revenue) * 100m : 0m;
     }
 
     public class TopSellerItem
@@ -720,4 +1063,3 @@
         public string IconClass { get; set; } = "";
     }
 }
-
