@@ -44,6 +44,11 @@ public static class BakeryDataSeeder
                     );
                 END;
 
+                IF COL_LENGTH(N'[SupplierProduct]', N'PurchasePrice') IS NULL
+                BEGIN
+                    ALTER TABLE [SupplierProduct] ADD [PurchasePrice] decimal(18,2) NOT NULL CONSTRAINT [DF_SupplierProduct_PurchasePrice] DEFAULT (0);
+                END
+
                 -- Giữ các sản phẩm từng nhập với nhà cung cấp trong lịch sử.
                 IF OBJECT_ID(N'[ImportReceiptDetail]', N'U') IS NOT NULL
                 BEGIN

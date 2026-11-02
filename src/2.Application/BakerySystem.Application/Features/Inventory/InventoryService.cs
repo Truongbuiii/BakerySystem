@@ -91,6 +91,22 @@ public sealed class InventoryService(IBakeryDbContext db)
         db.SupplierProducts.AsNoTracking().Where(x => x.SupplierID == supplierId)
             .Select(x => x.ProductID).ToListAsync(ct);
 
+    public Task<Dictionary<int, decimal>> GetSupplierProductPricesAsync(int supplierId, CancellationToken ct = default) =>
+        db.SupplierProducts.AsNoTracking().Where(x => x.SupplierID == supplierId)
+            .ToDictionaryAsync(x => x.ProductID, x => x.PurchasePrice, ct);
+
+    public async Task SaveSupplierProductPriceAsync(int supplierId, int productId, decimal purchasePrice, CancellationToken ct = default)
+    {
+        if (purchasePrice < 0)
+            throw new InvalidOperationException("Giá nhập không được âm.");
+
+        var link = await db.SupplierProducts.FirstOrDefaultAsync(
+            x => x.SupplierID == supplierId && x.ProductID == productId, ct)
+            ?? throw new InvalidOperationException("Sản phẩm chưa được gán cho nhà cung cấp.");
+        link.PurchasePrice = purchasePrice;
+        await db.SaveChangesAsync(ct);
+    }
+
     public async Task<Dictionary<int, int>> GetProductSupplierIdsAsync(CancellationToken ct = default) =>
         await db.SupplierProducts.AsNoTracking()
             .ToDictionaryAsync(x => x.ProductID, x => x.SupplierID, ct);

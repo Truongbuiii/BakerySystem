@@ -330,6 +330,12 @@
                                        @onchange="() => SelectSupplierProduct(product.ProductID)" />
                                 <span>
                                     @product.ProductName
+                                    @if (selectedProductIds.Contains(product.ProductID))
+                                    {
+                                        <input class="bakery-input mt-2 w-full text-sm" type="number" min="0" step="1000"
+                                               placeholder="Giá nhập / bánh"
+                                               @bind="supplierProductPrices[product.ProductID]" />
+                                    }
                                     @if (assignedToOtherSupplier)
                                     {
                                         <small class="block text-slate-500">Đã thuộc nhà cung cấp khác</small>
@@ -446,6 +452,7 @@
     private List<Product> productCatalog = [];
     private HashSet<int> selectedProductIds = [];
     private Dictionary<int, int> productSupplierIds = [];
+    private Dictionary<int, decimal> supplierProductPrices = [];
     private string? productMessage;
     private string? message;
     private bool operationSucceeded;
@@ -602,10 +609,16 @@
         productMessage = null;
         productCatalog = await Inventory.GetProductsAsync();
         selectedProductIds = (await Inventory.GetSupplierProductIdsAsync(supplier.SupplierID)).ToHashSet();
+        supplierProductPrices = await Inventory.GetSupplierProductPricesAsync(supplier.SupplierID);
         productSupplierIds = await Inventory.GetProductSupplierIdsAsync();
     }
 
-    private void SelectSupplierProduct(int productId) => selectedProductIds = [productId];
+    private void SelectSupplierProduct(int productId)
+    {
+        selectedProductIds = [productId];
+        if (!supplierProductPrices.ContainsKey(productId))
+            supplierProductPrices[productId] = 0;
+    }
 
     private void ClearSupplierProduct() => selectedProductIds.Clear();
 
@@ -618,6 +631,11 @@
         try
         {
             await Inventory.SaveSupplierProductsAsync(supplierProductsTarget.SupplierID, selectedProductIds);
+            foreach (var productId in selectedProductIds)
+            {
+                supplierProductPrices.TryGetValue(productId, out var purchasePrice);
+                await Inventory.SaveSupplierProductPriceAsync(supplierProductsTarget.SupplierID, productId, purchasePrice);
+            }
             message = $"Đã cập nhật danh sách sản phẩm của {supplierProductsTarget.SupplierName}.";
             operationSucceeded = true;
             supplierProductsTarget = null;

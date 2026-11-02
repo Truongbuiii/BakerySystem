@@ -102,6 +102,7 @@ GO
 CREATE TABLE SupplierProduct (
     SupplierID INT NOT NULL,
     ProductID INT NOT NULL,
+    PurchasePrice DECIMAL(18,2) NOT NULL CONSTRAINT DF_SupplierProduct_PurchasePrice DEFAULT 0,
 
     CONSTRAINT PK_SupplierProduct PRIMARY KEY (SupplierID, ProductID),
     CONSTRAINT UQ_SupplierProduct_ProductID UNIQUE (ProductID),

@@ -80,6 +80,7 @@ public class SupplierProductConfiguration : IEntityTypeConfiguration<SupplierPro
     {
         builder.ToTable("SupplierProduct");
         builder.HasKey(x => new { x.SupplierID, x.ProductID });
+        builder.Property(x => x.PurchasePrice).HasPrecision(18, 2).HasDefaultValue(0);
         builder.HasOne(x => x.Supplier).WithMany(x => x.SupplierProducts)
             .HasForeignKey(x => x.SupplierID).OnDelete(DeleteBehavior.Cascade);
         builder.HasOne(x => x.Product).WithMany(x => x.SupplierProducts)
@@ -221,6 +222,7 @@ public class ImportReceiptConfiguration : IEntityTypeConfiguration<ImportReceipt
                .HasForeignKey(ir => ir.EmployeeID)
                .OnDelete(DeleteBehavior.Restrict);
     }
+
 }
 
 public class ImportReceiptDetailConfiguration : IEntityTypeConfiguration<ImportReceiptDetail>

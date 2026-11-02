@@ -7,9 +7,8 @@
 @inject IJSRuntime JS
 <PageTitle>Phiếu nhập kho | BakerySystem</PageTitle>
 <div class="bakery-page-header"><div><h2 class="text-2xl font-bold">Lập phiếu nhập kho</h2><p class="text-bodytext">Tạo phiếu nhập mới và cập nhật số lượng tồn kho.</p></div><div class="bakery-page-actions"><a class="bakery-btn bakery-btn-outline bakery-btn-sm" href="/import-receipt-management">Quản lý phiếu đã nhập</a></div></div>
-<div class="grid grid-cols-1 xl:grid-cols-2 gap-5 items-start">
-<div class="bakery-filter-card min-w-0">
-    <div class="grid md:grid-cols-3 gap-3">
+<div class="bakery-filter-card min-w-0 max-w-6xl mx-auto">
+    <div class="grid md:grid-cols-2 gap-4">
         <label>Nhà cung cấp
             <select class="bakery-input w-full" value="@supplierId" @onchange="SupplierChanged" disabled="@saving">
                 <option value="0">Chọn nhà cung cấp</option>
@@ -27,33 +26,60 @@
         <label>Nhân viên lập phiếu
             <input class="bakery-input w-full" value="@employeeName" readonly />
         </label>
-        <label>Ghi chú<input class="bakery-input w-full" @bind="note" disabled="@saving" /></label>
+        <label class="md:col-span-2">Ghi chú
+            <input class="bakery-input w-full" placeholder="Ghi chú về lô hàng hoặc chứng từ..." @bind="note" disabled="@saving" />
+        </label>
     </div>
 
-    @foreach (var line in lines)
-    {
-        <div class="grid grid-cols-2 gap-3 mt-3 items-end">
-            <label class="col-span-2">Sản phẩm
-                <select class="bakery-input w-full" @bind="line.ProductID" disabled="@saving">
+    <div class="mt-5 border-t border-slate-200 pt-4">
+        <div class="mb-2 flex items-center justify-between gap-3">
+            <div>
+                <h3 class="font-bold mb-0">Danh sách sản phẩm nhập</h3>
+                <p class="text-xs text-slate-500 mb-0">Chọn bánh thuộc nhà cung cấp, nhập số lượng và giá vốn.</p>
+            </div>
+            <span class="text-xs text-slate-500">@lines.Count dòng</span>
+        </div>
+        @if (supplierId <= 0)
+        {
+            <div class="rounded-lg border border-dashed border-slate-300 p-4 text-center text-sm text-slate-500">
+                Vui lòng chọn nhà cung cấp trước khi thêm sản phẩm.
+            </div>
+        }
+        else if (products.Count == 0)
+        {
+            <div class="rounded-lg border border-dashed border-amber-300 bg-amber-50 p-4 text-center text-sm text-amber-700">
+                Nhà cung cấp chưa có bánh được gán. Hãy gán sản phẩm trước khi lập phiếu.
+            </div>
+        }
+        @foreach (var line in lines)
+        {
+            <div class="grid grid-cols-1 md:grid-cols-[minmax(0,2.4fr)_0.8fr_1.2fr_1.2fr_auto] gap-3 mt-3 items-end rounded-lg border border-slate-200 p-3">
+                <label>Sản phẩm
+                    <select class="bakery-input w-full" @bind="line.ProductID" @bind:after="() => ApplyPurchasePrice(line)" disabled="@(saving || products.Count == 0)">
                     <option value="0">Chọn sản phẩm</option>
                     @foreach (var product in products) { <option value="@product.ProductID">@product.ProductName (tồn @product.Quantity)</option> }
-                </select>
-            </label>
-            <label>Số lượng<input class="bakery-input w-full" type="number" min="1" @bind="line.Quantity" disabled="@saving" /></label>
-            <label>Đơn giá vốn<input class="bakery-input w-full" type="number" min="0" step="1000" @bind="line.UnitPrice" disabled="@saving" /></label>
-            <div class="pb-2">
-                <span class="block text-xs text-slate-500">Thành tiền</span>
-                <strong>@((line.Quantity * line.UnitPrice).ToString("N0")) đ</strong>
+                    </select>
+                </label>
+                <label>Số lượng
+                    <input class="bakery-input w-full" type="number" min="1" @bind="line.Quantity" disabled="@saving" />
+                </label>
+                <label>Đơn giá vốn
+                    <input class="bakery-input w-full" type="number" min="0" step="1000" @bind="line.UnitPrice" disabled="@saving" />
+                </label>
+                <div class="pb-2">
+                    <span class="block text-xs text-slate-500">Thành tiền</span>
+                    <strong>@((line.Quantity * line.UnitPrice).ToString("N0")) đ</strong>
+                </div>
+                <button class="bakery-btn bakery-btn-secondary bakery-btn-sm" @onclick="() => lines.Remove(line)" disabled="@(saving || lines.Count == 1)">Xóa</button>
             </div>
-            <button class="bakery-btn bakery-btn-secondary" @onclick="() => lines.Remove(line)" disabled="@(saving || lines.Count == 1)">Xóa dòng</button>
-        </div>
-    }
+        }
+    </div>
 
     <div class="flex flex-wrap justify-between items-center mt-4 gap-3">
-        <button class="bakery-btn bakery-btn-secondary" @onclick="AddLine" disabled="@saving">+ Thêm sản phẩm</button>
+        <button class="bakery-btn bakery-btn-secondary" @onclick="AddLine" disabled="@(saving || supplierId <= 0 || products.Count == 0)">+ Thêm sản phẩm</button>
         <div class="flex items-center gap-4">
             <strong>Tổng tiền: @Total.ToString("N0") đ</strong>
-            <button class="bakery-btn bakery-btn-primary" @onclick="Save" disabled="@(saving || employeeId <= 0)">
+            <button class="bakery-btn bakery-btn-primary" @onclick="Save" disabled="@(!CanSave)">
                 @(saving ? "Đang lưu..." : "Lưu phiếu nhập")
             </button>
         </div>
@@ -62,8 +88,6 @@
     {
         <p class="mt-3 text-sm @(saved ? "text-emerald-600" : "text-rose-600")">@message</p>
     }
-</div>
-
 </div>
 
 @if (productAssignmentOpen)
@@ -122,7 +146,7 @@
 @code {
     private List<Supplier> suppliers = [];
     private List<Product> products = [];
-    private List<ImportReceipt> receipts = [];
+    private Dictionary<int, decimal> purchasePrices = [];
     private List<ImportLineInput> lines = [new()];
     private int supplierId;
     private int employeeId;
@@ -131,32 +155,12 @@
     private string? message;
     private bool saved;
     private bool saving;
-    private const int pageSize = 10;
-    private int currentPage = 1;
-    private string receiptSearch = string.Empty;
-    private DateTime? receiptFrom;
-    private DateTime? receiptTo;
-
     private decimal Total => lines.Sum(line => line.Quantity * line.UnitPrice);
-    private IEnumerable<ImportReceipt> FilteredReceipts => receipts.Where(receipt =>
-        (!receiptFrom.HasValue || receipt.ReceiptDate.Date >= receiptFrom.Value.Date) &&
-        (!receiptTo.HasValue || receipt.ReceiptDate.Date <= receiptTo.Value.Date) &&
-        (string.IsNullOrWhiteSpace(receiptSearch) ||
-         ($"PN-{receipt.ReceiptID:D6} {receipt.Supplier?.SupplierCode} {receipt.Supplier?.SupplierName} {receipt.Employee?.FullName} " +
-          $"{string.Join(" ", receipt.ImportReceiptDetails.Select(detail => detail.Product?.ProductName))}")
-             .Contains(receiptSearch.Trim(), StringComparison.OrdinalIgnoreCase)));
-    private int PageCount => Math.Max(1, (int)Math.Ceiling(FilteredReceipts.Count() / (double)pageSize));
-    private IEnumerable<ImportReceipt> PagedReceipts => FilteredReceipts.Skip((currentPage - 1) * pageSize).Take(pageSize);
-
-    private void ResetReceiptPage() => currentPage = 1;
-
-    private void ResetReceiptSearch()
-    {
-        receiptSearch = string.Empty;
-        receiptFrom = null;
-        receiptTo = null;
-        currentPage = 1;
-    }
+    private bool CanSave => !saving &&
+        employeeId > 0 &&
+        supplierId > 0 &&
+        lines.Count > 0 &&
+        lines.All(line => line.ProductID > 0 && line.Quantity > 0 && line.UnitPrice >= 0);
 
     protected override async Task OnInitializedAsync()
     {
@@ -186,7 +190,6 @@
     private async Task Load()
     {
         suppliers = await Inventory.GetActiveSuppliersAsync();
-        receipts = await Inventory.GetReceiptsAsync();
     }
 
     private async Task SupplierChanged(ChangeEventArgs args)
@@ -194,6 +197,9 @@
         int.TryParse(args.Value?.ToString(), out supplierId);
         products = supplierId > 0
             ? await Inventory.GetProductsForSupplierAsync(supplierId)
+            : [];
+        purchasePrices = supplierId > 0
+            ? await Inventory.GetSupplierProductPricesAsync(supplierId)
             : [];
 
         var allowedIds = products.Select(product => product.ProductID).ToHashSet();
@@ -249,6 +255,7 @@
         {
             await Inventory.SaveSupplierProductsAsync(supplierId, assignedProductIds);
             products = await Inventory.GetProductsForSupplierAsync(supplierId);
+            purchasePrices = await Inventory.GetSupplierProductPricesAsync(supplierId);
             var allowedIds = products.Select(product => product.ProductID).ToHashSet();
             foreach (var line in lines.Where(line => line.ProductID > 0 && !allowedIds.Contains(line.ProductID)))
             {
@@ -274,9 +281,13 @@
 
     private void AddLine() => lines.Add(new());
 
-    private void PreviousReceiptPage() => currentPage = Math.Max(1, currentPage - 1);
-
-    private void NextReceiptPage() => currentPage = Math.Min(PageCount, currentPage + 1);
+    private void ApplyPurchasePrice(ImportLineInput line)
+    {
+        if (line.ProductID > 0 && purchasePrices.TryGetValue(line.ProductID, out var purchasePrice))
+            line.UnitPrice = purchasePrice;
+        else
+            line.UnitPrice = 0;
+    }
 
     private async Task Save()
     {
@@ -300,7 +311,6 @@
             note = null;
             lines = [new()];
             products = [];
-            currentPage = 1;
             await Load();
         }
         catch (Exception ex)
