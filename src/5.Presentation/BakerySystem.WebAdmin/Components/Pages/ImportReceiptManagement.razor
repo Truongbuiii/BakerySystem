@@ -1,0 +1,283 @@
+@page "/import-receipt-management"
+@rendermode InteractiveServer
+@attribute [Authorize(Roles = "Admin,Employee")]
+@using BakerySystem.Domain.Entities
+@inject InventoryService Inventory
+@inject IJSRuntime JS
+
+<PageTitle>Quản lý phiếu nhập kho | BakerySystem</PageTitle>
+
+<div class="bakery-page-header">
+    <div>
+        <h2 class="text-2xl font-bold">Quản lý phiếu nhập kho</h2>
+        <p class="text-bodytext">Tra cứu, xem chi tiết và in các phiếu nhập đã lưu.</p>
+    </div>
+    <div class="bakery-page-actions">
+        <button class="bakery-btn bakery-btn-secondary bakery-btn-sm" @onclick="LoadAsync">Làm mới</button>
+        <button class="bakery-btn bakery-btn-outline bakery-btn-sm" @onclick="ExportAsync">Xuất Excel</button>
+        <button class="bakery-btn bakery-btn-secondary bakery-btn-sm" @onclick="PrintAsync">In / Xuất PDF</button>
+        <a class="bakery-btn bakery-btn-primary bakery-btn-sm" href="/import-receipts">+ Lập phiếu nhập</a>
+    </div>
+</div>
+
+<div class="bakery-filter-card mb-5">
+    <div class="bakery-filter-toolbar">
+        <div class="bakery-filter-search-box">
+            <iconify-icon icon="solar:magnifer-linear"></iconify-icon>
+            <input class="w-full" placeholder="Tìm mã phiếu hoặc sản phẩm..."
+                   @bind="search" @bind:event="oninput" />
+        </div>
+        <label class="text-sm">Từ ngày<input class="bakery-input" type="date" @bind="from" /></label>
+        <label class="text-sm">Đến ngày<input class="bakery-input" type="date" @bind="to" /></label>
+        <button class="bakery-btn bakery-btn-outline" @onclick="() => advancedOpen = !advancedOpen">
+            <iconify-icon icon="solar:filter-linear"></iconify-icon>
+            @(advancedOpen ? "Thu gọn lọc" : "Tìm kiếm nâng cao")
+        </button>
+        <button class="bakery-btn bakery-btn-outline" @onclick="Reset">Đặt lại</button>
+    </div>
+    @if (advancedOpen)
+    {
+        <div class="receipt-filter-chips">
+            <button type="button" class="receipt-filter-chip @(activeAdvancedFilter == "supplier" ? "active" : "")" @onclick='() => ToggleAdvancedFilter("supplier")'>
+                Nhà cung cấp @if (supplierFilter != 0) { <span>●</span> }
+            </button>
+            <button type="button" class="receipt-filter-chip @(activeAdvancedFilter == "employee" ? "active" : "")" @onclick='() => ToggleAdvancedFilter("employee")'>
+                Nhân viên lập phiếu @if (employeeFilter != 0) { <span>●</span> }
+            </button>
+            <button type="button" class="receipt-filter-chip @(activeAdvancedFilter == "total" ? "active" : "")" @onclick='() => ToggleAdvancedFilter("total")'>
+                Tổng tiền @if (minTotal.HasValue || maxTotal.HasValue) { <span>●</span> }
+            </button>
+            <button type="button" class="receipt-filter-chip @(activeAdvancedFilter == "lines" ? "active" : "")" @onclick='() => ToggleAdvancedFilter("lines")'>
+                Số dòng hàng @if (minLines.HasValue || maxLines.HasValue) { <span>●</span> }
+            </button>
+        </div>
+        @if (activeAdvancedFilter == "supplier")
+        {
+            <div class="receipt-filter-popover">
+                <label>Nhà cung cấp
+                    <select class="bakery-input" @bind="supplierFilter">
+                        <option value="0">Tất cả nhà cung cấp</option>
+                        @foreach (var supplier in suppliers)
+                        {
+                            <option value="@supplier.SupplierID">@supplier.SupplierCode - @supplier.SupplierName</option>
+                        }
+                    </select>
+                </label>
+            </div>
+        }
+        else if (activeAdvancedFilter == "employee")
+        {
+            <div class="receipt-filter-popover">
+                <label>Nhân viên lập phiếu
+                    <select class="bakery-input" @bind="employeeFilter">
+                        <option value="0">Tất cả nhân viên</option>
+                        @foreach (var employee in EmployeesWithReceipts)
+                        {
+                            <option value="@employee.EmployeeID">@employee.FullName</option>
+                        }
+                    </select>
+                </label>
+            </div>
+        }
+        else if (activeAdvancedFilter == "total")
+        {
+            <div class="receipt-filter-popover receipt-filter-range">
+                <label>Tổng tiền từ<input class="bakery-input" type="number" min="0" step="1000" placeholder="Không giới hạn" @bind="minTotal" /></label>
+                <label>Tổng tiền đến<input class="bakery-input" type="number" min="0" step="1000" placeholder="Không giới hạn" @bind="maxTotal" /></label>
+            </div>
+        }
+        else if (activeAdvancedFilter == "lines")
+        {
+            <div class="receipt-filter-popover receipt-filter-range">
+                <label>Số dòng hàng từ<input class="bakery-input" type="number" min="0" placeholder="Không giới hạn" @bind="minLines" /></label>
+                <label>Số dòng hàng đến<input class="bakery-input" type="number" min="0" placeholder="Không giới hạn" @bind="maxLines" /></label>
+            </div>
+        }
+    }
+</div>
+
+<div class="receipt-management-layout">
+    <div class="bakery-split-list bakery-filter-card !p-0 overflow-hidden">
+        <div class="p-4 border-b border-slate-200 dark:border-slate-700">
+            <div class="flex items-center justify-between gap-2">
+                <h3 class="font-bold mb-0">Danh sách phiếu nhập</h3>
+                <span class="bakery-badge bakery-badge-secondary">@FilteredReceiptList.Count phiếu</span>
+            </div>
+        </div>
+        @if (FilteredReceiptList.Count == 0)
+        {
+            <p class="p-6 text-center text-slate-500">Không tìm thấy phiếu nhập phù hợp.</p>
+        }
+        else
+        {
+            <div class="overflow-x-auto">
+                <table id="import-receipts-management-table" class="bakery-table w-full text-sm">
+                    <thead><tr><th>Mã phiếu</th><th>Ngày nhập</th><th>Tổng tiền</th></tr></thead>
+                    <tbody>
+                        @foreach (var receipt in FilteredReceiptList)
+                        {
+                            <tr class="bakery-row-clickable @(selected?.ReceiptID == receipt.ReceiptID ? "bakery-row-selected" : "")"
+                                @onclick="() => selected = receipt">
+                                <td class="font-mono font-semibold">PN-@receipt.ReceiptID.ToString("D6")</td>
+                                <td>@receipt.ReceiptDate.ToString("dd/MM/yyyy HH:mm")</td>
+                                <td class="text-right font-semibold">@receipt.TotalAmount.ToString("N0") đ</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+
+    <div class="bakery-split-detail">
+        @if (selected is null)
+        {
+            <div class="bakery-filter-card h-full flex items-center justify-center text-center text-slate-500">
+                Chọn một phiếu nhập để xem chi tiết.
+            </div>
+        }
+        else
+        {
+            <div class="receipt-document">
+                <div class="receipt-document-topline"></div>
+                <div class="receipt-document-header">
+                    <div>
+                        <p class="receipt-document-label">BAKERYSYSTEM · CHỨNG TỪ KHO</p>
+                        <h3>PHIẾU NHẬP KHO</h3>
+                        <p class="receipt-document-code">PN-@selected.ReceiptID.ToString("D6")</p>
+                    </div>
+                    <div class="receipt-document-date">
+                        <span>Ngày lập phiếu</span>
+                        <strong>@selected.ReceiptDate.ToString("dd/MM/yyyy")</strong>
+                        <small>@selected.ReceiptDate.ToString("HH:mm")</small>
+                    </div>
+                </div>
+                <div class="receipt-document-info">
+                    <div><span>Nhà cung cấp</span><strong>@selected.Supplier?.SupplierName</strong><small>@selected.Supplier?.SupplierCode</small></div>
+                    <div><span>Nhân viên lập phiếu</span><strong>@selected.Employee?.FullName</strong><small>Mã nhân viên: @selected.EmployeeID</small></div>
+                    <div><span>Số dòng sản phẩm</span><strong>@selected.ImportReceiptDetails.Count</strong><small>Chi tiết hàng nhập</small></div>
+                </div>
+                <div class="receipt-document-section-title">Chi tiết hàng hóa</div>
+                <div class="overflow-x-auto">
+                    <table class="receipt-document-table">
+                        <thead><tr><th style="width: 7%;">STT</th><th>Sản phẩm</th><th class="text-right">Số lượng</th><th class="text-right">Đơn giá</th><th class="text-right">Thành tiền</th></tr></thead>
+                        <tbody>
+                            @{ var lineNumber = 0; }
+                            @foreach (var detail in selected.ImportReceiptDetails)
+                            {
+                                lineNumber++;
+                                <tr><td>@lineNumber</td><td><strong>@detail.Product?.ProductName</strong></td><td class="text-right">@detail.Quantity</td><td class="text-right">@detail.UnitPrice.ToString("N0") đ</td><td class="text-right font-semibold">@detail.SubTotal.ToString("N0") đ</td></tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                <div class="receipt-document-total"><span>TỔNG GIÁ TRỊ PHIẾU NHẬP</span><strong>@selected.TotalAmount.ToString("N0") đ</strong></div>
+                <div class="receipt-document-note"><strong>Ghi chú</strong><span>@(string.IsNullOrWhiteSpace(selected.Note) ? "Không có ghi chú." : selected.Note)</span></div>
+            </div>
+        }
+    </div>
+</div>
+
+<table id="import-receipts-export-table" class="export-only-table" aria-hidden="true">
+    <thead><tr><th>Mã phiếu</th><th>Ngày nhập</th><th>Nhà cung cấp</th><th>Nhân viên</th><th>Chi tiết sản phẩm</th><th>Số dòng hàng</th><th>Tổng tiền</th><th>Ghi chú</th></tr></thead>
+    <tbody>
+        @foreach (var receipt in FilteredReceiptList)
+        {
+            <tr>
+                <td>PN-@receipt.ReceiptID.ToString("D6")</td>
+                <td>@receipt.ReceiptDate.ToString("dd/MM/yyyy HH:mm")</td>
+                <td>@receipt.Supplier?.SupplierCode - @receipt.Supplier?.SupplierName</td>
+                <td>@receipt.Employee?.FullName</td>
+                <td>@string.Join("; ", receipt.ImportReceiptDetails.Select(detail => $"{detail.Product?.ProductName} x{detail.Quantity} @ {detail.UnitPrice:N0} đ"))</td>
+                <td>@receipt.ImportReceiptDetails.Count</td>
+                <td>@receipt.TotalAmount.ToString("N0") đ</td>
+                <td>@(string.IsNullOrWhiteSpace(receipt.Note) ? "" : receipt.Note)</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<div class="admin-print-report" data-report="import-receipt-management">
+    <div class="admin-print-header"><div><div class="admin-print-eyebrow">BAKERYSYSTEM</div><h1>Danh sách phiếu nhập kho</h1><p>Báo cáo theo bộ lọc hiện tại · Ngày in: @DateTime.Now.ToString("dd/MM/yyyy HH:mm")</p></div><div class="admin-print-summary"><strong>@FilteredReceiptList.Count</strong><span>phiếu nhập</span></div></div>
+    <table><thead><tr><th>Mã phiếu</th><th>Ngày</th><th>Nhà cung cấp</th><th>Nhân viên</th><th>Chi tiết sản phẩm</th><th class="print-number">Thành tiền</th></tr></thead><tbody>
+    @foreach (var receipt in FilteredReceiptList)
+    {
+        <tr><td>PN-@receipt.ReceiptID.ToString("D6")</td><td>@receipt.ReceiptDate.ToString("dd/MM/yyyy HH:mm")</td><td>@receipt.Supplier?.SupplierCode - @receipt.Supplier?.SupplierName</td><td>@receipt.Employee?.FullName</td><td>@string.Join("; ", receipt.ImportReceiptDetails.Select(detail => $"{detail.Product?.ProductName} x{detail.Quantity}"))</td><td class="print-number">@receipt.TotalAmount.ToString("N0") đ</td></tr>
+    }
+    </tbody></table>
+</div>
+
+@code {
+    private List<ImportReceipt> receipts = [];
+    private List<Supplier> suppliers = [];
+    private ImportReceipt? selected;
+    private string search = string.Empty;
+    private DateTime? from;
+    private DateTime? to;
+    private bool advancedOpen;
+    private string? activeAdvancedFilter;
+    private int supplierFilter;
+    private int employeeFilter;
+    private decimal? minTotal;
+    private decimal? maxTotal;
+    private int? minLines;
+    private int? maxLines;
+
+    private IEnumerable<Employee> EmployeesWithReceipts => receipts
+        .Where(receipt => receipt.Employee is not null)
+        .Select(receipt => receipt.Employee)
+        .GroupBy(employee => employee.EmployeeID)
+        .Select(group => group.First())
+        .OrderBy(employee => employee.FullName);
+
+    private IEnumerable<ImportReceipt> FilteredReceipts => receipts.Where(receipt =>
+        (supplierFilter == 0 || receipt.SupplierID == supplierFilter) &&
+        (employeeFilter == 0 || receipt.EmployeeID == employeeFilter) &&
+        (!from.HasValue || receipt.ReceiptDate.Date >= from.Value.Date) &&
+        (!to.HasValue || receipt.ReceiptDate.Date <= to.Value.Date) &&
+        (!minTotal.HasValue || receipt.TotalAmount >= minTotal.Value) &&
+        (!maxTotal.HasValue || receipt.TotalAmount <= maxTotal.Value) &&
+        (!minLines.HasValue || receipt.ImportReceiptDetails.Count >= minLines.Value) &&
+        (!maxLines.HasValue || receipt.ImportReceiptDetails.Count <= maxLines.Value) &&
+        (string.IsNullOrWhiteSpace(search) ||
+         ($"PN-{receipt.ReceiptID:D6} {receipt.Supplier?.SupplierCode} {receipt.Supplier?.SupplierName} {receipt.Employee?.FullName} " +
+          $"{string.Join(" ", receipt.ImportReceiptDetails.Select(detail => detail.Product?.ProductName))}")
+            .Contains(search.Trim(), StringComparison.OrdinalIgnoreCase)));
+    private List<ImportReceipt> FilteredReceiptList => FilteredReceipts.ToList();
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        receipts = await Inventory.GetReceiptsAsync();
+        suppliers = await Inventory.GetSuppliersAsync();
+        if (selected is not null)
+            selected = receipts.FirstOrDefault(receipt => receipt.ReceiptID == selected.ReceiptID);
+        selected ??= receipts.FirstOrDefault();
+    }
+
+    private void Reset()
+    {
+        search = string.Empty;
+        from = null;
+        to = null;
+        supplierFilter = 0;
+        employeeFilter = 0;
+        minTotal = null;
+        maxTotal = null;
+        minLines = null;
+        maxLines = null;
+        advancedOpen = false;
+        activeAdvancedFilter = null;
+    }
+
+    private void ToggleAdvancedFilter(string filter)
+    {
+        activeAdvancedFilter = activeAdvancedFilter == filter ? null : filter;
+    }
+
+    private async Task ExportAsync() => await JS.InvokeVoidAsync("bakeryExcel.exportToExcel", "import-receipts-export-table", $"Danh_Sach_Phieu_Nhap_Bakery_{DateTime.Now:yyyyMMdd_HHmmss}");
+
+    private async Task PrintAsync() => await JS.InvokeVoidAsync("bakeryPdf.printReportToPdf", "Danh_Sach_Phieu_Nhap_BakerySystem", "print-import-receipt-management");
+
+}
