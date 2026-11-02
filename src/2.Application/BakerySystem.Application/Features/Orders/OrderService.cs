@@ -17,6 +17,14 @@ public sealed class OrderService(IBakeryDbContext db)
             .OrderByDescending(o => o.OrderDate)
             .ToListAsync(ct);
 
+    public Task<List<Order>> GetRecentCompletedAsync(int count = 3, CancellationToken ct = default) =>
+        db.Orders
+            .AsNoTracking()
+            .Where(o => o.Status == OrderStatus.Completed)
+            .OrderByDescending(o => o.OrderDate)
+            .Take(count)
+            .ToListAsync(ct);
+
     public async Task<bool> ChangeStatusAsync(Order order, string newStatus, CancellationToken ct = default)
     {
         if (order.Status is OrderStatus.Cancelled or OrderStatus.Completed)

@@ -431,7 +431,7 @@
                     </div>
                 </div>
 
-                <!-- Nút Thanh toán & In Hóa đơn -->
+                <!-- Nút thanh toán -->
                 <button type="button" 
                         class="bakery-pos-checkout-btn"
                         disabled="@(cart.Count == 0 || isProcessing)"
@@ -444,7 +444,7 @@
                     else
                     {
                         <iconify-icon icon="solar:printer-linear" class="text-lg"></iconify-icon>
-                        <span>Thanh toán & In hóa đơn</span>
+                        <span>Thanh toán</span>
                     }
                 </button>
             </div>
@@ -957,7 +957,7 @@
             : $"💡 Mua thêm {candidate.Missing:N0}đ để được giảm {candidate.Promotion.PromotionInvoice!.DiscountPercent:0}% với mã {candidate.Promotion.PromotionCode}";
     }
 
-    private void RequestCheckout()
+    private async Task RequestCheckout()
     {
         if (cart.Count == 0 || isProcessing) return;
 
@@ -967,7 +967,7 @@
             return;
         }
 
-        _ = HandleCheckout();
+        await HandleCheckout();
     }
 
     private void CloseQrPaymentModal() => isQrPaymentModalOpen = false;
@@ -1030,7 +1030,16 @@
             lastCustomerPhone = order.ReceiverPhone;
             isSuccessModalOpen = true;
             ClearCart();
-            await LoadDataAsync();
+
+            foreach (var line in lines)
+            {
+                var product = products.FirstOrDefault(item => item.ProductID == line.ProductID);
+                if (product is not null)
+                {
+                    product.Quantity -= line.Quantity;
+                }
+            }
+
         }
         catch (Exception ex)
         {
@@ -1049,4 +1058,5 @@
         public int Quantity { get; set; } = 1;
         public decimal SubTotal => Product.Price * Quantity;
     }
+
 }

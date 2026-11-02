@@ -454,6 +454,34 @@ html.dark .bakery-footer {
     padding: 0 1.25rem;
 }
 
+.bakery-notification-dropdown {
+    width: 390px !important;
+    min-width: 390px !important;
+    max-width: calc(100vw - 1.5rem);
+}
+
+.bakery-notification-dropdown > div:first-child {
+    min-height: 3.25rem;
+}
+
+.bakery-notification-dropdown a > div {
+    min-width: 0;
+    flex: 1;
+}
+
+.bakery-notification-dropdown a p,
+.bakery-notification-dropdown a span {
+    overflow-wrap: anywhere;
+}
+
+@media (max-width: 640px) {
+    .bakery-notification-dropdown {
+        right: -0.5rem;
+        width: min(390px, calc(100vw - 1.5rem)) !important;
+        min-width: 0 !important;
+    }
+}
+
 html.dark .bakery-topbar {
     background-color: var(--bakery-bg-dark);
     border-bottom-color: var(--bakery-border-dark);
@@ -3729,6 +3757,10 @@ html.dark .bakery-info-box.danger {
     border-left: 4px solid #dc2626 !important;
 }
 
+.bakery-toast-warning {
+    border-left: 4px solid #d97706 !important;
+}
+
 .bakery-toast-icon {
     width: 1.6rem !important;
     height: 1.6rem !important;
@@ -3747,6 +3779,11 @@ html.dark .bakery-info-box.danger {
 .bakery-toast-danger .bakery-toast-icon {
     background-color: #fef2f2 !important;
     color: #dc2626 !important;
+}
+
+.bakery-toast-warning .bakery-toast-icon {
+    background-color: #fffbeb !important;
+    color: #d97706 !important;
 }
 
 .bakery-toast-message {

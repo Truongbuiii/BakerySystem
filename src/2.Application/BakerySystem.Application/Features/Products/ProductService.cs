@@ -7,6 +7,7 @@ namespace BakerySystem.Application.Features.Products;
 public interface IProductService
 {
     Task<List<ProductDto>> GetProductsAsync(string? search = null, int? categoryId = null, bool? isActive = null, string? stockStatus = null, CancellationToken cancellationToken = default);
+    Task<List<ProductDto>> GetLowStockProductsAsync(CancellationToken cancellationToken = default);
     Task<ProductStatsDto> GetProductStatsAsync(CancellationToken cancellationToken = default);
     Task<List<CategoryDto>> GetCategoriesAsync(bool? isActive = null, CancellationToken cancellationToken = default);
     Task<ProductDto?> GetProductByIdAsync(int id, CancellationToken cancellationToken = default);
@@ -96,6 +97,27 @@ public class ProductService : IProductService
 
         return products;
     }
+
+    public Task<List<ProductDto>> GetLowStockProductsAsync(CancellationToken cancellationToken = default) =>
+        _context.Products
+            .AsNoTracking()
+            .Where(p => p.IsActive && p.Quantity > 0 && p.Quantity < 5)
+            .OrderBy(p => p.Quantity)
+            .ThenBy(p => p.ProductName)
+            .Select(p => new ProductDto
+            {
+                ProductID = p.ProductID,
+                CategoryID = p.CategoryID,
+                CategoryName = p.Category != null ? p.Category.CategoryName : "Chưa phân loại",
+                ProductName = p.ProductName,
+                Description = p.Description,
+                Price = p.Price,
+                Quantity = p.Quantity,
+                ImageURL = p.ImageURL,
+                IsActive = p.IsActive,
+                SoldCount = p.OrderDetails.Sum(od => od.Quantity)
+            })
+            .ToListAsync(cancellationToken);
 
     public async Task<ProductStatsDto> GetProductStatsAsync(CancellationToken cancellationToken = default)
     {

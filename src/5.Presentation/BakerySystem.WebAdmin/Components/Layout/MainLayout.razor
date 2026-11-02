@@ -1,4 +1,8 @@
+@implements IDisposable
 @inherits LayoutComponentBase
+@inject IProductService ProductService
+@inject OrderService OrderManager
+@inject AuthenticationStateProvider AuthStateProvider
 
 <div class="bakery-layout-root">
     <!-- Backdrop for mobile drawer -->
@@ -72,30 +76,43 @@
                 <div class="relative">
                     <button data-dropdown-trigger onclick="window.bakeryAdmin.toggleDropdown('notif-dropdown')" class="h-10 w-10 rounded-full hover:bg-lightprimary text-bodytext dark:text-darklink hover:text-primary transition-colors relative flex items-center justify-center cursor-pointer" title="Thông báo">
                         <iconify-icon icon="solar:bell-linear" class="text-xl"></iconify-icon>
-                        <span class="absolute top-2 right-2 w-2 h-2 bg-primary rounded-full"></span>
+                        @if (notificationCount > 0)
+                        {
+                            <span class="absolute top-2 right-2 w-2 h-2 bg-primary rounded-full"></span>
+                        }
                     </button>
-                    <div id="notif-dropdown" data-admin-dropdown class="hidden absolute right-0 mt-2 w-80 bg-white dark:bg-dark border border-border dark:border-darkborder rounded-xl shadow-lg py-3 z-50">
+                    <div id="notif-dropdown" data-admin-dropdown class="bakery-notification-dropdown hidden absolute right-0 mt-2 bg-white dark:bg-dark border border-border dark:border-darkborder rounded-xl shadow-lg py-3 z-50">
                         <div class="px-5 pb-2.5 border-b border-border dark:border-darkborder flex justify-between items-center">
                             <span class="font-semibold text-sm text-dark dark:text-white">Thông báo mới</span>
-                            <span class="bakery-badge bakery-badge-primary">2 mới</span>
+                            <span class="bakery-badge bakery-badge-primary">@notificationCount mới</span>
                         </div>
                         <div class="divide-y divide-border dark:divide-darkborder max-h-64 overflow-y-auto">
-                            <div class="px-4 py-3 hover:bg-lightprimary/40 cursor-pointer flex items-start gap-3 transition-colors">
-                                <span class="p-2 rounded-lg bg-lightsuccess text-success shrink-0"><iconify-icon icon="solar:cart-check-linear" class="text-lg"></iconify-icon></span>
-                                <div>
-                                    <p class="text-xs font-semibold text-dark dark:text-white">Đơn đặt bánh mới #BK-1042</p>
-                                    <p class="text-[11px] text-bodytext">Bánh Tiramisu Ý Hoàng Gia - 350.000đ</p>
-                                    <span class="text-[10px] text-bodytext/70">5 phút trước</span>
-                                </div>
-                            </div>
-                            <div class="px-4 py-3 hover:bg-lightprimary/40 cursor-pointer flex items-start gap-3 transition-colors">
-                                <span class="p-2 rounded-lg bg-lightwarning text-warning shrink-0"><iconify-icon icon="solar:box-minimalistic-linear" class="text-lg"></iconify-icon></span>
-                                <div>
-                                    <p class="text-xs font-semibold text-dark dark:text-white">Cảnh báo nguyên liệu</p>
-                                    <p class="text-[11px] text-bodytext">Bột hạnh nhân trong kho còn dưới 5kg</p>
-                                    <span class="text-[10px] text-bodytext/70">15 phút trước</span>
-                                </div>
-                            </div>
+                            @if (lowStockProducts.Count == 0 && recentCompletedOrders.Count == 0)
+                            {
+                                <div class="px-4 py-6 text-center text-xs text-bodytext">Chưa có thông báo mới.</div>
+                            }
+                            @foreach (var product in lowStockProducts)
+                            {
+                                <a href="/products" class="px-4 py-3 hover:bg-lightprimary/40 cursor-pointer flex items-start gap-3 transition-colors">
+                                    <span class="p-2 rounded-lg bg-lightwarning text-warning shrink-0"><iconify-icon icon="solar:danger-triangle-linear" class="text-lg"></iconify-icon></span>
+                                    <div>
+                                        <p class="text-xs font-semibold text-dark dark:text-white">Sắp hết hàng: @product.ProductName</p>
+                                        <p class="text-[11px] text-bodytext">Tồn kho còn @product.Quantity cái</p>
+                                        <span class="text-[10px] text-bodytext/70">Cần chú ý bổ sung</span>
+                                    </div>
+                                </a>
+                            }
+                            @foreach (var order in recentCompletedOrders)
+                            {
+                                <a href="/orders" class="px-4 py-3 hover:bg-lightprimary/40 cursor-pointer flex items-start gap-3 transition-colors">
+                                    <span class="p-2 rounded-lg bg-lightsuccess text-success shrink-0"><iconify-icon icon="solar:cart-check-linear" class="text-lg"></iconify-icon></span>
+                                    <div>
+                                        <p class="text-xs font-semibold text-dark dark:text-white">Đơn hàng #@order.OrderID đã giao</p>
+                                        <p class="text-[11px] text-bodytext">@order.FinalAmount.ToString("N0")đ · @(order.Customer?.FullName ?? "Khách lẻ")</p>
+                                        <span class="text-[10px] text-bodytext/70">@order.OrderDate.ToString("dd/MM/yyyy HH:mm")</span>
+                                    </div>
+                                </a>
+                            }
                         </div>
                     </div>
                 </div>
@@ -178,3 +195,49 @@
     <a href="." class="reload font-semibold underline ml-2">Tải lại</a>
     <span class="dismiss ml-2 cursor-pointer font-bold">✕</span>
 </div>
+
+@code {
+    private List<ProductDto> lowStockProducts = [];
+    private List<Order> recentCompletedOrders = [];
+    private int notificationCount;
+
+    protected override async Task OnInitializedAsync()
+    {
+        AuthStateProvider.AuthenticationStateChanged += OnAuthenticationStateChanged;
+        await LoadNotificationsAsync();
+    }
+
+    private async void OnAuthenticationStateChanged(Task<AuthenticationState> authenticationStateTask)
+    {
+        var authenticationState = await authenticationStateTask;
+        if (authenticationState.User.Identity?.IsAuthenticated != true)
+        {
+            lowStockProducts = [];
+            recentCompletedOrders = [];
+            notificationCount = 0;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        await LoadNotificationsAsync();
+    }
+
+    private async Task LoadNotificationsAsync()
+    {
+        var authenticationState = await AuthStateProvider.GetAuthenticationStateAsync();
+        if (authenticationState.User.Identity?.IsAuthenticated != true)
+        {
+            return;
+        }
+
+        lowStockProducts = await ProductService.GetLowStockProductsAsync();
+        recentCompletedOrders = await OrderManager.GetRecentCompletedAsync();
+        notificationCount = lowStockProducts.Count + recentCompletedOrders.Count;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        AuthStateProvider.AuthenticationStateChanged -= OnAuthenticationStateChanged;
+    }
+}
