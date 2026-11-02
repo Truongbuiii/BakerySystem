@@ -27,16 +27,10 @@ public sealed class MobileApiClient(HttpClient httpClient)
     }
 
     public async Task<List<Order>> GetOrdersAsync(
-        int? customerId,
-        string? phone,
-        CancellationToken ct = default)
-    {
-        var query = customerId.HasValue
-            ? $"?customerId={customerId.Value}"
-            : $"?phone={Uri.EscapeDataString(phone ?? string.Empty)}";
-        return await httpClient.GetFromJsonAsync<List<Order>>(
-                   $"api/mobile/orders{query}", ct) ?? [];
-    }
+        int customerId,
+        CancellationToken ct = default) =>
+        await httpClient.GetFromJsonAsync<List<Order>>(
+            $"api/mobile/orders?customerId={customerId}", ct) ?? [];
 
     public async Task<CustomerAuthResult> LoginAsync(
         LoginRequest request,

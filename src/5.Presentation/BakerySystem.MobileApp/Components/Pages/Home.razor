@@ -14,9 +14,9 @@
     </div>
 }
 
-@if (!CustomerSession.IsLoggedIn)
+@if (!CustomerSession.IsLoggedIn && currentTab == "profile")
 {
-    <!-- AUTHENTICATION GATEWAY: LOGIN & REGISTER REQUIRED BEFORE ENTERING APP -->
+    <!-- Authentication is available from the account tab without blocking product browsing. -->
     <div class="auth-gateway-screen no-scrollbar">
         <div class="auth-gateway-container">
             <!-- Brand Hero Header -->
@@ -190,6 +190,10 @@
                 </div>
             }
         </div>
+        <button type="button" class="btn-bk-primary" style="margin-top: 12px; width: 100%; height: 42px; font-size: 13px;"
+                @onclick='() => currentTab = "home"'>
+            Tiếp tục xem sản phẩm
+        </button>
     </div>
 }
 else
@@ -490,19 +494,6 @@ else
                         </button>
                     </div>
 
-                    <!-- Quick lookup by phone without login -->
-                    <div style="padding-top: 10px; border-top: 1px dashed rgba(244, 162, 97, 0.4);">
-                        <label style="display: block; font-size: 11px; font-weight: 700; color: #6E6259; margin-bottom: 4px;">Hoặc tra cứu nhanh đơn hàng bằng Số điện thoại:</label>
-                        <div style="display: flex; gap: 8px;">
-                            <input type="tel" class="form-control" placeholder="Nhập số điện thoại đặt bánh (VD: 0912345678)..."
-                                   style="font-size: 12px; border-radius: 8px; border-color: #EAE3D8;"
-                                   @bind="lookupPhone" @bind:event="oninput" />
-                            <button type="button" style="background: var(--bk-dark); color: white; border: none; border-radius: 8px; padding: 0 14px; font-size: 11px; font-weight: 700; white-space: nowrap;"
-                                    @onclick="RefreshMyOrders">
-                                Tra cứu
-                            </button>
-                        </div>
-                    </div>
                 </div>
             }
 
@@ -1763,7 +1754,6 @@ else
     // Order History Filters & Modals
     private string currentOrderStatusFilter = "All";
     private string orderSearchQuery = string.Empty;
-    private string lookupPhone = string.Empty;
     private Order? selectedOrderForDetail;
 
     private string webAdminApiBaseUrl
@@ -1786,6 +1776,7 @@ else
         SyncCustomerInfoToCheckout();
         await LoadDataAsync();
         _ = RefreshOrdersPeriodicallyAsync(orderRefreshCancellation.Token);
+        _ = RefreshCatalogPeriodicallyAsync(orderRefreshCancellation.Token);
     }
 
 
@@ -1875,12 +1866,27 @@ else
 
     private async Task LoadOrdersAsync()
     {
+        var isLoggedIn = CustomerSession.IsLoggedIn && CustomerSession.CurrentCustomer != null;
+        var customerId = isLoggedIn ? CustomerSession.CurrentCustomer!.CustomerId : (int?)null;
+
+        if (!isLoggedIn)
+        {
+            customerOrders = new List<Order>();
+            return;
+        }
+
         try
         {
-            int? customerId = CustomerSession.IsLoggedIn && CustomerSession.CurrentCustomer != null
-                ? CustomerSession.CurrentCustomer.CustomerId
-                : null;
-            customerOrders = await ApiClient.GetOrdersAsync(customerId, lookupPhone);
+            var orders = await ApiClient.GetOrdersAsync(customerId!.Value);
+
+            if (isLoggedIn != (CustomerSession.IsLoggedIn && CustomerSession.CurrentCustomer != null)
+                || (isLoggedIn && CustomerSession.CurrentCustomer!.CustomerId != customerId))
+            {
+                customerOrders = new List<Order>();
+                return;
+            }
+
+            customerOrders = orders;
             await SyncOrderStatusesFromWebAdminAsync();
         }
         catch (Exception ex)
@@ -1938,6 +1944,26 @@ else
                 await LoadOrdersAsync();
                 isRefreshingOrders = false;
                 await InvokeAsync(StateHasChanged);
+            }
+        }
+
+        catch (OperationCanceledException)
+        {
+            // Component was disposed.
+        }
+    }
+
+    private async Task RefreshCatalogPeriodicallyAsync(CancellationToken cancellationToken)
+    {
+        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(5));
+        try
+        {
+            while (await timer.WaitForNextTickAsync(cancellationToken))
+            {
+                if (currentTab is not ("home" or "menu") || selectedProduct != null || isCartOpen)
+                    continue;
+
+                await RefreshCatalogWhenReadyAsync();
             }
         }
         catch (OperationCanceledException)
@@ -2060,9 +2086,23 @@ else
         return "/" + rawUrl;
     }
 
+    private bool RequireLoginForCart()
+    {
+        if (CustomerSession.IsLoggedIn)
+        {
+            return true;
+        }
+
+        selectedProduct = null;
+        isCartOpen = false;
+        currentTab = "profile";
+        ShowToast("Vui lòng đăng nhập hoặc đăng ký trước khi thêm bánh vào giỏ hàng.");
+        return false;
+    }
+
     private void QuickAddToCart(Product product)
     {
-        if (product.Quantity <= 0) return;
+        if (product.Quantity <= 0 || !RequireLoginForCart()) return;
         var existing = CartService.Items.FirstOrDefault(i => i.ProductID == product.ProductID);
         if (existing != null && existing.Quantity >= product.Quantity) return;
         CartService.AddItem(product, 1);
@@ -2089,6 +2129,8 @@ else
 
     private void AddToCartFromModal()
     {
+        if (!RequireLoginForCart()) return;
+
         if (selectedProduct != null && selectedProduct.Quantity > 0 && modalQuantity > 0)
         {
             CartService.AddItem(selectedProduct, modalQuantity);
@@ -2226,6 +2268,7 @@ else
     private void RequestPlaceOrder()
     {
         if (isSubmittingOrder) return;
+        if (!RequireLoginForCart()) return;
 
         if (selectedPaymentMethod == PaymentMethod.BankTransfer)
         {
@@ -2297,6 +2340,13 @@ else
 
     private void HandleAuthChanged()
     {
+        if (!CustomerSession.IsLoggedIn)
+        {
+            customerOrders = new List<Order>();
+            selectedOrderForDetail = null;
+            CartService.Clear();
+        }
+
         SyncCustomerInfoToCheckout();
         _ = LoadOrdersAsync().ContinueWith(_ => InvokeAsync(StateHasChanged));
     }
@@ -2416,6 +2466,9 @@ else
         receiverName = "Khách hàng";
         receiverPhone = string.Empty;
         receiverAddress = string.Empty;
+        customerOrders = new List<Order>();
+        selectedOrderForDetail = null;
+        CartService.Clear();
         _ = LoadOrdersAsync();
     }
 
@@ -2536,6 +2589,8 @@ else
 
     private void ReOrderFromHistory(Order order)
     {
+        if (!RequireLoginForCart()) return;
+
         CartService.ReOrder(order);
         ShowToast($"Đã thêm lại {order.OrderDetails.Count} món vào giỏ hàng!");
         OpenCart();
@@ -2543,6 +2598,12 @@ else
 
     private async Task CancelPendingOrder(int orderId)
     {
+        if (!CustomerSession.IsLoggedIn)
+        {
+            ShowToast("Vui lòng đăng nhập để hủy đơn hàng.");
+            return;
+        }
+
         int? customerId = CustomerSession.IsLoggedIn ? CustomerSession.CurrentCustomer?.CustomerId : null;
         var ok = await CartService.CancelOrderAsync(orderId, customerId);
         if (ok)

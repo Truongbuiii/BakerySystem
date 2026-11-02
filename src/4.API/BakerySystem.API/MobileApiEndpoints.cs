@@ -136,8 +136,7 @@ public static class MobileApiEndpoints
         .WithSummary("Find a promotion by code");
 
         group.MapGet("/orders", async (
-            int? customerId,
-            string? phone,
+            int customerId,
             IBakeryDbContext db,
             CancellationToken ct) =>
         {
@@ -147,11 +146,10 @@ public static class MobileApiEndpoints
                     .ThenInclude(d => d.Product)
                 .AsQueryable();
 
-            if (customerId.HasValue)
-                query = query.Where(o => o.CustomerID == customerId.Value);
-            else if (!string.IsNullOrWhiteSpace(phone))
-                query = query.Where(o => o.ReceiverPhone != null
-                    && o.ReceiverPhone.Contains(phone.Trim()));
+            if (customerId <= 0)
+                return Results.Ok(Array.Empty<Order>());
+
+            query = query.Where(o => o.CustomerID == customerId);
 
             return Results.Ok(await query
                 .OrderByDescending(o => o.OrderDate)
@@ -297,7 +295,8 @@ public static class MobileApiEndpoints
             var order = await db.Orders.FirstOrDefaultAsync(
                 o => o.OrderID == orderId, ct);
             if (order is null
-                || request.CustomerId is > 0 && order.CustomerID != request.CustomerId
+                || request.CustomerId is null or <= 0
+                || order.CustomerID != request.CustomerId
                 || order.Status != OrderStatus.Pending)
                 return Results.BadRequest();
 
