@@ -48,13 +48,39 @@ public static class BakeryDataSeeder
                 IF OBJECT_ID(N'[ImportReceiptDetail]', N'U') IS NOT NULL
                 BEGIN
                     INSERT INTO [SupplierProduct] ([SupplierID], [ProductID])
-                    SELECT DISTINCT r.[SupplierID], d.[ProductID]
+                    SELECT MIN(r.[SupplierID]), d.[ProductID]
                     FROM [ImportReceipt] r
                     INNER JOIN [ImportReceiptDetail] d ON d.[ReceiptID] = r.[ReceiptID]
                     WHERE NOT EXISTS (
                         SELECT 1 FROM [SupplierProduct] sp
-                        WHERE sp.[SupplierID] = r.[SupplierID] AND sp.[ProductID] = d.[ProductID]
-                    );
+                        WHERE sp.[ProductID] = d.[ProductID]
+                    )
+                    GROUP BY d.[ProductID];
+                END;
+
+                -- Mỗi sản phẩm chỉ thuộc một nhà cung cấp. Giữ lại liên kết có SupplierID nhỏ nhất nếu dữ liệu cũ bị trùng.
+                IF OBJECT_ID(N'[SupplierProduct]', N'U') IS NOT NULL
+                BEGIN
+                    ;WITH DuplicateProducts AS (
+                        SELECT [ProductID], MIN([SupplierID]) AS [KeepSupplierID]
+                        FROM [SupplierProduct]
+                        GROUP BY [ProductID]
+                        HAVING COUNT(*) > 1
+                    )
+                    DELETE sp
+                    FROM [SupplierProduct] sp
+                    INNER JOIN DuplicateProducts d ON d.[ProductID] = sp.[ProductID]
+                    WHERE sp.[SupplierID] <> d.[KeepSupplierID];
+
+                    IF NOT EXISTS (
+                        SELECT 1 FROM sys.indexes
+                        WHERE [name] IN (N'UX_SupplierProduct_ProductID', N'UQ_SupplierProduct_ProductID')
+                          AND [object_id] = OBJECT_ID(N'[SupplierProduct]')
+                    )
+                    BEGIN
+                        CREATE UNIQUE INDEX [UX_SupplierProduct_ProductID]
+                            ON [SupplierProduct] ([ProductID]);
+                    END;
                 END;
 
                 -- 3. Đảm bảo bảng PromotionOrderTier tồn tại

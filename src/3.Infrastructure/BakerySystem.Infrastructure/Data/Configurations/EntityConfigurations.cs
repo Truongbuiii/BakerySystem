@@ -84,6 +84,8 @@ public class SupplierProductConfiguration : IEntityTypeConfiguration<SupplierPro
             .HasForeignKey(x => x.SupplierID).OnDelete(DeleteBehavior.Cascade);
         builder.HasOne(x => x.Product).WithMany(x => x.SupplierProducts)
             .HasForeignKey(x => x.ProductID).OnDelete(DeleteBehavior.Restrict);
+        builder.HasIndex(x => x.ProductID).IsUnique()
+            .HasDatabaseName("UX_SupplierProduct_ProductID");
     }
 }
 

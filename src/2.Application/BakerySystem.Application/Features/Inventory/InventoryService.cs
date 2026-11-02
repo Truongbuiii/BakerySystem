@@ -91,6 +91,10 @@ public sealed class InventoryService(IBakeryDbContext db)
         db.SupplierProducts.AsNoTracking().Where(x => x.SupplierID == supplierId)
             .Select(x => x.ProductID).ToListAsync(ct);
 
+    public async Task<Dictionary<int, int>> GetProductSupplierIdsAsync(CancellationToken ct = default) =>
+        await db.SupplierProducts.AsNoTracking()
+            .ToDictionaryAsync(x => x.ProductID, x => x.SupplierID, ct);
+
     public Task<List<Product>> GetProductsForSupplierAsync(int supplierId, CancellationToken ct = default) =>
         db.SupplierProducts.AsNoTracking()
             .Where(x => x.SupplierID == supplierId && x.Supplier.IsActive && x.Product.IsActive)
@@ -102,9 +106,22 @@ public sealed class InventoryService(IBakeryDbContext db)
             throw new InvalidOperationException("Không tìm thấy nhà cung cấp.");
 
         var selectedIds = productIds.Distinct().ToArray();
+        if (selectedIds.Length > 1)
+            throw new InvalidOperationException("Mỗi sản phẩm chỉ được gán cho một nhà cung cấp.");
+
         var activeProductCount = await db.Products.CountAsync(x => selectedIds.Contains(x.ProductID) && x.IsActive, ct);
         if (activeProductCount != selectedIds.Length)
             throw new InvalidOperationException("Một số sản phẩm không tồn tại hoặc đã ngừng kinh doanh.");
+
+        if (selectedIds.Length == 1)
+        {
+            var otherSupplier = await db.SupplierProducts
+                .Include(x => x.Supplier)
+                .FirstOrDefaultAsync(x => x.ProductID == selectedIds[0] && x.SupplierID != supplierId, ct);
+            if (otherSupplier is not null)
+                throw new InvalidOperationException(
+                    $"Sản phẩm đã thuộc nhà cung cấp {otherSupplier.Supplier.SupplierName}. Hãy bỏ gán ở nhà cung cấp đó trước.");
+        }
 
         var current = await db.SupplierProducts.Where(x => x.SupplierID == supplierId).ToListAsync(ct);
         var remove = current.Where(x => !selectedIds.Contains(x.ProductID)).ToList();

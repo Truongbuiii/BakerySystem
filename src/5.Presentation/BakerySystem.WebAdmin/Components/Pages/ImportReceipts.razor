@@ -134,7 +134,7 @@
             </div>
             <div class="bakery-modal-body">
                 <div class="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-slate-50 p-3 text-sm">
-                    <span>Chưa có bánh trong danh sách? Tạo bánh trước, rồi tải lại danh sách ở đây.</span>
+                    <span>Mỗi bánh chỉ thuộc một nhà cung cấp. Chưa có bánh trong danh sách? Tạo bánh trước, rồi tải lại.</span>
                     <div class="flex gap-2">
                         <a class="bakery-btn bakery-btn-secondary bakery-btn-sm" href="/products" target="_blank" rel="noopener">Mở Menu &amp; Bánh ngọt</a>
                         <button type="button" class="bakery-btn bakery-btn-secondary bakery-btn-sm" @onclick="RefreshProductCatalog">Tải lại danh sách</button>
@@ -151,7 +151,7 @@
                         @foreach (var product in productCatalog)
                         {
                             <label class="flex items-center gap-2 rounded-lg border border-slate-200 p-3">
-                                <input type="checkbox" checked="@assignedProductIds.Contains(product.ProductID)" @onchange="e => ToggleAssignedProduct(product.ProductID, e)" disabled="@savingProductAssignment" />
+                                <input type="radio" name="receipt-supplier-product" checked="@assignedProductIds.Contains(product.ProductID)" @onchange="() => SelectAssignedProduct(product.ProductID)" disabled="@savingProductAssignment" />
                                 <span>@product.ProductName</span>
                             </label>
                         }
@@ -291,13 +291,7 @@
         assignmentMessage = "Đã tải lại danh sách bánh đang kinh doanh.";
     }
 
-    private void ToggleAssignedProduct(int productId, ChangeEventArgs args)
-    {
-        if (args.Value is true || string.Equals(args.Value?.ToString(), "true", StringComparison.OrdinalIgnoreCase))
-            assignedProductIds.Add(productId);
-        else
-            assignedProductIds.Remove(productId);
-    }
+    private void SelectAssignedProduct(int productId) => assignedProductIds = [productId];
 
     private async Task SaveProductAssignment()
     {

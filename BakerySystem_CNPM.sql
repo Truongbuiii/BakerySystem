@@ -98,6 +98,18 @@ GO
 /* =========================================================
    7. PROMOTION (Bảng cha chứa thông tin chung & PromotionType)
    ========================================================= */
+/* Một sản phẩm bánh chỉ thuộc một nhà cung cấp. */
+CREATE TABLE SupplierProduct (
+    SupplierID INT NOT NULL,
+    ProductID INT NOT NULL,
+
+    CONSTRAINT PK_SupplierProduct PRIMARY KEY (SupplierID, ProductID),
+    CONSTRAINT UQ_SupplierProduct_ProductID UNIQUE (ProductID),
+    CONSTRAINT FK_SupplierProduct_Supplier FOREIGN KEY (SupplierID) REFERENCES Supplier(SupplierID) ON DELETE CASCADE,
+    CONSTRAINT FK_SupplierProduct_Product FOREIGN KEY (ProductID) REFERENCES Product(ProductID)
+);
+GO
+
 CREATE TABLE Promotion (
     PromotionID INT IDENTITY(1,1) PRIMARY KEY,
     PromotionCode VARCHAR(50) NOT NULL,
