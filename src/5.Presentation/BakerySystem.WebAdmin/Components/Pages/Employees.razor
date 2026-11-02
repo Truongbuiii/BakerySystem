@@ -14,7 +14,77 @@
         <button class="bakery-btn bakery-btn-outline" @onclick="ResetSearch">Đặt lại</button>
     </div>
 </div>
-<div class="bakery-filter-card overflow-x-auto"><table id="employees-table" class="w-full text-sm"><thead><tr><th class="text-left p-3">Nhân viên</th><th class="text-left p-3">Vị trí</th><th class="text-left p-3">Tài khoản</th><th class="text-left p-3">Số điện thoại</th><th class="text-left p-3">Trạng thái</th><th></th></tr></thead><tbody>@foreach(var e in FilteredStaff){<tr class="border-t"><td class="p-3 font-semibold">@e.FullName</td><td class="p-3">@e.Position</td><td class="p-3">@e.Account?.Username (@(e.Account?.Role == "Admin" ? "Quản lý" : "Nhân viên"))</td><td class="p-3">@e.Phone</td><td class="p-3"><span class="bakery-badge @(e.Account?.Status == "Active" ? "bakery-badge-success" : "bakery-badge-error")">@(e.Account?.Status == "Active" ? "Đang hoạt động" : "Đã khóa")</span></td><td class="p-3 text-right"><button class="bakery-btn bakery-btn-secondary bakery-btn-sm" @onclick="()=>Edit(e)">Sửa</button></td></tr>}</tbody></table>@if(!FilteredStaff.Any()){<p class="p-6 text-center text-slate-500">Không tìm thấy nhân viên phù hợp.</p>}</div>
+<div class="bakery-split-container employee-management-layout">
+    <div class="bakery-split-list bakery-filter-card !p-0 overflow-hidden">
+        <div class="p-4 border-b border-slate-200 dark:border-slate-700">
+            <div class="flex items-center justify-between gap-2">
+                <h3 class="font-bold mb-0">Danh sách nhân viên</h3>
+                <span class="bakery-badge bakery-badge-secondary">@FilteredStaff.Count() nhân viên</span>
+            </div>
+            <p class="text-xs text-slate-500 mt-1 mb-0">Bấm vào một nhân viên để xem thông tin chi tiết.</p>
+        </div>
+        @if(!FilteredStaff.Any())
+        {
+            <p class="p-6 text-center text-slate-500">Không tìm thấy nhân viên phù hợp.</p>
+        }
+        else
+        {
+            <div class="overflow-x-auto">
+                <table id="employees-table" class="bakery-table w-full text-sm">
+                    <thead><tr><th class="text-left">Nhân viên</th><th class="text-left">Vị trí</th><th class="text-left">Trạng thái</th></tr></thead>
+                    <tbody>
+                    @foreach(var e in FilteredStaff)
+                    {
+                        <tr class="bakery-row-clickable @(selectedEmployee?.EmployeeID == e.EmployeeID ? "bakery-row-selected" : "")" @onclick="() => SelectEmployee(e)">
+                            <td class="font-semibold">@e.FullName</td>
+                            <td>@e.Position</td>
+                            <td><span class="bakery-badge @(e.Account?.Status == "Active" ? "bakery-badge-success" : "bakery-badge-error")">@(e.Account?.Status == "Active" ? "Đang hoạt động" : "Đã khóa")</span></td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+    <div class="bakery-split-detail">
+        @if (selectedEmployee is null)
+        {
+            <div class="bakery-detail-placeholder">
+                <iconify-icon icon="solar:user-id-linear"></iconify-icon>
+                <p>Chọn một nhân viên để xem thông tin chi tiết.</p>
+            </div>
+        }
+        else
+        {
+            <div class="bakery-detail-header-card">
+                <div>
+                    <div class="bakery-detail-kv-label">HỒ SƠ NHÂN VIÊN</div>
+                    <h4 class="text-base font-bold text-dark dark:text-white mb-0">@selectedEmployee.FullName</h4>
+                </div>
+                <button type="button" class="text-slate-400 hover:text-slate-600" title="Đóng bảng chi tiết" @onclick="() => selectedEmployee = null">×</button>
+            </div>
+            <div class="bakery-detail-kv-grid mt-4">
+                <div class="bakery-detail-kv-item"><div class="bakery-detail-kv-label">Vị trí</div><div class="bakery-detail-kv-val">@selectedEmployee.Position</div></div>
+                <div class="bakery-detail-kv-item"><div class="bakery-detail-kv-label">Trạng thái</div><div class="bakery-detail-kv-val">@(selectedEmployee.Account?.Status == "Active" ? "Đang hoạt động" : "Đã khóa")</div></div>
+                <div class="bakery-detail-kv-item"><div class="bakery-detail-kv-label">Tài khoản</div><div class="bakery-detail-kv-val">@selectedEmployee.Account?.Username</div></div>
+                <div class="bakery-detail-kv-item"><div class="bakery-detail-kv-label">Quyền truy cập</div><div class="bakery-detail-kv-val">@(selectedEmployee.Account?.Role == "Admin" ? "Quản lý" : "Nhân viên")</div></div>
+                <div class="bakery-detail-kv-item"><div class="bakery-detail-kv-label">Số điện thoại</div><div class="bakery-detail-kv-val">@(string.IsNullOrWhiteSpace(selectedEmployee.Phone) ? "Chưa cập nhật" : selectedEmployee.Phone)</div></div>
+            </div>
+            <div class="flex justify-end mt-5">
+                <button class="bakery-btn bakery-btn-primary" @onclick="() => Edit(selectedEmployee)">Chỉnh sửa nhân viên</button>
+            </div>
+        }
+    </div>
+</div>
+<table id="employees-export-table" class="export-only-table">
+    <thead><tr><th>Họ tên</th><th>Vị trí</th><th>Tài khoản</th><th>Số điện thoại</th><th>Trạng thái</th></tr></thead>
+    <tbody>
+    @foreach(var e in FilteredStaff)
+    {
+        <tr><td>@e.FullName</td><td>@e.Position</td><td>@e.Account?.Username (@(e.Account?.Role == "Admin" ? "Quản lý" : "Nhân viên"))</td><td>@e.Phone</td><td>@(e.Account?.Status == "Active" ? "Đang hoạt động" : "Đã khóa")</td></tr>
+    }
+    </tbody>
+</table>
 <div class="admin-print-report" data-report="employees">
     <div class="admin-print-header"><div><div class="admin-print-eyebrow">BAKERYSYSTEM</div><h1>Danh sách nhân sự</h1><p>Báo cáo theo bộ lọc hiện tại · Ngày in: @DateTime.Now.ToString("dd/MM/yyyy HH:mm")</p></div><div class="admin-print-summary"><strong>@FilteredStaff.Count()</strong><span>nhân sự</span></div></div>
     <table><thead><tr><th>Họ tên</th><th>Vị trí</th><th>Tài khoản</th><th>Số điện thoại</th><th>Trạng thái</th></tr></thead><tbody>
@@ -25,6 +95,6 @@
     </tbody></table><div class="admin-print-footer"><span>Không hiển thị thông tin mật khẩu.</span><span>Người lập: ____________________</span></div>
 </div>
 
-@code { List<Employee> staff=[];EmployeeInput form=new();bool formOpen;string? message;string searchTerm="";string positionFilter="";string accountStatusFilter="";
+@code { List<Employee> staff=[];EmployeeInput form=new();Employee? selectedEmployee;bool formOpen;string? message;string searchTerm="";string positionFilter="";string accountStatusFilter="";
 IEnumerable<Employee> FilteredStaff=>staff.Where(e=>(string.IsNullOrWhiteSpace(positionFilter)||e.Position==positionFilter)&&(string.IsNullOrWhiteSpace(accountStatusFilter)||e.Account?.Status==accountStatusFilter)&&(string.IsNullOrWhiteSpace(searchTerm)||$"{e.FullName} {e.Phone} {e.Account?.Username}".Contains(searchTerm.Trim(),StringComparison.OrdinalIgnoreCase)));
-protected override async Task OnInitializedAsync()=>await Load();async Task Load()=>staff=await EmployeeManager.GetAllAsync();async Task ExportEmployeesToExcel()=>await JS.InvokeVoidAsync("bakeryExcel.exportToExcel","employees-table",$"Danh_Sach_Nhan_Su_Bakery_{DateTime.Now:yyyyMMdd_HHmmss}");async Task PrintEmployeesToPdf()=>await JS.InvokeVoidAsync("bakeryPdf.printReportToPdf","Danh_Sach_Nhan_Su_BakerySystem","print-employees");void ResetSearch(){searchTerm="";positionFilter="";accountStatusFilter="";}void NewEmployee(){form=new();message=null;formOpen=true;}void Edit(Employee e){form=new(){EmployeeID=e.EmployeeID,FullName=e.FullName,Phone=e.Phone,Position=e.Position,Username=e.Account.Username,Status=e.Account.Status};message=null;formOpen=true;}void CloseForm()=>formOpen=false;async Task Save(){try{await EmployeeManager.SaveAsync(form);formOpen=false;message=null;await Load();}catch(Exception ex){message=ex.Message;}} }
+protected override async Task OnInitializedAsync()=>await Load();async Task Load(){staff=await EmployeeManager.GetAllAsync();if(selectedEmployee is not null)selectedEmployee=staff.FirstOrDefault(e=>e.EmployeeID==selectedEmployee.EmployeeID);}async Task ExportEmployeesToExcel()=>await JS.InvokeVoidAsync("bakeryExcel.exportToExcel","employees-export-table",$"Danh_Sach_Nhan_Su_Bakery_{DateTime.Now:yyyyMMdd_HHmmss}");async Task PrintEmployeesToPdf()=>await JS.InvokeVoidAsync("bakeryPdf.printReportToPdf","Danh_Sach_Nhan_Su_BakerySystem","print-employees");void ResetSearch(){searchTerm="";positionFilter="";accountStatusFilter="";}void SelectEmployee(Employee e)=>selectedEmployee=e;void NewEmployee(){form=new();message=null;formOpen=true;}void Edit(Employee e){selectedEmployee=e;form=new(){EmployeeID=e.EmployeeID,FullName=e.FullName,Phone=e.Phone,Position=e.Position,Username=e.Account.Username,Status=e.Account.Status};message=null;formOpen=true;}void CloseForm()=>formOpen=false;async Task Save(){try{await EmployeeManager.SaveAsync(form);formOpen=false;message=null;await Load();}catch(Exception ex){message=ex.Message;}} }
