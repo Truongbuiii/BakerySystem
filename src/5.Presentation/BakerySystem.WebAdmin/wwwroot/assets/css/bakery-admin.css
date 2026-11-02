@@ -260,6 +260,23 @@ html.dark .bakery-sidebar-divider {
     display: block !important;
 }
 
+.bakery-sidebar-subcaption {
+    padding: 0.35rem 0.75rem 0.15rem 2.75rem !important;
+    color: var(--bakery-muted) !important;
+    font-size: 0.625rem !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.04em !important;
+    text-transform: uppercase !important;
+}
+
+.bakery-sidebar-subcaption-spaced {
+    margin-top: 0.5rem !important;
+}
+
+.bakery-layout-root.sidebar-collapsed .bakery-sidebar-subcaption {
+    display: none !important;
+}
+
 .bakery-page-wrapper {
     margin-left: var(--bakery-sidebar-w) !important;
     width: calc(100% - var(--bakery-sidebar-w)) !important;

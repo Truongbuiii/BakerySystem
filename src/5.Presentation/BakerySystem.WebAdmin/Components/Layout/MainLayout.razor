@@ -1,8 +1,7 @@
 @implements IDisposable
 @inherits LayoutComponentBase
-@inject IProductService ProductService
-@inject OrderService OrderManager
 @inject AuthenticationStateProvider AuthStateProvider
+@inject IServiceScopeFactory ScopeFactory
 
 <div class="bakery-layout-root">
     <!-- Backdrop for mobile drawer -->
@@ -200,6 +199,9 @@
     private List<ProductDto> lowStockProducts = [];
     private List<Order> recentCompletedOrders = [];
     private int notificationCount;
+    private readonly SemaphoreSlim notificationLoadGate = new(1, 1);
+    private bool isDisposed;
+    private bool notificationsLoaded;
 
     protected override async Task OnInitializedAsync()
     {
@@ -230,14 +232,33 @@
             return;
         }
 
-        lowStockProducts = await ProductService.GetLowStockProductsAsync();
-        recentCompletedOrders = await OrderManager.GetRecentCompletedAsync();
-        notificationCount = lowStockProducts.Count + recentCompletedOrders.Count;
-        await InvokeAsync(StateHasChanged);
+        await notificationLoadGate.WaitAsync();
+        try
+        {
+            if (isDisposed || notificationsLoaded)
+            {
+                return;
+            }
+
+            using var scope = ScopeFactory.CreateScope();
+            var productService = scope.ServiceProvider.GetRequiredService<IProductService>();
+            var orderManager = scope.ServiceProvider.GetRequiredService<OrderService>();
+            lowStockProducts = await productService.GetLowStockProductsAsync();
+            recentCompletedOrders = await orderManager.GetRecentCompletedAsync();
+            notificationCount = lowStockProducts.Count + recentCompletedOrders.Count;
+            notificationsLoaded = true;
+            await InvokeAsync(StateHasChanged);
+        }
+        finally
+        {
+            notificationLoadGate.Release();
+        }
     }
 
     public void Dispose()
     {
+        isDisposed = true;
         AuthStateProvider.AuthenticationStateChanged -= OnAuthenticationStateChanged;
+        notificationLoadGate.Dispose();
     }
 }
