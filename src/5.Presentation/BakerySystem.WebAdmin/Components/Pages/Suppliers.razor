@@ -2,6 +2,7 @@
 @rendermode InteractiveServer
 @attribute [Authorize(Roles = "Admin")]
 @inject InventoryService Inventory
+@inject IJSRuntime JS
 
 <PageTitle>Nhà cung cấp | BakerySystem</PageTitle>
 
@@ -16,7 +17,26 @@
         <p class="text-bodytext">Quản lý đối tác, trạng thái hoạt động và bánh được phân công.</p>
     </div>
     <div class="bakery-page-actions">
-        <button class="bakery-btn bakery-btn-secondary bakery-btn-sm" @onclick="Load">Làm mới</button>
+        <button class="bakery-btn bakery-btn-secondary bakery-btn-sm" @onclick="RefreshDataAsync">
+            <iconify-icon icon="solar:restart-linear" class="text-base"></iconify-icon>
+            <span>Làm mới</span>
+        </button>
+        <button class="bakery-btn bakery-btn-outline bakery-btn-sm" @onclick="ExportToExcel">
+            <iconify-icon icon="solar:file-download-linear" class="text-base text-emerald-600"></iconify-icon>
+            <span>Xuất Excel</span>
+        </button>
+        <AuthorizeView Roles="Admin">
+            <Authorized>
+                <button class="bakery-btn bakery-btn-outline bakery-btn-sm" @onclick="() => isImportModalOpen = true">
+                    <iconify-icon icon="solar:file-send-linear" class="text-base text-blue-600"></iconify-icon>
+                    <span>Nhập Excel</span>
+                </button>
+            </Authorized>
+        </AuthorizeView>
+        <button class="bakery-btn bakery-btn-secondary bakery-btn-sm" @onclick="PrintToPdf">
+            <iconify-icon icon="solar:printer-linear" class="text-base"></iconify-icon>
+            <span>In / Xuất PDF</span>
+        </button>
         <button class="bakery-btn bakery-btn-primary bakery-btn-sm" @onclick="OpenCreateSupplierModal">Thêm nhà cung cấp</button>
     </div>
 </div>
@@ -107,7 +127,7 @@
         else
         {
             <div class="overflow-x-auto">
-                <table class="bakery-table w-full text-sm">
+                <table id="suppliers-table" class="bakery-table w-full text-sm">
                     <thead>
                         <tr>
                             <th class="text-left">Mã NCC</th>
@@ -218,6 +238,37 @@
         }
     </div>
 </div>
+
+@if (isImportModalOpen)
+{
+    <div class="bakery-modal-backdrop" @onclick="CloseImportModal">
+        <div class="bakery-modal-card max-w-2xl" @onclick:stopPropagation="true">
+            <div class="bakery-modal-header">
+                <div>
+                    <h4 class="text-base font-bold text-slate-900 dark:text-white mb-0">Nhập danh sách nhà cung cấp</h4>
+                    <p class="text-xs text-slate-500 mb-0">File CSV gồm: Tên nhà cung cấp, Số điện thoại, Địa chỉ.</p>
+                </div>
+                <button type="button" class="text-slate-400 text-lg" @onclick="CloseImportModal" aria-label="Đóng">×</button>
+            </div>
+            <div class="bakery-modal-body">
+                <div class="mb-3 flex items-center justify-between rounded-lg bg-slate-50 p-3 text-sm">
+                    <span>Tải file mẫu để nhập đúng định dạng.</span>
+                    <button type="button" class="bakery-btn bakery-btn-secondary bakery-btn-sm" @onclick="DownloadSupplierTemplate">
+                        Tải file mẫu
+                    </button>
+                </div>
+                <InputFile OnChange="HandleSupplierImport" accept=".csv,.txt" class="bakery-input w-full" />
+                @if (!string.IsNullOrWhiteSpace(importMessage))
+                {
+                    <p class="mt-3 text-sm @(importSucceeded ? "text-emerald-600" : "text-rose-600")">@importMessage</p>
+                }
+            </div>
+            <div class="bakery-modal-footer">
+                <button type="button" class="bakery-btn bakery-btn-outline" @onclick="CloseImportModal">Đóng</button>
+            </div>
+        </div>
+    </div>
+}
 
 @if (supplierFormOpen)
 {
@@ -375,6 +426,16 @@
     </div>
 }
 
+<div class="admin-print-report" data-report="suppliers">
+    <div class="admin-print-header"><div><div class="admin-print-eyebrow">BAKERYSYSTEM</div><h1>Danh sách nhà cung cấp</h1><p>Báo cáo theo bộ lọc hiện tại · Ngày in: @DateTime.Now.ToString("dd/MM/yyyy HH:mm")</p></div><div class="admin-print-summary"><strong>@FilteredSuppliers.Count()</strong><span>nhà cung cấp</span></div></div>
+    <table><thead><tr><th>Mã NCC</th><th>Nhà cung cấp</th><th class="print-number">Sản phẩm</th><th>Trạng thái</th><th>Phiếu nhập</th></tr></thead><tbody>
+    @foreach (var supplier in FilteredSuppliers)
+    {
+        <tr><td>@supplier.SupplierCode</td><td><strong>@supplier.SupplierName</strong><br />@supplier.Phone<br />@supplier.Address</td><td class="print-number">@supplier.SupplierProducts.Count</td><td>@(supplier.IsActive ? "Đang hoạt động" : "Đã ẩn")</td><td>@supplier.ImportReceipts.Count</td></tr>
+    }
+    </tbody></table><div class="admin-print-footer"><span>Dữ liệu theo bộ lọc hiện tại.</span><span>Người lập: ____________________</span></div>
+</div>
+
 @code {
     private List<Supplier> suppliers = [];
     private Supplier form = new();
@@ -394,6 +455,9 @@
     private int? minProductCount;
     private int? maxProductCount;
     private string receiptFilter = "all";
+    private bool isImportModalOpen;
+    private string? importMessage;
+    private bool importSucceeded;
 
     private bool HasActiveAdvancedFilters =>
         minProductCount.HasValue || maxProductCount.HasValue || receiptFilter != "all";
@@ -436,6 +500,98 @@
         suppliers = await Inventory.GetSuppliersAsync();
         if (selectedSupplier is not null)
             selectedSupplier = suppliers.FirstOrDefault(x => x.SupplierID == selectedSupplier.SupplierID);
+    }
+
+    private async Task RefreshDataAsync()
+    {
+        await Load();
+        message = "Đã làm mới dữ liệu nhà cung cấp.";
+        operationSucceeded = true;
+    }
+
+    private async Task ExportToExcel()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("bakeryExcel.exportToExcel", "suppliers-table",
+                $"Danh_Sach_Nha_Cung_Cap_Bakery_{DateTime.Now:yyyyMMdd_HHmmss}");
+            message = "Đã xuất Excel danh sách nhà cung cấp.";
+            operationSucceeded = true;
+        }
+        catch (Exception ex)
+        {
+            message = "Lỗi xuất Excel: " + ex.Message;
+            operationSucceeded = false;
+        }
+    }
+
+    private async Task PrintToPdf()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("bakeryPdf.printReportToPdf", "Danh_Sach_Nha_Cung_Cap_BakerySystem", "print-suppliers");
+        }
+        catch (Exception ex)
+        {
+            message = "Lỗi in PDF: " + ex.Message;
+            operationSucceeded = false;
+        }
+    }
+
+    private async Task DownloadSupplierTemplate()
+    {
+        const string csvHeader = "Tên nhà cung cấp,Số điện thoại,Địa chỉ\r\nCông ty Mẫu,0912345678,Địa chỉ mẫu";
+        await JS.InvokeVoidAsync("bakeryExcel.downloadTemplate", "Mau_Nhap_Nha_Cung_Cap_Bakery", csvHeader);
+    }
+
+    private void CloseImportModal()
+    {
+        isImportModalOpen = false;
+        importMessage = null;
+    }
+
+    private async Task HandleSupplierImport(InputFileChangeEventArgs args)
+    {
+        var file = args.File;
+        if (file is null)
+            return;
+
+        try
+        {
+            using var stream = file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024);
+            using var reader = new StreamReader(stream, System.Text.Encoding.UTF8);
+            var successCount = 0;
+            var lineNumber = 0;
+            string? line;
+
+            while ((line = await reader.ReadLineAsync()) is not null)
+            {
+                lineNumber++;
+                if (lineNumber == 1 && line.Contains("Tên nhà cung cấp", StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                var columns = line.Split(',', 3);
+                if (columns.Length < 3 || string.IsNullOrWhiteSpace(columns[0]))
+                    throw new InvalidOperationException($"Dòng {lineNumber} không đúng định dạng.");
+
+                await Inventory.SaveSupplierAsync(new Supplier
+                {
+                    SupplierName = columns[0].Trim(),
+                    Phone = columns[1].Trim(),
+                    Address = columns[2].Trim()
+                });
+                successCount++;
+            }
+
+            await Load();
+            importMessage = $"Đã nhập thành công {successCount} nhà cung cấp.";
+            importSucceeded = true;
+        }
+        catch (Exception ex)
+        {
+            importMessage = "Lỗi nhập Excel/CSV: " + ex.Message;
+            importSucceeded = false;
+        }
     }
 
     private void SelectSupplier(Supplier supplier) => selectedSupplier = supplier;

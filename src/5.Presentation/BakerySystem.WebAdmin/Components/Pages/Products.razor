@@ -981,6 +981,51 @@
     </div>
 }
 
+<div class="products-print-report" aria-hidden="true">
+    <div class="products-print-header">
+        <div>
+            <div class="products-print-eyebrow">BAKERYSYSTEM</div>
+            <h1>Danh sách sản phẩm bánh</h1>
+            <p>Báo cáo kiểm kê sản phẩm · Ngày in: @DateTime.Now.ToString("dd/MM/yyyy HH:mm")</p>
+        </div>
+        <div class="products-print-summary">
+            <strong>@filteredProducts.Count</strong>
+            <span>sản phẩm</span>
+        </div>
+    </div>
+    <table>
+        <thead>
+            <tr>
+                <th>Mã</th>
+                <th>Sản phẩm</th>
+                <th>Loại</th>
+                <th class="print-number">Giá bán</th>
+                <th class="print-number">Tồn kho</th>
+                <th class="print-number">Đã bán</th>
+                <th>Trạng thái</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in filteredProducts)
+            {
+                <tr>
+                    <td>#SP-@item.ProductID.ToString("D3")</td>
+                    <td><strong>@item.ProductName</strong></td>
+                    <td>@item.CategoryName</td>
+                    <td class="print-number">@($"{item.Price:N0} đ")</td>
+                    <td class="print-number">@item.Quantity cái</td>
+                    <td class="print-number">@item.SoldCount</td>
+                    <td>@(item.IsActive ? "Đang bán" : "Tạm ngưng")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    <div class="products-print-footer">
+        <span>Chỉ hiển thị dữ liệu theo bộ lọc hiện tại.</span>
+        <span>Người kiểm kê: ____________________</span>
+    </div>
+</div>
+
 @code {
     // EXCEL & PDF
     private bool isImportModalOpen = false;
@@ -1005,7 +1050,7 @@
     {
         try
         {
-            await JS.InvokeVoidAsync("bakeryPdf.printReportToPdf", "Danh_Sach_San_Pham_BakerySystem");
+            await JS.InvokeVoidAsync("bakeryPdf.printReportToPdf", "Danh_Sach_San_Pham_BakerySystem", "print-products");
         }
         catch (Exception ex)
         {

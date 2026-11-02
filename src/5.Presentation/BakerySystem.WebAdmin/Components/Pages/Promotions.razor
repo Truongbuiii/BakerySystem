@@ -3,6 +3,7 @@
 @attribute [Authorize(Roles = "Admin")]
 @inject PromotionService PromotionManager
 @inject InventoryService InventoryManager
+@inject IJSRuntime JS
 
 <PageTitle>Khuyến mãi | BakerySystem</PageTitle>
 
@@ -10,6 +11,10 @@
     <div>
         <h2 class="text-2xl font-bold">Chương trình khuyến mãi</h2>
         <p class="text-bodytext">Thiết lập thời hạn và kết hợp điều kiện theo tổng đơn hàng hoặc theo sản phẩm.</p>
+    </div>
+    <div class="bakery-page-actions">
+        <button class="bakery-btn bakery-btn-outline bakery-btn-sm" @onclick="ExportPromotionsToExcel">Xuất Excel</button>
+        <button class="bakery-btn bakery-btn-secondary bakery-btn-sm" @onclick="PrintPromotionsToPdf">In / Xuất PDF</button>
     </div>
 </div>
 
@@ -113,7 +118,7 @@
 </div>
 
 <div class="bakery-filter-card overflow-x-auto">
-    <table class="w-full text-sm">
+    <table id="promotions-table" class="w-full text-sm">
         <thead><tr><th class="text-left p-3">Mã / chiến dịch</th><th class="text-left p-3">Thời hạn</th><th class="text-left p-3">Điều kiện</th><th class="text-left p-3">Trạng thái</th></tr></thead>
         <tbody>
             @foreach (var p in FilteredCampaigns)
@@ -172,6 +177,16 @@
     </div>
 }
 
+<div class="admin-print-report" data-report="promotions">
+    <div class="admin-print-header"><div><div class="admin-print-eyebrow">BAKERYSYSTEM</div><h1>Danh sách chương trình khuyến mãi</h1><p>Báo cáo theo bộ lọc hiện tại · Ngày in: @DateTime.Now.ToString("dd/MM/yyyy HH:mm")</p></div><div class="admin-print-summary"><strong>@FilteredCampaigns.Count()</strong><span>chương trình</span></div></div>
+    <table><thead><tr><th>Mã khuyến mãi</th><th>Chiến dịch</th><th>Thời hạn</th><th>Điều kiện</th><th>Trạng thái</th></tr></thead><tbody>
+    @foreach (var promotion in FilteredCampaigns)
+    {
+        <tr><td>@promotion.PromotionCode</td><td>@promotion.PromotionName</td><td>@promotion.StartDate.ToString("dd/MM/yyyy") – @promotion.EndDate.ToString("dd/MM/yyyy")</td><td>@GetConditionSummary(promotion)</td><td>@GetStatusText(promotion.Status)</td></tr>
+    }
+    </tbody></table><div class="admin-print-footer"><span>Dữ liệu theo bộ lọc hiện tại.</span><span>Người lập: ____________________</span></div>
+</div>
+
 @code {
     private List<Promotion> campaigns = [];
     private List<Product> products = [];
@@ -198,6 +213,12 @@
     private string promotionSearch = string.Empty;
     private string promotionStatusFilter = "all";
     private bool promotionCurrentOnly;
+
+    private async Task ExportPromotionsToExcel() =>
+        await JS.InvokeVoidAsync("bakeryExcel.exportToExcel", "promotions-table", $"Danh_Sach_Khuyen_Mai_Bakery_{DateTime.Now:yyyyMMdd_HHmmss}");
+
+    private async Task PrintPromotionsToPdf() =>
+        await JS.InvokeVoidAsync("bakeryPdf.printReportToPdf", "Danh_Sach_Khuyen_Mai_BakerySystem", "print-promotions");
 
     private IEnumerable<Promotion> FilteredCampaigns => campaigns.Where(p =>
         (promotionStatusFilter == "all" || p.Status == promotionStatusFilter) &&

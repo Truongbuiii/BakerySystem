@@ -32,6 +32,9 @@
                 <iconify-icon icon="solar:add-circle-linear" class="text-base"></iconify-icon>
                 <span>Thêm loại mới</span>
             </button>
+            <button class="bakery-btn bakery-btn-outline bakery-btn-sm" @onclick="ExportCategoriesToExcel">Xuất Excel</button>
+            <button class="bakery-btn bakery-btn-outline bakery-btn-sm" @onclick="() => isImportModalOpen = true">Nhập Excel</button>
+            <button class="bakery-btn bakery-btn-secondary bakery-btn-sm" @onclick="PrintCategoriesToPdf">In / Xuất PDF</button>
         </div>
     </div>
 
@@ -173,6 +176,79 @@
     }
 </div>
     }
+</div>
+
+@if (isImportModalOpen)
+{
+    <div class="bakery-modal-backdrop" @onclick="CloseImportModal">
+        <div class="bakery-modal-card max-w-lg" @onclick:stopPropagation="true">
+            <div class="bakery-modal-header">
+                <div>
+                    <h4 class="text-base font-bold text-slate-900 dark:text-white mb-0">Nhập loại sản phẩm</h4>
+                    <p class="text-xs text-slate-500 mb-0">Mỗi dòng trong CSV là một tên loại bánh.</p>
+                </div>
+                <button type="button" class="text-slate-400 text-lg" @onclick="CloseImportModal">×</button>
+            </div>
+            <div class="bakery-modal-body">
+                <div class="mb-3 flex items-center justify-between rounded-lg bg-slate-50 p-3 text-sm">
+                    <span>Định dạng: Tên loại sản phẩm</span>
+                    <button class="bakery-btn bakery-btn-secondary bakery-btn-sm" @onclick="DownloadCategoryTemplate">Tải file mẫu</button>
+                </div>
+                <InputFile OnChange="HandleCategoryImport" accept=".csv,.txt" class="bakery-input w-full" />
+                @if (!string.IsNullOrWhiteSpace(importMessage))
+                {
+                    <p class="mt-3 text-sm @(importSucceeded ? "text-emerald-600" : "text-rose-600")">@importMessage</p>
+                }
+            </div>
+            <div class="bakery-modal-footer">
+                <button class="bakery-btn bakery-btn-outline" @onclick="CloseImportModal">Đóng</button>
+            </div>
+        </div>
+    </div>
+}
+
+<table id="categories-export-table" class="export-only-table" aria-hidden="true">
+    <thead><tr><th>Mã loại</th><th>Tên loại sản phẩm</th><th>Số sản phẩm</th><th>Trạng thái</th></tr></thead>
+    <tbody>
+        @foreach (var category in FilteredCategories)
+        {
+            <tr>
+                <td>CAT-@category.CategoryID.ToString("D2")</td>
+                <td>@category.CategoryName</td>
+                <td>@category.ProductCount</td>
+                <td>@(category.IsActive ? "Hoạt động" : "Tạm ẩn")</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<div class="categories-print-report" aria-hidden="true">
+    <div class="categories-print-header">
+        <div>
+            <div class="categories-print-eyebrow">BAKERYSYSTEM</div>
+            <h1>Danh sách loại sản phẩm bánh</h1>
+            <p>Báo cáo danh mục · Ngày in: @DateTime.Now.ToString("dd/MM/yyyy HH:mm")</p>
+        </div>
+        <div class="categories-print-summary"><strong>@FilteredCategories.Count()</strong><span>loại bánh</span></div>
+    </div>
+    <table>
+        <thead><tr><th>Mã loại</th><th>Tên loại sản phẩm</th><th class="print-number">Số sản phẩm</th><th>Trạng thái</th></tr></thead>
+        <tbody>
+            @foreach (var category in FilteredCategories)
+            {
+                <tr>
+                    <td>CAT-@category.CategoryID.ToString("D2")</td>
+                    <td><strong>@category.CategoryName</strong></td>
+                    <td class="print-number">@category.ProductCount</td>
+                    <td>@(category.IsActive ? "Hoạt động" : "Tạm ẩn")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    <div class="categories-print-footer">
+        <span>Chỉ hiển thị dữ liệu theo bộ lọc hiện tại.</span>
+        <span>Người lập báo cáo: ____________________</span>
+    </div>
 </div>
 
 <!-- ================= MODAL 1: THÊM LOẠI SẢN PHẨM MỚI ================= -->
@@ -494,6 +570,54 @@
 
 @code {
     private bool isLoading = true;
+    private bool isImportModalOpen;
+    private string? importMessage;
+    private bool importSucceeded;
+    private async Task ExportCategoriesToExcel() => await JSRuntime.InvokeVoidAsync("bakeryExcel.exportToExcel", "categories-export-table", $"Danh_Sach_Loai_Banh_Bakery_{DateTime.Now:yyyyMMdd_HHmmss}");
+    private async Task PrintCategoriesToPdf() => await JSRuntime.InvokeVoidAsync("bakeryPdf.printReportToPdf", "Danh_Sach_Loai_Banh_BakerySystem", "print-categories");
+    private async Task DownloadCategoryTemplate() =>
+        await JSRuntime.InvokeVoidAsync("bakeryExcel.downloadTemplate", "Mau_Nhap_Loai_Banh_Bakery", "Tên loại sản phẩm\r\nBánh kem sinh nhật");
+
+    private void CloseImportModal()
+    {
+        isImportModalOpen = false;
+        importMessage = null;
+    }
+
+    private async Task HandleCategoryImport(InputFileChangeEventArgs args)
+    {
+        if (args.File is null)
+            return;
+
+        try
+        {
+            using var stream = args.File.OpenReadStream(maxAllowedSize: 2 * 1024 * 1024);
+            using var reader = new StreamReader(stream, System.Text.Encoding.UTF8);
+            var imported = 0;
+            var lineNumber = 0;
+            string? line;
+            while ((line = await reader.ReadLineAsync()) is not null)
+            {
+                lineNumber++;
+                var name = line.Trim();
+                if (lineNumber == 1 && name.Contains("Tên loại sản phẩm", StringComparison.OrdinalIgnoreCase))
+                    continue;
+                if (name.Length == 0)
+                    continue;
+                await ProductService.CreateCategoryAsync(name);
+                imported++;
+            }
+
+            await LoadCategoriesAsync();
+            importMessage = $"Đã nhập thành công {imported} loại sản phẩm.";
+            importSucceeded = true;
+        }
+        catch (Exception ex)
+        {
+            importMessage = "Lỗi nhập Excel/CSV: " + ex.Message;
+            importSucceeded = false;
+        }
+    }
     private bool isSubmitting = false;
 
     // Data lists & filters

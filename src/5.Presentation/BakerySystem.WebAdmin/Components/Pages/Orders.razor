@@ -28,6 +28,14 @@
                 <iconify-icon icon="solar:restart-linear" class="text-base"></iconify-icon>
                 <span>Tải lại</span>
             </button>
+            <button class="bakery-btn bakery-btn-outline bakery-btn-sm" @onclick="ExportOrdersToExcel">
+                <iconify-icon icon="solar:file-download-linear" class="text-base text-emerald-600"></iconify-icon>
+                <span>Xuất Excel</span>
+            </button>
+            <button class="bakery-btn bakery-btn-secondary bakery-btn-sm" @onclick="PrintOrdersToPdf">
+                <iconify-icon icon="solar:printer-linear" class="text-base"></iconify-icon>
+                <span>In / Xuất PDF</span>
+            </button>
             <a href="pos" class="bakery-btn bakery-btn-primary bakery-btn-sm shadow-sm inline-flex items-center gap-1.5">
                 <iconify-icon icon="solar:cart-large-minimalistic-bold" class="text-base"></iconify-icon>
                 <span>Tạo đơn tại quầy (POS)</span>
@@ -165,7 +173,7 @@
     <!-- 4. Bảng Dữ Liệu Đơn Hàng -->
     <div class="bakery-card overflow-hidden">
         <div class="bakery-table-responsive">
-            <table class="bakery-table">
+            <table id="orders-table" class="bakery-table">
                 <thead>
                     <tr>
                         <th style="width: 110px;">Mã Đơn</th>
@@ -670,6 +678,17 @@
     </div>
 }
 
+<div class="admin-print-report" data-report="orders">
+    <div class="admin-print-header"><div><div class="admin-print-eyebrow">BAKERYSYSTEM</div><h1>Danh sách đơn đặt hàng</h1><p>Báo cáo theo bộ lọc hiện tại · Ngày in: @DateTime.Now.ToString("dd/MM/yyyy HH:mm")</p></div><div class="admin-print-summary"><strong>@filteredOrders.Count</strong><span>đơn hàng</span></div></div>
+    <table><thead><tr><th>Mã đơn</th><th>Thời gian</th><th>Khách hàng</th><th class="print-number">Số món</th><th class="print-number">Tổng tiền</th><th>Thanh toán</th><th>Trạng thái</th></tr></thead><tbody>
+    @foreach (var order in filteredOrders)
+    {
+        <tr><td>#HD-@order.OrderID.ToString("D4")</td><td>@order.OrderDate.ToString("dd/MM/yyyy HH:mm")</td><td>@(order.ReceiverName ?? order.Customer?.FullName ?? "Khách tại quầy")@(string.IsNullOrWhiteSpace(order.ReceiverPhone) ? "" : $" · {order.ReceiverPhone}")</td><td class="print-number">@order.OrderDetails.Count</td><td class="print-number">@order.TotalAmount.ToString("N0") đ</td><td>@order.PaymentStatus</td><td>@order.Status</td></tr>
+    }
+    </tbody></table>
+    <div class="admin-print-footer"><span>Không bao gồm thao tác quản trị.</span><span>Người lập: ____________________</span></div>
+</div>
+
 @code {
     private List<Order> orders = new();
     private string selectedStatus = "All";
@@ -712,6 +731,17 @@
     private async Task LoadOrdersAsync()
     {
         orders = await OrderService.GetOrdersAsync();
+    }
+
+    private async Task ExportOrdersToExcel()
+    {
+        await JS.InvokeVoidAsync("bakeryExcel.exportToExcel", "orders-table",
+            $"Danh_Sach_Don_Hang_Bakery_{DateTime.Now:yyyyMMdd_HHmmss}");
+    }
+
+    private async Task PrintOrdersToPdf()
+    {
+        await JS.InvokeVoidAsync("bakeryPdf.printReportToPdf", "Danh_Sach_Don_Hang_BakerySystem", "print-orders");
     }
 
     private void FilterByStatus(string status)

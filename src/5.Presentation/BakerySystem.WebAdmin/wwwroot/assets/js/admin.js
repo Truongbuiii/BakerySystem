@@ -277,14 +277,26 @@ window.bakeryExcel = {
 };
 
 window.bakeryPdf = {
-    printReportToPdf: function (title) {
+    printReportToPdf: function (title, printClass) {
         const originalTitle = document.title;
+        const body = document.body;
         if (title) {
             document.title = title;
         }
-        window.print();
-        setTimeout(() => {
+        if (printClass) {
+            body.classList.add(printClass);
+        }
+
+        const cleanup = () => {
+            if (printClass) {
+                body.classList.remove(printClass);
+            }
             document.title = originalTitle;
-        }, 1000);
+            window.removeEventListener('afterprint', cleanup);
+        };
+
+        window.addEventListener('afterprint', cleanup, { once: true });
+        window.print();
+        setTimeout(cleanup, 5000);
     }
 };

@@ -2,6 +2,7 @@
 @rendermode InteractiveServer
 @attribute [Authorize(Roles = "Admin")]
 @inject InventoryService Inventory
+@inject IJSRuntime JS
 
 <PageTitle>Chi tiết nhà cung cấp | BakerySystem</PageTitle>
 
@@ -72,7 +73,11 @@ else
                 <h3 class="font-bold mb-1">Lịch sử phiếu nhập</h3>
                 <p class="text-sm text-slate-500 mb-0">@receipts.Count phiếu · Tổng giá trị @receipts.Sum(x => x.TotalAmount).ToString("N0") đ</p>
             </div>
-            <a class="bakery-btn bakery-btn-secondary" href="/import-receipts">Đến lập phiếu nhập</a>
+            <div class="flex flex-wrap gap-2">
+                <button class="bakery-btn bakery-btn-outline bakery-btn-sm" @onclick="ExportReceiptsToExcel">Xuất Excel</button>
+                <button class="bakery-btn bakery-btn-secondary bakery-btn-sm" @onclick="PrintReceiptsToPdf">In / Xuất PDF</button>
+                <a class="bakery-btn bakery-btn-secondary" href="/import-receipts">Đến lập phiếu nhập</a>
+            </div>
         </div>
 
         @if (receipts.Count > pageSize)
@@ -92,7 +97,7 @@ else
         }
         else
         {
-            <table class="w-full text-sm">
+            <table id="supplier-receipts-table" class="w-full text-sm">
                 <thead>
                     <tr>
                         <th class="text-left p-3">Mã phiếu</th>
@@ -129,7 +134,19 @@ else
     </div>
 }
 
+<div class="admin-print-report" data-report="supplier-details">
+    <div class="admin-print-header"><div><div class="admin-print-eyebrow">BAKERYSYSTEM</div><h1>Phiếu nhập của nhà cung cấp</h1><p>@supplier?.SupplierCode - @supplier?.SupplierName · Ngày in: @DateTime.Now.ToString("dd/MM/yyyy HH:mm")</p></div><div class="admin-print-summary"><strong>@receipts.Count</strong><span>phiếu nhập</span></div></div>
+    <table><thead><tr><th>Mã phiếu</th><th>Ngày nhập</th><th>Nhân viên</th><th>Sản phẩm</th><th>Ghi chú</th><th class="print-number">Tổng tiền</th></tr></thead><tbody>
+    @foreach (var receipt in receipts)
+    {
+        <tr><td>PN-@receipt.ReceiptID.ToString("D6")</td><td>@receipt.ReceiptDate.ToString("dd/MM/yyyy HH:mm")</td><td>@receipt.Employee?.FullName</td><td>@string.Join("; ", receipt.ImportReceiptDetails.Select(detail => $"{detail.Product?.ProductName} x{detail.Quantity}"))</td><td>@(string.IsNullOrWhiteSpace(receipt.Note) ? "—" : receipt.Note)</td><td class="print-number">@receipt.TotalAmount.ToString("N0") đ</td></tr>
+    }
+    </tbody></table><div class="admin-print-footer"><span>Dữ liệu nhà cung cấp đang xem.</span><span>Người lập: ____________________</span></div>
+</div>
+
 @code {
+    private async Task ExportReceiptsToExcel() => await JS.InvokeVoidAsync("bakeryExcel.exportToExcel", "supplier-receipts-table", $"Phieu_Nhap_Nha_Cung_Cap_{SupplierId}_{DateTime.Now:yyyyMMdd_HHmmss}");
+    private async Task PrintReceiptsToPdf() => await JS.InvokeVoidAsync("bakeryPdf.printReportToPdf", $"Phieu_Nhap_Nha_Cung_Cap_{SupplierId}", "print-supplier-details");
     [Parameter] public int SupplierId { get; set; }
 
     private Supplier? supplier;

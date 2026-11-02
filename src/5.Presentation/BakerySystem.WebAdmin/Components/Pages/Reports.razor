@@ -574,6 +574,16 @@
     </div>
 </div>
 
+<div class="admin-print-report" data-report="reports">
+    <div class="admin-print-header"><div><div class="admin-print-eyebrow">BAKERYSYSTEM</div><h1>Báo cáo kinh doanh</h1><p>@GetPeriodDisplayName() · Ngày in: @DateTime.Now.ToString("dd/MM/yyyy HH:mm")</p></div><div class="admin-print-summary"><strong>@timelineBreakdown.Count</strong><span>mốc thời gian</span></div></div>
+    <table><thead><tr><th>Mốc thời gian</th><th class="print-number">Số đơn</th><th class="print-number">Doanh thu</th><th class="print-number">Chi phí vốn</th><th class="print-number">Lợi nhuận gộp</th><th class="print-number">Tỷ suất lãi</th></tr></thead><tbody>
+    @foreach (var row in timelineBreakdown)
+    {
+        <tr><td><strong>@row.TimeLabel</strong></td><td class="print-number">@row.OrderCount</td><td class="print-number">@row.Revenue.ToString("N0") đ</td><td class="print-number">@row.Cost.ToString("N0") đ</td><td class="print-number">@row.GrossProfit.ToString("N0") đ</td><td class="print-number">@row.Margin.ToString("F1")%</td></tr>
+    }
+    </tbody></table><div class="admin-print-footer"><span>Báo cáo tổng hợp theo chu kỳ đã chọn.</span><span>Người lập: ____________________</span></div>
+</div>
+
 @code {
     // Mode bộ lọc: "quick" | "custom" | "month" | "quarter" | "year"
     private string filterType = "quick";
@@ -1046,7 +1056,7 @@
         try
         {
             var title = $"Bao_Cao_Doanh_Thu_BakerySystem_{DateTime.Now:yyyyMMdd}";
-            await JS.InvokeVoidAsync("bakeryPdf.printReportToPdf", title);
+            await JS.InvokeVoidAsync("bakeryPdf.printReportToPdf", title, "print-reports");
         }
         catch
         {
