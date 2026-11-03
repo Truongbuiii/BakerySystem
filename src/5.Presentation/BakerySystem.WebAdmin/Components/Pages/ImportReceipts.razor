@@ -121,7 +121,7 @@
                         @foreach (var product in productCatalog)
                         {
                             <label class="flex items-center gap-2 rounded-lg border border-slate-200 p-3">
-                                <input type="radio" name="receipt-supplier-product" checked="@assignedProductIds.Contains(product.ProductID)" @onchange="() => SelectAssignedProduct(product.ProductID)" disabled="@savingProductAssignment" />
+                                <input type="checkbox" checked="@assignedProductIds.Contains(product.ProductID)" @onchange="() => SelectAssignedProduct(product.ProductID)" disabled="@savingProductAssignment" />
                                 <span>@product.ProductName</span>
                             </label>
                         }
@@ -243,7 +243,11 @@
         assignmentMessage = "Đã tải lại danh sách bánh đang kinh doanh.";
     }
 
-    private void SelectAssignedProduct(int productId) => assignedProductIds = [productId];
+    private void SelectAssignedProduct(int productId)
+    {
+        if (!assignedProductIds.Add(productId))
+            assignedProductIds.Remove(productId);
+    }
 
     private async Task SaveProductAssignment()
     {

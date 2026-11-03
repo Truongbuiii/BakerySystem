@@ -323,8 +323,7 @@
                             var assignedToOtherSupplier = productSupplierIds.TryGetValue(product.ProductID, out var ownerId)
                                 && ownerId != supplierProductsTarget.SupplierID;
                             <label class="flex items-center gap-2 rounded-lg border border-slate-200 p-3 @(assignedToOtherSupplier ? "opacity-60" : "")">
-                                <input type="radio"
-                                       name="supplier-product"
+                                <input type="checkbox"
                                        checked="@selectedProductIds.Contains(product.ProductID)"
                                        disabled="@assignedToOtherSupplier"
                                        @onchange="() => SelectSupplierProduct(product.ProductID)" />
@@ -615,7 +614,12 @@
 
     private void SelectSupplierProduct(int productId)
     {
-        selectedProductIds = [productId];
+        if (!selectedProductIds.Add(productId))
+        {
+            selectedProductIds.Remove(productId);
+            return;
+        }
+
         if (!supplierProductPrices.ContainsKey(productId))
             supplierProductPrices[productId] = 0;
     }

@@ -25,7 +25,14 @@ public sealed class EmployeeService(IBakeryDbContext db)
         input.FullName = input.FullName.Trim();
         input.Username = input.Username.Trim();
         if (input.FullName.Length == 0 || input.Username.Length == 0) throw new InvalidOperationException("Vui lòng nhập họ tên và tên đăng nhập.");
+        if (input.Username.Length > 50) throw new InvalidOperationException("Tên đăng nhập không được vượt quá 50 ký tự.");
         if (input.Position is not ("Bếp bánh" or "Thu ngân" or "Quản lý")) throw new InvalidOperationException("Vị trí nhân viên không hợp lệ.");
+        input.Phone = input.Phone?.Trim();
+        if (!string.IsNullOrWhiteSpace(input.Phone) &&
+            (input.Phone.Length > 20 ||
+             input.Phone.Any(character => !char.IsAsciiDigit(character) && !"+()-. ".Contains(character)) ||
+             input.Phone.Count(char.IsAsciiDigit) is < 8 or > 15))
+            throw new InvalidOperationException("Số điện thoại cần có từ 8 đến 15 chữ số; chỉ dùng số và các ký tự + ( ) - hoặc khoảng trắng, tối đa 20 ký tự.");
         if (await db.Accounts.AnyAsync(a => a.Username == input.Username && (input.EmployeeID == 0 || a.Employee == null || a.Employee.EmployeeID != input.EmployeeID), ct)) throw new InvalidOperationException("Tên đăng nhập đã được sử dụng.");
 
         if (input.EmployeeID == 0)
@@ -38,6 +45,19 @@ public sealed class EmployeeService(IBakeryDbContext db)
         else
         {
             var employee = await db.Employees.Include(e => e.Account).FirstOrDefaultAsync(e => e.EmployeeID == input.EmployeeID, ct) ?? throw new InvalidOperationException("Không tìm thấy nhân viên.");
+            var wasActiveAdmin = employee.Account.Role == AccountRole.Admin && employee.Account.Status == AccountStatus.Active;
+            var willRemainActiveAdmin = input.Position == "Quản lý" && input.Status != AccountStatus.Inactive;
+            if (wasActiveAdmin && !willRemainActiveAdmin)
+            {
+                var anotherActiveAdminExists = await db.Accounts.AnyAsync(
+                    account => account.AccountID != employee.AccountID
+                        && account.Role == AccountRole.Admin
+                        && account.Status == AccountStatus.Active,
+                    ct);
+                if (!anotherActiveAdminExists)
+                    throw new InvalidOperationException("Không thể khóa hoặc hạ quyền Admin đang hoạt động cuối cùng. Hãy tạo/kích hoạt Admin khác trước.");
+            }
+
             employee.FullName = input.FullName;
             employee.Phone = input.Phone?.Trim();
             employee.Position = input.Position;
