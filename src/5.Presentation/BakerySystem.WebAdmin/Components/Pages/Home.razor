@@ -1,5 +1,5 @@
 @page "/"
-@attribute [Authorize]
+@attribute [Authorize(Roles = "Admin,Employee")]
 @inject IJSRuntime JS
 @inject IDashboardService DashboardService
 @inject AuthenticationStateProvider AuthStateProvider
@@ -64,7 +64,7 @@ else
                         <span class="bakery-kpi-label">Đơn đặt hàng hôm nay</span>
                         <div class="bakery-kpi-val">@stats.TodayOrdersCount đơn</div>
                         <div class="bakery-kpi-subtext">
-                            <span class="bakery-badge bakery-badge-primary text-[10px] py-0 px-1.5">@stats.BakingOrdersCount đang làm</span>
+                            <span class="bakery-badge bakery-badge-primary text-[10px] py-0 px-1.5">@stats.BakingOrdersCount đang chuẩn bị</span>
                             <span>@stats.ShippingOrdersCount đang giao</span>
                         </div>
                     </div>
@@ -203,7 +203,7 @@ else
                 <div class="bakery-card">
                     <div class="bakery-card-body">
                         <h5 class="text-base font-bold text-dark dark:text-white mb-0.5">Tiến Trình Hoạt Động</h5>
-                        <p class="text-xs text-bodytext mb-4">Cập nhật thời gian thực từ bếp bánh & quầy thu ngân</p>
+                        <p class="text-xs text-bodytext mb-4">Cập nhật thời gian thực từ quầy thu ngân & giao hàng</p>
 
                         <div class="space-y-4">
                             @if (stats.RecentActivities != null && stats.RecentActivities.Any())
@@ -303,7 +303,7 @@ else
         <Authorized>
             <!-- ========================================================
                  BẢNG ĐIỀU KHIỂN DÀNH CHO NHÂN VIÊN (CA TRỰC BÁN HÀNG)
-                 Chỉ hiển thị thông tin ca trực: Số đơn đang làm, đơn đang giao, lối tắt bán hàng POS, tra cứu menu
+                 Chỉ hiển thị thông tin ca trực: Số đơn đang chuẩn bị, đơn đang giao, lối tắt bán hàng POS, tra cứu menu
                  TUYỆT ĐỐI KHÔNG HIỂN THỊ DOANH THU HOẶC LỢI NHUẬN CỦA CHỦ TIỆM
                  ======================================================== -->
             <div class="bakery-page-header pb-3 border-b border-border dark:border-darkborder">
@@ -323,10 +323,10 @@ else
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 my-4">
                 <div class="bakery-card p-4 flex items-center gap-4">
                     <div class="w-12 h-12 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-blue-600 flex items-center justify-center shrink-0">
-                        <iconify-icon icon="solar:chef-hat-minimalistic-bold" class="text-2xl"></iconify-icon>
+                        <iconify-icon icon="solar:box-minimalistic-bold" class="text-2xl"></iconify-icon>
                     </div>
                     <div>
-                        <span class="text-xs text-slate-500 font-medium block">Bếp đang làm bánh</span>
+                        <span class="text-xs text-slate-500 font-medium block">Đang chuẩn bị hàng</span>
                         <div class="text-xl font-bold text-slate-900 dark:text-white">@stats.BakingOrdersCount đơn hàng</div>
                         <span class="text-[11px] text-blue-600">Cần theo dõi chuẩn bị</span>
                     </div>
@@ -382,7 +382,7 @@ else
                                 Quản lý Đơn đặt hàng
                             </h3>
                             <p class="text-xs text-slate-500 mb-0">
-                                Tiếp nhận đơn online từ khách, chuyển trạng thái duyệt đơn, làm bánh và xuất giao hàng.
+                                Tiếp nhận đơn online từ khách, chuyển trạng thái duyệt đơn, chuẩn bị hàng và xuất giao hàng.
                             </p>
                         </div>
                         <div class="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-all shrink-0">

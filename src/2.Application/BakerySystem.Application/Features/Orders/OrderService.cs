@@ -8,14 +8,25 @@ namespace BakerySystem.Application.Features.Orders;
 public sealed class OrderService(IBakeryDbContext db)
 {
     public Task<List<Order>> GetOrdersAsync(CancellationToken ct = default) =>
-        db.Orders
+        GetOrdersAsync(null, ct);
+
+    public Task<List<Order>> GetOrdersAsync(string[]? statuses, CancellationToken ct = default)
+    {
+        var query = db.Orders
             .Include(o => o.Customer)
             .Include(o => o.Employee)
             .Include(o => o.OrderDetails)
                 .ThenInclude(d => d.Product)
                     .ThenInclude(p => p.Category)
+            .AsQueryable();
+
+        if (statuses is { Length: > 0 })
+            query = query.Where(o => statuses.Contains(o.Status));
+
+        return query
             .OrderByDescending(o => o.OrderDate)
             .ToListAsync(ct);
+    }
 
     public Task<List<Order>> GetRecentCompletedAsync(int count = 3, CancellationToken ct = default) =>
         db.Orders
@@ -25,10 +36,20 @@ public sealed class OrderService(IBakeryDbContext db)
             .Take(count)
             .ToListAsync(ct);
 
-    public async Task<bool> ChangeStatusAsync(Order order, string newStatus, CancellationToken ct = default)
+    public async Task<bool> ChangeStatusAsync(Order order, string newStatus, string? actorRole = null, CancellationToken ct = default)
     {
         if (order.Status is OrderStatus.Cancelled or OrderStatus.Completed)
             return false;
+
+        if (actorRole == AccountRole.Shipper)
+        {
+            var shipperTransitionAllowed =
+                (order.Status == OrderStatus.Confirmed && newStatus == OrderStatus.Shipping) ||
+                (order.Status == OrderStatus.Shipping && newStatus == OrderStatus.Completed);
+
+            if (!shipperTransitionAllowed)
+                return false;
+        }
 
         if (order.Status == OrderStatus.Pending && newStatus == OrderStatus.Confirmed)
         {

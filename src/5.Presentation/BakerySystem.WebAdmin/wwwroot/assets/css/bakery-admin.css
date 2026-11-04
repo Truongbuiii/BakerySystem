@@ -5752,3 +5752,166 @@ html.dark .bakery-detail-kv-val {
 html.dark .bakery-order-selected-row {
     background-color: rgba(30, 64, 175, 0.25) !important;
 }
+
+.orders-mobile-list {
+    display: none;
+}
+
+@media (max-width: 767px) {
+    .bakery-table-responsive {
+        display: none !important;
+    }
+
+    .orders-mobile-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        padding: 0.75rem;
+    }
+
+    .order-mobile-card {
+        display: flex;
+        flex-direction: column;
+        gap: 0.55rem;
+        padding: 0.9rem;
+        background: #ffffff;
+        border: 1px solid var(--bakery-border);
+        border-radius: 14px;
+        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+    }
+
+    html.dark .order-mobile-card {
+        background: #0f172a;
+        border-color: #334155;
+        box-shadow: none;
+    }
+
+    .order-mobile-head,
+    .order-mobile-main {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 0.6rem;
+    }
+
+    .order-mobile-head {
+        align-items: center;
+    }
+
+    .order-mobile-customer {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: #0f172a;
+        line-height: 1.3;
+    }
+
+    html.dark .order-mobile-customer {
+        color: #f8fafc;
+    }
+
+    .order-mobile-amount {
+        font-size: 0.95rem;
+        font-weight: 800;
+        color: #1d4ed8;
+        white-space: nowrap;
+    }
+
+    html.dark .order-mobile-amount {
+        color: #93c5fd;
+    }
+
+    .order-mobile-phone {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        width: fit-content;
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #2563eb;
+        text-decoration: none;
+    }
+
+    .order-mobile-phone.is-muted {
+        color: #94a3b8;
+        font-weight: 500;
+    }
+
+    .order-mobile-address {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.35rem;
+        font-size: 0.8rem;
+        line-height: 1.4;
+        color: #475569;
+    }
+
+    html.dark .order-mobile-address {
+        color: #cbd5e1;
+    }
+
+    .order-mobile-address iconify-icon {
+        flex-shrink: 0;
+        margin-top: 2px;
+        color: #64748b;
+    }
+
+    .order-mobile-meta {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.4rem 0.75rem;
+        padding-top: 0.5rem;
+        border-top: 1px dashed #e2e8f0;
+        font-size: 0.75rem;
+        color: #64748b;
+    }
+
+    html.dark .order-mobile-meta {
+        border-top-color: #334155;
+        color: #94a3b8;
+    }
+
+    .order-mobile-meta > span {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+
+    .order-mobile-payment-method {
+        font-weight: 600;
+        color: #475569;
+    }
+
+    html.dark .order-mobile-payment-method {
+        color: #cbd5e1;
+    }
+
+    .order-mobile-actions {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 0.4rem;
+        padding-top: 0.15rem;
+    }
+
+    .order-mobile-actions .bakery-order-btn-action {
+        flex: 1 1 auto;
+    }
+
+    .order-mobile-empty {
+        padding: 2rem 1rem;
+        text-align: center;
+        color: #94a3b8;
+    }
+
+    .order-mobile-empty iconify-icon {
+        font-size: 2.5rem;
+        color: #cbd5e1;
+    }
+
+    .order-mobile-empty p {
+        margin: 0.5rem 0 0;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+}

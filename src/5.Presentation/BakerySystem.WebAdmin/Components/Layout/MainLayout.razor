@@ -50,12 +50,13 @@
                 <AuthorizeView>
                     <Authorized>
                         @{
-                            var empName = context.User.FindFirst("FullName")?.Value ?? context.User.Identity?.Name ?? "Thu ngân";
+                            var empName = context.User.FindFirst("FullName")?.Value ?? context.User.Identity?.Name ?? "Nhân viên";
+                            var empRoleLabel = context.User.IsInRole("Shipper") ? "Shipper" : "Thu ngân";
                         }
                         <div class="hidden md:flex items-center gap-2 mr-1">
                             <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 text-xs font-semibold border border-blue-200 dark:border-blue-800 shadow-xs">
                                 <iconify-icon icon="solar:user-circle-bold" class="text-sm text-blue-600 dark:text-blue-400"></iconify-icon>
-                                <span>Thu ngân: <strong>@empName</strong></span>
+                                <span>@empRoleLabel: <strong>@empName</strong></span>
                             </span>
                             <span class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-mono border border-slate-200 dark:border-slate-700">
                                 <iconify-icon icon="solar:clock-circle-linear" class="text-xs"></iconify-icon>
@@ -121,7 +122,13 @@
                     <Authorized>
                         @{
                             var displayName = context.User.FindFirst("FullName")?.Value ?? context.User.Identity?.Name ?? "Quản trị viên";
-                            var userRole = context.User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value == "Admin" ? "Quản trị viên" : "Nhân viên";
+                            var roleValue = context.User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+                            var userRole = roleValue switch
+                            {
+                                "Admin" => "Quản trị viên",
+                                "Shipper" => "Nhân viên giao hàng",
+                                _ => "Nhân viên"
+                            };
                             var username = context.User.Identity?.Name ?? "admin";
                             var initials = displayName.Split(' ', StringSplitOptions.RemoveEmptyEntries) is { Length: > 1 } words 
                                 ? $"{words[0][0]}{words[^1][0]}".ToUpper() 

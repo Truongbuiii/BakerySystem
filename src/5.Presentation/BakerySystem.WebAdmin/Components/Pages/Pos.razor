@@ -1,5 +1,6 @@
 @page "/pos"
 @rendermode InteractiveServer
+@attribute [Authorize(Roles = "Admin,Employee")]
 @using BakerySystem.Application.Features.Pos
 @inject BakerySystem.Application.Features.Pos.PosService PosService
 @inject AuthenticationStateProvider AuthStateProvider

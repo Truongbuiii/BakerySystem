@@ -1,10 +1,12 @@
 @page "/orders"
 @rendermode InteractiveServer
+@attribute [Authorize(Roles = "Admin,Employee,Shipper")]
 @inject BakerySystem.Application.Features.Orders.OrderService OrderService
 @inject IJSRuntime JS
 @inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthStateProvider
 
-<PageTitle>Quản Lý Đơn Đặt Hàng | BakerySystem</PageTitle>
+<PageTitle>@(isShipper ? "Đơn Giao Hàng" : "Quản Lý Đơn Đặt Hàng") | BakerySystem</PageTitle>
 
 <div class="space-y-4">
     <!-- 1. Header Trang -->
@@ -18,8 +20,8 @@
                 <span class="text-slate-800 dark:text-slate-200 font-semibold">Đơn đặt hàng</span>
             </div>
             <h2 class="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2 mb-0">
-                <iconify-icon icon="solar:bill-list-bold" class="text-primary"></iconify-icon>
-                Quản Lý Đơn Đặt Hàng & Tiến Trình
+                <iconify-icon icon="@(isShipper ? "solar:delivery-bold" : "solar:bill-list-bold")" class="text-primary"></iconify-icon>
+                @(isShipper ? "Đơn Giao Hàng" : "Quản Lý Đơn Đặt Hàng & Tiến Trình")
             </h2>
         </div>
 
@@ -28,71 +30,103 @@
                 <iconify-icon icon="solar:restart-linear" class="text-base"></iconify-icon>
                 <span>Tải lại</span>
             </button>
-            <button class="bakery-btn bakery-btn-outline bakery-btn-sm" @onclick="ExportOrdersToExcel">
-                <iconify-icon icon="solar:file-download-linear" class="text-base text-emerald-600"></iconify-icon>
-                <span>Xuất Excel</span>
-            </button>
-            <button class="bakery-btn bakery-btn-secondary bakery-btn-sm" @onclick="PrintOrdersToPdf">
-                <iconify-icon icon="solar:printer-linear" class="text-base"></iconify-icon>
-                <span>In / Xuất PDF</span>
-            </button>
-            <a href="pos" class="bakery-btn bakery-btn-primary bakery-btn-sm shadow-sm inline-flex items-center gap-1.5">
-                <iconify-icon icon="solar:cart-large-minimalistic-bold" class="text-base"></iconify-icon>
-                <span>Tạo đơn tại quầy (POS)</span>
-            </a>
+            @if (!isShipper)
+            {
+                <button class="bakery-btn bakery-btn-outline bakery-btn-sm" @onclick="ExportOrdersToExcel">
+                    <iconify-icon icon="solar:file-download-linear" class="text-base text-emerald-600"></iconify-icon>
+                    <span>Xuất Excel</span>
+                </button>
+                <button class="bakery-btn bakery-btn-secondary bakery-btn-sm" @onclick="PrintOrdersToPdf">
+                    <iconify-icon icon="solar:printer-linear" class="text-base"></iconify-icon>
+                    <span>In / Xuất PDF</span>
+                </button>
+                <a href="pos" class="bakery-btn bakery-btn-primary bakery-btn-sm shadow-sm inline-flex items-center gap-1.5">
+                    <iconify-icon icon="solar:cart-large-minimalistic-bold" class="text-base"></iconify-icon>
+                    <span>Tạo đơn tại quầy (POS)</span>
+                </a>
+            }
         </div>
     </div>
 
     <!-- 2. 4 Thẻ KPI Chuẩn Dashboard -->
-    <div class="bakery-kpi-grid">
-        <!-- KPI 1: Chờ duyệt -->
-        <div class="bakery-kpi-card" @onclick='() => FilterByStatus(OrderStatus.Pending)' style="cursor: pointer;" title="Xem các đơn chờ duyệt">
-            <div class="bakery-kpi-content">
-                <span class="bakery-kpi-label">Chờ duyệt làm bánh</span>
-                <div class="bakery-kpi-val text-amber-600">@orders.Count(o => o.Status == OrderStatus.Pending) đơn</div>
-                <div class="bakery-kpi-subtext">Cần xác nhận từ quầy</div>
+    @if (isShipper)
+    {
+        <div class="bakery-kpi-grid">
+            <div class="bakery-kpi-card" @onclick='() => FilterByStatus(OrderStatus.Confirmed)' style="cursor: pointer;" title="Xem các đơn chờ nhận giao">
+                <div class="bakery-kpi-content">
+                    <span class="bakery-kpi-label">Chờ nhận giao</span>
+                    <div class="bakery-kpi-val text-blue-600">@orders.Count(o => o.Status == OrderStatus.Confirmed) đơn</div>
+                    <div class="bakery-kpi-subtext">Quầy đã duyệt, chờ shipper nhận</div>
+                </div>
+                <div class="bakery-kpi-iconbox bakery-kpi-blue">
+                    <iconify-icon icon="solar:box-minimalistic-bold"></iconify-icon>
+                </div>
             </div>
-            <div class="bakery-kpi-iconbox bakery-kpi-amber">
-                <iconify-icon icon="solar:clock-circle-bold"></iconify-icon>
-            </div>
-        </div>
 
-        <!-- KPI 2: Đang làm bánh -->
-        <div class="bakery-kpi-card" @onclick='() => FilterByStatus(OrderStatus.InProgress)' style="cursor: pointer;" title="Xem các đơn đang làm">
-            <div class="bakery-kpi-content">
-                <span class="bakery-kpi-label">Bếp đang làm bánh</span>
-                <div class="bakery-kpi-val text-blue-600">@orders.Count(o => o.Status == OrderStatus.InProgress) đơn</div>
-                <div class="bakery-kpi-subtext">Đã được nhân viên duyệt</div>
-            </div>
-            <div class="bakery-kpi-iconbox bakery-kpi-blue">
-                <iconify-icon icon="solar:chef-hat-minimalistic-bold"></iconify-icon>
+            <div class="bakery-kpi-card" @onclick='() => FilterByStatus(OrderStatus.Shipping)' style="cursor: pointer;" title="Xem các đơn đang giao">
+                <div class="bakery-kpi-content">
+                    <span class="bakery-kpi-label">Đang giao cho khách</span>
+                    <div class="bakery-kpi-val text-purple-600">@orders.Count(o => o.Status == OrderStatus.Shipping) đơn</div>
+                    <div class="bakery-kpi-subtext">Bấm giao xong khi khách đã nhận</div>
+                </div>
+                <div class="bakery-kpi-iconbox bakery-kpi-purple">
+                    <iconify-icon icon="solar:delivery-bold"></iconify-icon>
+                </div>
             </div>
         </div>
+    }
+    else
+    {
+        <div class="bakery-kpi-grid">
+            <!-- KPI 1: Chờ duyệt -->
+            <div class="bakery-kpi-card" @onclick='() => FilterByStatus(OrderStatus.Pending)' style="cursor: pointer;" title="Xem các đơn chờ duyệt">
+                <div class="bakery-kpi-content">
+                    <span class="bakery-kpi-label">Chờ duyệt đơn</span>
+                    <div class="bakery-kpi-val text-amber-600">@orders.Count(o => o.Status == OrderStatus.Pending) đơn</div>
+                    <div class="bakery-kpi-subtext">Cần xác nhận từ quầy</div>
+                </div>
+                <div class="bakery-kpi-iconbox bakery-kpi-amber">
+                    <iconify-icon icon="solar:clock-circle-bold"></iconify-icon>
+                </div>
+            </div>
 
-        <!-- KPI 3: Đang giao -->
-        <div class="bakery-kpi-card" @onclick='() => FilterByStatus(OrderStatus.Shipping)' style="cursor: pointer;" title="Xem các đơn đang giao">
-            <div class="bakery-kpi-content">
-                <span class="bakery-kpi-label">Đang giao cho khách</span>
-                <div class="bakery-kpi-val text-purple-600">@orders.Count(o => o.Status == OrderStatus.Shipping) đơn</div>
-                <div class="bakery-kpi-subtext">Shipper đang vận chuyển</div>
+            <!-- KPI 2: Đang chuẩn bị hàng -->
+            <div class="bakery-kpi-card" @onclick='() => FilterByStatus(OrderStatus.InProgress)' style="cursor: pointer;" title="Xem các đơn đang chuẩn bị">
+                <div class="bakery-kpi-content">
+                    <span class="bakery-kpi-label">Đang chuẩn bị hàng</span>
+                    <div class="bakery-kpi-val text-blue-600">@orders.Count(o => o.Status == OrderStatus.InProgress) đơn</div>
+                    <div class="bakery-kpi-subtext">Đã được nhân viên duyệt</div>
+                </div>
+                <div class="bakery-kpi-iconbox bakery-kpi-blue">
+                    <iconify-icon icon="solar:box-minimalistic-bold"></iconify-icon>
+                </div>
             </div>
-            <div class="bakery-kpi-iconbox bakery-kpi-purple">
-                <iconify-icon icon="solar:delivery-bold"></iconify-icon>
-            </div>
-        </div>
 
-        <!-- KPI 4: Hoàn tất -->
-        <div class="bakery-kpi-card" @onclick='() => FilterByStatus(OrderStatus.Completed)' style="cursor: pointer;" title="Xem các đơn hoàn tất">
-            <div class="bakery-kpi-content">
-                <span class="bakery-kpi-label">Đã hoàn tất</span>
-                <div class="bakery-kpi-val text-emerald-600">@orders.Count(o => o.Status == OrderStatus.Completed) đơn</div>
-                <div class="bakery-kpi-subtext">Đã thu tiền & giao xong</div>
+            <!-- KPI 3: Đang giao -->
+            <div class="bakery-kpi-card" @onclick='() => FilterByStatus(OrderStatus.Shipping)' style="cursor: pointer;" title="Xem các đơn đang giao">
+                <div class="bakery-kpi-content">
+                    <span class="bakery-kpi-label">Đang giao cho khách</span>
+                    <div class="bakery-kpi-val text-purple-600">@orders.Count(o => o.Status == OrderStatus.Shipping) đơn</div>
+                    <div class="bakery-kpi-subtext">Shipper đang vận chuyển</div>
+                </div>
+                <div class="bakery-kpi-iconbox bakery-kpi-purple">
+                    <iconify-icon icon="solar:delivery-bold"></iconify-icon>
+                </div>
             </div>
-            <div class="bakery-kpi-iconbox bakery-kpi-green">
-                <iconify-icon icon="solar:check-circle-bold"></iconify-icon>
+
+            <!-- KPI 4: Hoàn tất -->
+            <div class="bakery-kpi-card" @onclick='() => FilterByStatus(OrderStatus.Completed)' style="cursor: pointer;" title="Xem các đơn hoàn tất">
+                <div class="bakery-kpi-content">
+                    <span class="bakery-kpi-label">Đã hoàn tất</span>
+                    <div class="bakery-kpi-val text-emerald-600">@orders.Count(o => o.Status == OrderStatus.Completed) đơn</div>
+                    <div class="bakery-kpi-subtext">Đã thu tiền & giao xong</div>
+                </div>
+                <div class="bakery-kpi-iconbox bakery-kpi-green">
+                    <iconify-icon icon="solar:check-circle-bold"></iconify-icon>
+                </div>
             </div>
         </div>
-    </div>
+    }
 
     <!-- 3. Thanh Lọc Trạng Thái & Tìm Kiếm -->
     <div class="bakery-card p-3">
@@ -106,27 +140,33 @@
                     <span>Tất cả</span>
                     <span class="bakery-order-tab-badge">@orders.Count</span>
                 </button>
-                <button type="button" 
-                        class="bakery-order-tab @(selectedStatus == OrderStatus.Pending ? "active" : "")"
-                        @onclick='() => FilterByStatus(OrderStatus.Pending)'>
-                    <iconify-icon icon="solar:clock-circle-linear" class="text-amber-500"></iconify-icon>
-                    <span>Chờ duyệt</span>
-                    <span class="bakery-order-tab-badge">@orders.Count(o => o.Status == OrderStatus.Pending)</span>
-                </button>
+                @if (!isShipper)
+                {
+                    <button type="button" 
+                            class="bakery-order-tab @(selectedStatus == OrderStatus.Pending ? "active" : "")"
+                            @onclick='() => FilterByStatus(OrderStatus.Pending)'>
+                        <iconify-icon icon="solar:clock-circle-linear" class="text-amber-500"></iconify-icon>
+                        <span>Chờ duyệt</span>
+                        <span class="bakery-order-tab-badge">@orders.Count(o => o.Status == OrderStatus.Pending)</span>
+                    </button>
+                }
                 <button type="button" 
                         class="bakery-order-tab @(selectedStatus == OrderStatus.Confirmed ? "active" : "")"
                         @onclick='() => FilterByStatus(OrderStatus.Confirmed)'>
                     <iconify-icon icon="solar:check-circle-linear" class="text-blue-500"></iconify-icon>
-                    <span>Đã duyệt</span>
+                    <span>@(isShipper ? "Chờ nhận giao" : "Đã duyệt")</span>
                     <span class="bakery-order-tab-badge">@orders.Count(o => o.Status == OrderStatus.Confirmed)</span>
                 </button>
-                <button type="button" 
-                        class="bakery-order-tab @(selectedStatus == OrderStatus.InProgress ? "active" : "")"
-                        @onclick='() => FilterByStatus(OrderStatus.InProgress)'>
-                    <iconify-icon icon="solar:chef-hat-minimalistic-linear" class="text-orange-500"></iconify-icon>
-                    <span>Đang làm</span>
-                    <span class="bakery-order-tab-badge">@orders.Count(o => o.Status == OrderStatus.InProgress)</span>
-                </button>
+                @if (!isShipper)
+                {
+                    <button type="button" 
+                            class="bakery-order-tab @(selectedStatus == OrderStatus.InProgress ? "active" : "")"
+                            @onclick='() => FilterByStatus(OrderStatus.InProgress)'>
+                        <iconify-icon icon="solar:box-minimalistic-linear" class="text-orange-500"></iconify-icon>
+                        <span>Đang chuẩn bị</span>
+                        <span class="bakery-order-tab-badge">@orders.Count(o => o.Status == OrderStatus.InProgress)</span>
+                    </button>
+                }
                 <button type="button" 
                         class="bakery-order-tab @(selectedStatus == OrderStatus.Shipping ? "active" : "")"
                         @onclick='() => FilterByStatus(OrderStatus.Shipping)'>
@@ -134,20 +174,23 @@
                     <span>Đang giao</span>
                     <span class="bakery-order-tab-badge">@orders.Count(o => o.Status == OrderStatus.Shipping)</span>
                 </button>
-                <button type="button" 
-                        class="bakery-order-tab @(selectedStatus == OrderStatus.Completed ? "active" : "")"
-                        @onclick='() => FilterByStatus(OrderStatus.Completed)'>
-                    <iconify-icon icon="solar:check-circle-linear" class="text-emerald-500"></iconify-icon>
-                    <span>Hoàn tất</span>
-                    <span class="bakery-order-tab-badge">@orders.Count(o => o.Status == OrderStatus.Completed)</span>
-                </button>
-                <button type="button" 
-                        class="bakery-order-tab @(selectedStatus == OrderStatus.Cancelled ? "active" : "")"
-                        @onclick='() => FilterByStatus(OrderStatus.Cancelled)'>
-                    <iconify-icon icon="solar:close-circle-linear" class="text-red-500"></iconify-icon>
-                    <span>Đã hủy</span>
-                    <span class="bakery-order-tab-badge">@orders.Count(o => o.Status == OrderStatus.Cancelled)</span>
-                </button>
+                @if (!isShipper)
+                {
+                    <button type="button" 
+                            class="bakery-order-tab @(selectedStatus == OrderStatus.Completed ? "active" : "")"
+                            @onclick='() => FilterByStatus(OrderStatus.Completed)'>
+                        <iconify-icon icon="solar:check-circle-linear" class="text-emerald-500"></iconify-icon>
+                        <span>Hoàn tất</span>
+                        <span class="bakery-order-tab-badge">@orders.Count(o => o.Status == OrderStatus.Completed)</span>
+                    </button>
+                    <button type="button" 
+                            class="bakery-order-tab @(selectedStatus == OrderStatus.Cancelled ? "active" : "")"
+                            @onclick='() => FilterByStatus(OrderStatus.Cancelled)'>
+                        <iconify-icon icon="solar:close-circle-linear" class="text-red-500"></iconify-icon>
+                        <span>Đã hủy</span>
+                        <span class="bakery-order-tab-badge">@orders.Count(o => o.Status == OrderStatus.Cancelled)</span>
+                    </button>
+                }
             </div>
 
             <!-- Ô tìm kiếm đơn hàng chuẩn Wrapper (không đè icon) -->
@@ -291,7 +334,7 @@
                                             <span class="bakery-badge bakery-badge-primary text-xs font-semibold">Đã duyệt</span>
                                             break;
                                         case OrderStatus.InProgress:
-                                            <span class="bakery-badge bakery-badge-warning text-xs font-semibold">Đang làm bánh</span>
+                                            <span class="bakery-badge bakery-badge-warning text-xs font-semibold">Đang chuẩn bị</span>
                                             break;
                                         case OrderStatus.Shipping:
                                             <span class="bakery-badge bakery-badge-secondary text-xs font-semibold" style="background-color: #f3e8ff; color: #7e22ce;">Đang giao</span>
@@ -311,11 +354,11 @@
                                 <!-- Thao tác Xử lý đơn hàng -->
                                 <td class="text-right">
                                     <div class="bakery-order-actions-wrap">
-                                        @if (order.Status == OrderStatus.Pending)
+                                        @if (order.Status == OrderStatus.Pending && !isShipper)
                                         {
                                             <button type="button" 
                                                     class="bakery-order-btn-action bakery-order-btn-blue"
-                                                    title="Duyệt đơn và chuyển sang bếp làm bánh"
+                                                    title="Duyệt đơn và chuyển sang chuẩn bị hàng"
                                                     @onclick='() => ChangeOrderStatus(order, OrderStatus.Confirmed)'>
                                                 <iconify-icon icon="solar:check-circle-linear"></iconify-icon>
                                                 <span>Duyệt</span>
@@ -330,25 +373,38 @@
                                         }
                                         else if (order.Status == OrderStatus.Confirmed)
                                         {
-                                            <button type="button" 
-                                                    class="bakery-order-btn-action bakery-order-btn-blue"
-                                                    title="Bắt đầu làm bánh"
-                                                    @onclick='() => ChangeOrderStatus(order, OrderStatus.InProgress)'>
-                                                <iconify-icon icon="solar:chef-hat-minimalistic-linear"></iconify-icon>
-                                                <span>Bắt đầu làm</span>
-                                            </button>
-                                            <button type="button" 
-                                                    class="bakery-order-btn-action bakery-order-btn-cancel"
-                                                    title="Hủy đơn hàng này"
-                                                    @onclick="() => CancelOrder(order)">
-                                                <span>Hủy</span>
-                                            </button>
+                                            @if (isShipper)
+                                            {
+                                                <button type="button" 
+                                                        class="bakery-order-btn-action bakery-order-btn-purple"
+                                                        title="Nhận đơn và bắt đầu giao cho khách"
+                                                        @onclick='() => ChangeOrderStatus(order, OrderStatus.Shipping)'>
+                                                    <iconify-icon icon="solar:delivery-linear"></iconify-icon>
+                                                    <span>Nhận giao</span>
+                                                </button>
+                                            }
+                                            else
+                                            {
+                                                <button type="button" 
+                                                        class="bakery-order-btn-action bakery-order-btn-blue"
+                                                        title="Bắt đầu chuẩn bị đơn"
+                                                        @onclick='() => ChangeOrderStatus(order, OrderStatus.InProgress)'>
+                                                    <iconify-icon icon="solar:box-minimalistic-linear"></iconify-icon>
+                                                    <span>Chuẩn bị</span>
+                                                </button>
+                                                <button type="button" 
+                                                        class="bakery-order-btn-action bakery-order-btn-cancel"
+                                                        title="Hủy đơn hàng này"
+                                                        @onclick="() => CancelOrder(order)">
+                                                    <span>Hủy</span>
+                                                </button>
+                                            }
                                         }
-                                        else if (order.Status == OrderStatus.InProgress)
+                                        else if (order.Status == OrderStatus.InProgress && !isShipper)
                                         {
                                             <button type="button" 
                                                     class="bakery-order-btn-action bakery-order-btn-purple"
-                                                    title="Chuyển đơn bánh sang trạng thái đang giao"
+                                                    title="Chuyển đơn sang trạng thái đang giao"
                                                     @onclick='() => ChangeOrderStatus(order, OrderStatus.Shipping)'>
                                                 <iconify-icon icon="solar:delivery-linear"></iconify-icon>
                                                 <span>Giao</span>
@@ -365,7 +421,7 @@
                                                     title="Xác nhận khách đã nhận bánh thành công"
                                                     @onclick='() => ChangeOrderStatus(order, OrderStatus.Completed)'>
                                                 <iconify-icon icon="solar:check-circle-bold"></iconify-icon>
-                                                <span>Hoàn tất</span>
+                                                <span>@(isShipper ? "Giao xong" : "Hoàn tất")</span>
                                             </button>
                                         }
 
@@ -384,6 +440,134 @@
                     }
                 </tbody>
             </table>
+        </div>
+
+        <div class="orders-mobile-list">
+            @if (filteredOrders.Count == 0)
+            {
+                <div class="order-mobile-empty">
+                    <iconify-icon icon="solar:box-minimalistic-linear"></iconify-icon>
+                    <p>Không có đơn hàng nào trong danh mục này</p>
+                </div>
+            }
+            else
+            {
+                @foreach (var order in filteredOrders)
+                {
+                    var receiverName = order.ReceiverName ?? order.Customer?.FullName ?? "Khách tại quầy";
+                    var receiverPhone = !string.IsNullOrWhiteSpace(order.ReceiverPhone)
+                        ? order.ReceiverPhone
+                        : (order.Customer != null && order.Customer.FullName != "Khách vãng lai" ? order.Customer.Phone : null);
+
+                    <article class="order-mobile-card">
+                        <div class="order-mobile-head">
+                            <span class="bakery-code-badge">#HD-@order.OrderID.ToString("D4")</span>
+                            <span class="bakery-badge @GetStatusBadgeClass(order.Status) text-[10px]">@GetStatusLabel(order.Status)</span>
+                        </div>
+
+                        <div class="order-mobile-main">
+                            <div class="order-mobile-customer">@receiverName</div>
+                            <div class="order-mobile-amount">@($"{order.FinalAmount:N0} đ")</div>
+                        </div>
+
+                        @if (!string.IsNullOrWhiteSpace(receiverPhone))
+                        {
+                            <a class="order-mobile-phone" href="tel:@receiverPhone">
+                                <iconify-icon icon="solar:phone-bold"></iconify-icon>
+                                <span>@receiverPhone</span>
+                            </a>
+                        }
+                        else
+                        {
+                            <div class="order-mobile-phone is-muted">
+                                <iconify-icon icon="solar:user-linear"></iconify-icon>
+                                <span>Không có SĐT</span>
+                            </div>
+                        }
+
+                        @if (!string.IsNullOrWhiteSpace(order.ShippingAddress))
+                        {
+                            <div class="order-mobile-address">
+                                <iconify-icon icon="solar:map-point-linear"></iconify-icon>
+                                <span>@order.ShippingAddress</span>
+                            </div>
+                        }
+
+                        <div class="order-mobile-meta">
+                            <span><iconify-icon icon="solar:calendar-linear"></iconify-icon> @order.OrderDate.ToString("dd/MM HH:mm")</span>
+                            <span><iconify-icon icon="solar:bag-5-linear"></iconify-icon> @(order.OrderDetails?.Sum(d => d.Quantity) ?? 0) món</span>
+                            <span class="bakery-badge @(order.PaymentStatus == "Paid" ? "bakery-badge-success" : "bakery-badge-warning") text-[10px]">
+                                @(order.PaymentStatus == "Paid" ? "Đã trả" : "Chưa trả")
+                            </span>
+                            <span class="order-mobile-payment-method">@order.PaymentMethod</span>
+                        </div>
+
+                        <div class="order-mobile-actions">
+                            @if (order.Status == OrderStatus.Pending && !isShipper)
+                            {
+                                <button type="button" class="bakery-order-btn-action bakery-order-btn-blue"
+                                        @onclick='() => ChangeOrderStatus(order, OrderStatus.Confirmed)'>
+                                    <iconify-icon icon="solar:check-circle-linear"></iconify-icon>
+                                    <span>Duyệt</span>
+                                </button>
+                                <button type="button" class="bakery-order-btn-action bakery-order-btn-cancel"
+                                        @onclick="() => CancelOrder(order)">
+                                    <span>Hủy</span>
+                                </button>
+                            }
+                            else if (order.Status == OrderStatus.Confirmed)
+                            {
+                                @if (isShipper)
+                                {
+                                    <button type="button" class="bakery-order-btn-action bakery-order-btn-purple"
+                                            @onclick='() => ChangeOrderStatus(order, OrderStatus.Shipping)'>
+                                        <iconify-icon icon="solar:delivery-linear"></iconify-icon>
+                                        <span>Nhận giao</span>
+                                    </button>
+                                }
+                                else
+                                {
+                                    <button type="button" class="bakery-order-btn-action bakery-order-btn-blue"
+                                            @onclick='() => ChangeOrderStatus(order, OrderStatus.InProgress)'>
+                                        <iconify-icon icon="solar:box-minimalistic-linear"></iconify-icon>
+                                        <span>Chuẩn bị</span>
+                                    </button>
+                                    <button type="button" class="bakery-order-btn-action bakery-order-btn-cancel"
+                                            @onclick="() => CancelOrder(order)">
+                                        <span>Hủy</span>
+                                    </button>
+                                }
+                            }
+                            else if (order.Status == OrderStatus.InProgress && !isShipper)
+                            {
+                                <button type="button" class="bakery-order-btn-action bakery-order-btn-purple"
+                                        @onclick='() => ChangeOrderStatus(order, OrderStatus.Shipping)'>
+                                    <iconify-icon icon="solar:delivery-linear"></iconify-icon>
+                                    <span>Giao</span>
+                                </button>
+                                <button type="button" class="bakery-order-btn-action bakery-order-btn-cancel"
+                                        @onclick="() => CancelOrder(order)">
+                                    <span>Hủy</span>
+                                </button>
+                            }
+                            else if (order.Status == OrderStatus.Shipping)
+                            {
+                                <button type="button" class="bakery-order-btn-action bakery-order-btn-green"
+                                        @onclick='() => ChangeOrderStatus(order, OrderStatus.Completed)'>
+                                    <iconify-icon icon="solar:check-circle-bold"></iconify-icon>
+                                    <span>@(isShipper ? "Giao xong" : "Hoàn tất")</span>
+                                </button>
+                            }
+
+                            <button type="button" class="bakery-order-btn-action bakery-order-btn-view"
+                                    @onclick="() => OpenDetailModal(order)">
+                                <iconify-icon icon="solar:eye-linear"></iconify-icon>
+                                <span>Xem bill</span>
+                            </button>
+                        </div>
+                    </article>
+                }
+            }
         </div>
     </div>
 </div>
@@ -408,13 +592,13 @@
                             @switch (selectedOrder.Status)
                             {
                                 case OrderStatus.Pending:
-                                    <span class="bakery-badge bakery-badge-warning text-xs font-semibold">Chờ duyệt làm</span>
+                                    <span class="bakery-badge bakery-badge-warning text-xs font-semibold">Chờ duyệt</span>
                                     break;
                                 case OrderStatus.Confirmed:
                                     <span class="bakery-badge bakery-badge-primary text-xs font-semibold">Đã duyệt</span>
                                     break;
                                 case OrderStatus.InProgress:
-                                    <span class="bakery-badge bakery-badge-warning text-xs font-semibold">Đang làm bánh</span>
+                                    <span class="bakery-badge bakery-badge-warning text-xs font-semibold">Đang chuẩn bị</span>
                                     break;
                                 case OrderStatus.Shipping:
                                     <span class="bakery-badge bakery-badge-purple text-xs font-semibold">Đang giao hàng</span>
@@ -629,25 +813,37 @@
                 </div>
 
                 <div class="flex items-center gap-2">
-                    @if (selectedOrder.Status == OrderStatus.Pending)
+                    @if (selectedOrder.Status == OrderStatus.Pending && !isShipper)
                     {
                         <button type="button" 
                                 class="bakery-order-btn-action bakery-order-btn-blue text-xs px-3 py-1.5"
                                 @onclick='() => ChangeSelectedOrderStatus(OrderStatus.Confirmed)'>
                             <iconify-icon icon="solar:check-circle-linear"></iconify-icon>
-                            <span>Duyệt làm bánh</span>
+                            <span>Duyệt đơn</span>
                         </button>
                     }
                     else if (selectedOrder.Status == OrderStatus.Confirmed)
                     {
-                        <button type="button" 
-                                class="bakery-order-btn-action bakery-order-btn-blue text-xs px-3 py-1.5"
-                                @onclick='() => ChangeSelectedOrderStatus(OrderStatus.InProgress)'>
-                            <iconify-icon icon="solar:chef-hat-minimalistic-linear"></iconify-icon>
-                            <span>Bắt đầu làm bánh</span>
-                        </button>
+                        @if (isShipper)
+                        {
+                            <button type="button" 
+                                    class="bakery-order-btn-action bakery-order-btn-purple text-xs px-3 py-1.5"
+                                    @onclick='() => ChangeSelectedOrderStatus(OrderStatus.Shipping)'>
+                                <iconify-icon icon="solar:delivery-linear"></iconify-icon>
+                                <span>Nhận giao</span>
+                            </button>
+                        }
+                        else
+                        {
+                            <button type="button" 
+                                    class="bakery-order-btn-action bakery-order-btn-blue text-xs px-3 py-1.5"
+                                    @onclick='() => ChangeSelectedOrderStatus(OrderStatus.InProgress)'>
+                                <iconify-icon icon="solar:box-minimalistic-linear"></iconify-icon>
+                                <span>Bắt đầu chuẩn bị</span>
+                            </button>
+                        }
                     }
-                    else if (selectedOrder.Status == OrderStatus.InProgress)
+                    else if (selectedOrder.Status == OrderStatus.InProgress && !isShipper)
                     {
                         <button type="button" 
                                 class="bakery-order-btn-action bakery-order-btn-purple text-xs px-3 py-1.5"
@@ -662,7 +858,7 @@
                                 class="bakery-order-btn-action bakery-order-btn-green text-xs px-3 py-1.5"
                                 @onclick='() => ChangeSelectedOrderStatus(OrderStatus.Completed)'>
                             <iconify-icon icon="solar:check-circle-bold"></iconify-icon>
-                            <span>Xác nhận hoàn tất</span>
+                            <span>@(isShipper ? "Giao xong" : "Xác nhận hoàn tất")</span>
                         </button>
                     }
 
@@ -697,6 +893,8 @@
     private DateTime? dateFrom;
     private DateTime? dateTo;
     private Order? selectedOrder;
+    private string currentRole = AccountRole.Employee;
+    private bool isShipper;
 
     [SupplyParameterFromQuery(Name = "order")]
     public int? OrderIdFromQuery { get; set; }
@@ -723,6 +921,10 @@
 
     protected override async Task OnInitializedAsync()
     {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        currentRole = authState.User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? AccountRole.Employee;
+        isShipper = currentRole == AccountRole.Shipper;
+
         await LoadOrdersAsync();
         if (OrderIdFromQuery is int orderId)
             selectedOrder = orders.FirstOrDefault(o => o.OrderID == orderId);
@@ -730,7 +932,9 @@
 
     private async Task LoadOrdersAsync()
     {
-        orders = await OrderService.GetOrdersAsync();
+        orders = isShipper
+            ? await OrderService.GetOrdersAsync(new[] { OrderStatus.Confirmed, OrderStatus.Shipping })
+            : await OrderService.GetOrdersAsync();
     }
 
     private async Task ExportOrdersToExcel()
@@ -753,9 +957,20 @@
     {
         if (order.Status is OrderStatus.Cancelled or OrderStatus.Completed) return;
 
-        if (!await OrderService.ChangeStatusAsync(order, newStatus))
+        if (isShipper &&
+            !((order.Status == OrderStatus.Confirmed && newStatus == OrderStatus.Shipping) ||
+              (order.Status == OrderStatus.Shipping && newStatus == OrderStatus.Completed)))
         {
-            await JS.InvokeVoidAsync("alert", $"Kh?ng ?? t?n kho cho ??n h?ng #{order.OrderID}.");
+            await JS.InvokeVoidAsync("alert", "Bạn không có quyền thực hiện thao tác này trên đơn hàng.");
+            return;
+        }
+
+        if (!await OrderService.ChangeStatusAsync(order, newStatus, currentRole))
+        {
+            var message = isShipper
+                ? $"Không thể cập nhật đơn hàng #{order.OrderID} ở trạng thái hiện tại."
+                : $"Không đủ tồn kho cho đơn hàng #{order.OrderID}.";
+            await JS.InvokeVoidAsync("alert", message);
             return;
         }
 
@@ -775,6 +990,7 @@
 
     private async Task CancelOrder(Order order)
     {
+        if (isShipper) return;
         if (order.Status == OrderStatus.Cancelled) return;
         bool confirmed = await JS.InvokeAsync<bool>("confirm", $"B?n c? ch?c mu?n h?y ??n h?ng #HD-{order.OrderID:D4}?");
         if (!confirmed) return;
@@ -796,4 +1012,26 @@
     {
         selectedOrder = order;
     }
+
+    private static string GetStatusLabel(string status) => status switch
+    {
+        OrderStatus.Pending => "Chờ duyệt",
+        OrderStatus.Confirmed => "Đã duyệt",
+        OrderStatus.InProgress => "Đang chuẩn bị",
+        OrderStatus.Shipping => "Đang giao",
+        OrderStatus.Completed => "Hoàn tất",
+        OrderStatus.Cancelled => "Đã hủy",
+        _ => status
+    };
+
+    private static string GetStatusBadgeClass(string status) => status switch
+    {
+        OrderStatus.Pending => "bakery-badge-warning",
+        OrderStatus.Confirmed => "bakery-badge-primary",
+        OrderStatus.InProgress => "bakery-badge-warning",
+        OrderStatus.Shipping => "bakery-badge-secondary",
+        OrderStatus.Completed => "bakery-badge-success",
+        OrderStatus.Cancelled => "bakery-badge-error",
+        _ => "bakery-badge-secondary"
+    };
 }

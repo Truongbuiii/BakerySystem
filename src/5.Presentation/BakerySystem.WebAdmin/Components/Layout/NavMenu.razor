@@ -162,6 +162,28 @@
         </Authorized>
     </AuthorizeView>
 
+    <AuthorizeView Roles="Shipper">
+        <Authorized>
+            <div class="pt-1">
+                <div class="bakery-sidebar-caption">
+                    Giao hàng
+                </div>
+                <nav class="space-y-1">
+                    <NavLink class="bakery-nav-link" href="orders" aria-label="Quản lý đơn giao hàng" title="Quản lý đơn giao hàng">
+                        <iconify-icon icon="solar:delivery-bold" class="text-xl shrink-0 text-primary"></iconify-icon>
+                        <span class="flex-1 font-semibold">Quản lý đơn giao hàng</span>
+                        <span class="bakery-badge bakery-badge-success text-[10px]">Shipper</span>
+                    </NavLink>
+
+                    <NavLink class="bakery-nav-link" href="profile" aria-label="Hồ sơ & bảo mật" title="Hồ sơ & bảo mật">
+                        <iconify-icon icon="solar:settings-linear" class="text-xl shrink-0"></iconify-icon>
+                        <span class="flex-1">Hồ sơ & bảo mật</span>
+                    </NavLink>
+                </nav>
+            </div>
+        </Authorized>
+    </AuthorizeView>
+
     <!-- Divider Line Cuối -->
     <div class="bakery-sidebar-divider"></div>
 

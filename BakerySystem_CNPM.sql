@@ -15,7 +15,7 @@ CREATE TABLE Account (
     Status VARCHAR(20) NOT NULL DEFAULT 'Active',
 
     CONSTRAINT UQ_Account_Username UNIQUE (Username),
-    CONSTRAINT CK_Account_Role CHECK (Role IN ('Admin', 'Employee', 'Customer')),
+    CONSTRAINT CK_Account_Role CHECK (Role IN ('Admin', 'Employee', 'Shipper', 'Customer')),
     CONSTRAINT CK_Account_Status CHECK (Status IN ('Active', 'Inactive'))
 );
 GO

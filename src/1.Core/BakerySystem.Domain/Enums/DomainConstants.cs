@@ -4,6 +4,7 @@ public static class AccountRole
 {
     public const string Admin = "Admin";
     public const string Employee = "Employee";
+    public const string Shipper = "Shipper";
     public const string Customer = "Customer";
 }
 

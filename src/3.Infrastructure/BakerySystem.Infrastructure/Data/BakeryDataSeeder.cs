@@ -206,6 +206,13 @@ public static class BakeryDataSeeder
                 END;
                 ALTER TABLE [Orders] ADD CONSTRAINT [CK_Orders_Status]
                     CHECK ([Status] IN ('Pending', 'Confirmed', 'InProgress', 'Shipping', 'Completed', 'Cancelled'));
+
+                IF OBJECT_ID(N'[CK_Account_Role]', N'C') IS NOT NULL
+                BEGIN
+                    ALTER TABLE [Account] DROP CONSTRAINT [CK_Account_Role];
+                END;
+                ALTER TABLE [Account] ADD CONSTRAINT [CK_Account_Role]
+                    CHECK ([Role] IN ('Admin', 'Employee', 'Shipper', 'Customer'));
             ");
         }
         catch { }
@@ -243,6 +250,14 @@ public static class BakeryDataSeeder
                 Status = AccountStatus.Active
             };
 
+            var shipperAccount = new Account
+            {
+                Username = "shipperbakery",
+                Password = BCrypt.Net.BCrypt.HashPassword("staff123"),
+                Role = AccountRole.Shipper,
+                Status = AccountStatus.Active
+            };
+
             var customerAccount1 = new Account
             {
                 Username = "hoanganh",
@@ -259,7 +274,7 @@ public static class BakeryDataSeeder
                 Status = AccountStatus.Active
             };
 
-            context.Accounts.AddRange(adminAccount, chefAccount, staffAccount, customerAccount1, customerAccount2);
+            context.Accounts.AddRange(adminAccount, chefAccount, staffAccount, shipperAccount, customerAccount1, customerAccount2);
             await context.SaveChangesAsync();
 
             // 2. Seed Employees
@@ -277,7 +292,15 @@ public static class BakeryDataSeeder
                 Phone = "0908654321"
             };
 
-            context.Employees.AddRange(chef, staff);
+            var shipper = new Employee
+            {
+                AccountID = shipperAccount.AccountID,
+                FullName = "Trần Minh Giao",
+                Phone = "0909123456",
+                Position = "Giao hàng"
+            };
+
+            context.Employees.AddRange(chef, staff, shipper);
 
             // 3. Seed Customers
             var cust1 = new Customer
@@ -329,7 +352,7 @@ public static class BakeryDataSeeder
                 if (!acc.Password.StartsWith("$2a$") && !acc.Password.StartsWith("$2b$") && !acc.Password.StartsWith("$2y$"))
                 {
                     if (acc.Username == "admin") acc.Password = BCrypt.Net.BCrypt.HashPassword("admin123");
-                    else if (acc.Username is "chefbakery" or "staffbakery") acc.Password = BCrypt.Net.BCrypt.HashPassword("staff123");
+                    else if (acc.Username is "chefbakery" or "staffbakery" or "shipperbakery") acc.Password = BCrypt.Net.BCrypt.HashPassword("staff123");
                     else acc.Password = BCrypt.Net.BCrypt.HashPassword("customer123");
                     hasMigration = true;
                 }
@@ -356,6 +379,35 @@ public static class BakeryDataSeeder
 
         if (adminAccountsWithoutEmployee.Count > 0)
             await context.SaveChangesAsync();
+
+        var shipperAccountExisting = await context.Accounts
+            .FirstOrDefaultAsync(account => account.Username == "shipperbakery");
+        if (shipperAccountExisting == null)
+        {
+            shipperAccountExisting = new Account
+            {
+                Username = "shipperbakery",
+                Password = BCrypt.Net.BCrypt.HashPassword("staff123"),
+                Role = AccountRole.Shipper,
+                Status = AccountStatus.Active
+            };
+            context.Accounts.Add(shipperAccountExisting);
+            await context.SaveChangesAsync();
+        }
+
+        var shipperHasEmployee = await context.Employees
+            .AnyAsync(employee => employee.AccountID == shipperAccountExisting.AccountID);
+        if (!shipperHasEmployee)
+        {
+            context.Employees.Add(new Employee
+            {
+                AccountID = shipperAccountExisting.AccountID,
+                FullName = "Trần Minh Giao",
+                Phone = "0909123456",
+                Position = "Giao hàng"
+            });
+            await context.SaveChangesAsync();
+        }
 
         // 4. Seed Categories if empty
         if (!await context.Categories.AnyAsync())
