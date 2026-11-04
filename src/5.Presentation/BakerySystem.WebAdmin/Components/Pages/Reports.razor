@@ -502,7 +502,7 @@
                     <h3 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1.5 mb-0.5">
                         Top 5 Bán Chạy Nhất Trong Kỳ
                     </h3>
-                    <p class="text-[10px] text-slate-500 mb-0">Số lượng bán từ đơn hoàn tất</p>
+                    <p class="text-[10px] text-slate-500 mb-0">Số lượng bán từ đơn hoàn tất · Bấm vào dòng để xem chi tiết</p>
                 </div>
                 <a href="/products" class="text-[10px] font-semibold text-primary hover:underline flex items-center gap-1">
                     Xem menu <iconify-icon icon="solar:arrow-right-linear" class="text-xs"></iconify-icon>
@@ -814,6 +814,11 @@
     private TopSellerItem? selectedTopSeller;
     private List<TopSellerOrderItem> selectedTopSellerOrders = new();
 
+    // Drill-down chi tiết đơn hàng theo phương thức thanh toán
+    private bool showPaymentModal;
+    private PaymentStatItem? selectedPaymentStat;
+    private List<PaymentOrderItem> selectedPaymentOrders = new();
+
     protected override async Task OnInitializedAsync()
     {
         await LoadReportDataAsync();
@@ -830,6 +835,126 @@
         quickPeriod = period;
         _ = LoadReportDataAsync();
     }
+
+    private void OpenTopSellerDetail(TopSellerItem item)
+    {
+        selectedTopSeller = item;
+
+        var detailsByOrder = reportOrderDetails
+            .Where(d => d.ProductID == item.ProductID)
+            .GroupBy(d => d.OrderID)
+            .ToDictionary(
+                g => g.Key,
+                g => new { Quantity = g.Sum(x => x.Quantity), SubTotal = g.Sum(x => x.SubTotal) });
+
+        selectedTopSellerOrders = reportOrders
+            .Where(o => detailsByOrder.ContainsKey(o.OrderID))
+            .Select(o =>
+            {
+                var detail = detailsByOrder[o.OrderID];
+                var customerName = o.Customer != null && !string.IsNullOrWhiteSpace(o.Customer.FullName)
+                    ? o.Customer.FullName
+                    : !string.IsNullOrWhiteSpace(o.ReceiverName) ? o.ReceiverName : "Khách lẻ";
+                var customerPhone = o.Customer?.Phone ?? o.ReceiverPhone;
+
+                return new TopSellerOrderItem
+                {
+                    OrderID = o.OrderID,
+                    OrderDate = o.OrderDate,
+                    CustomerName = customerName,
+                    CustomerPhone = customerPhone,
+                    Quantity = detail.Quantity,
+                    SubTotal = detail.SubTotal,
+                    PaymentMethodLabel = GetPaymentMethodLabel(o.PaymentMethod),
+                    StatusLabel = GetOrderStatusLabel(o.Status),
+                    StatusClass = GetOrderStatusClass(o.Status)
+                };
+            })
+            .OrderByDescending(x => x.OrderDate)
+            .ToList();
+
+        showTopSellerModal = true;
+    }
+
+    private void CloseTopSellerModal()
+    {
+        showTopSellerModal = false;
+        selectedTopSeller = null;
+        selectedTopSellerOrders = new();
+    }
+
+    private void OpenPaymentMethodDetail(PaymentStatItem stat)
+    {
+        selectedPaymentStat = stat;
+
+        selectedPaymentOrders = reportOrders
+            .Where(o => o.Status != OrderStatus.Cancelled)
+            .Where(o => stat.GroupKey == "cash" ? IsCashPayment(o.PaymentMethod) : IsTransferPayment(o.PaymentMethod))
+            .Select(o =>
+            {
+                var customerName = o.Customer != null && !string.IsNullOrWhiteSpace(o.Customer.FullName)
+                    ? o.Customer.FullName
+                    : !string.IsNullOrWhiteSpace(o.ReceiverName) ? o.ReceiverName : "Khách lẻ";
+
+                return new PaymentOrderItem
+                {
+                    OrderID = o.OrderID,
+                    OrderDate = o.OrderDate,
+                    CustomerName = customerName,
+                    CustomerPhone = o.Customer?.Phone ?? o.ReceiverPhone,
+                    Amount = o.FinalAmount,
+                    PaymentMethodLabel = GetPaymentMethodLabel(o.PaymentMethod),
+                    StatusLabel = GetOrderStatusLabel(o.Status),
+                    StatusClass = GetOrderStatusClass(o.Status)
+                };
+            })
+            .OrderByDescending(x => x.OrderDate)
+            .ToList();
+
+        showPaymentModal = true;
+    }
+
+    private void ClosePaymentModal()
+    {
+        showPaymentModal = false;
+        selectedPaymentStat = null;
+        selectedPaymentOrders = new();
+    }
+
+    private static bool IsCashPayment(string? method) =>
+        string.Equals(method, "Cash", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(method, PaymentMethod.COD, StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsTransferPayment(string? method) =>
+        string.Equals(method, PaymentMethod.BankTransfer, StringComparison.OrdinalIgnoreCase);
+
+    private static string GetPaymentMethodLabel(string? method) => method switch
+    {
+        PaymentMethod.COD or "Cash" => "Tiền mặt / COD",
+        PaymentMethod.BankTransfer => "Chuyển khoản / QR",
+        PaymentMethod.VNPAY => "VNPAY",
+        PaymentMethod.MoMo => "MoMo",
+        _ => string.IsNullOrWhiteSpace(method) ? "Khác" : method
+    };
+
+    private static string GetOrderStatusLabel(string? status) => status switch
+    {
+        OrderStatus.Pending => "Chờ duyệt",
+        OrderStatus.Confirmed => "Đã duyệt",
+        OrderStatus.InProgress => "Đang làm bánh",
+        OrderStatus.Shipping => "Đang giao",
+        OrderStatus.Completed => "Hoàn tất",
+        OrderStatus.Cancelled => "Đã hủy",
+        _ => status ?? ""
+    };
+
+    private static string GetOrderStatusClass(string? status) => status switch
+    {
+        OrderStatus.Completed => "is-success",
+        OrderStatus.Cancelled => "is-danger",
+        OrderStatus.Confirmed or OrderStatus.InProgress or OrderStatus.Shipping => "is-info",
+        _ => "is-warning"
+    };
 
     private string GetPeriodDisplayName() => filterType switch
     {
@@ -1267,6 +1392,19 @@
         public decimal UnitPrice { get; set; }
         public int SoldQuantity { get; set; }
         public decimal TotalRevenue { get; set; }
+    }
+
+    public class TopSellerOrderItem
+    {
+        public int OrderID { get; set; }
+        public DateTime OrderDate { get; set; }
+        public string CustomerName { get; set; } = "";
+        public string? CustomerPhone { get; set; }
+        public int Quantity { get; set; }
+        public decimal SubTotal { get; set; }
+        public string PaymentMethodLabel { get; set; } = "";
+        public string StatusLabel { get; set; } = "";
+        public string StatusClass { get; set; } = "";
     }
 
     public class CategoryShareItem
