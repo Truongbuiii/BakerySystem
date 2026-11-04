@@ -459,6 +459,7 @@
                     <h3 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1.5 mb-0.5">
                         Thống Kê Theo Phương Thức Thanh Toán
                     </h3>
+                    <p class="text-[10px] text-slate-500 mb-0">Bấm vào dòng để xem chi tiết đơn hàng</p>
                 </div>
                 <span class="bakery-badge bakery-badge-primary text-[10px] font-bold">@($"{paymentStats.Sum(x => x.Amount):N0}đ")</span>
             </div>
@@ -471,12 +472,15 @@
                             <th class="text-center py-1.5 px-2">Số đơn</th>
                             <th class="text-right py-1.5 px-2">Số tiền</th>
                             <th class="text-right py-1.5 px-2">Tỷ lệ</th>
+                            <th class="w-8 py-1.5 px-2"></th>
                         </tr>
                     </thead>
                     <tbody>
                         @foreach (var pay in paymentStats)
                         {
-                            <tr class="border-b border-slate-100 dark:border-slate-800 last:border-0">
+                            <tr class="report-top-row border-b border-slate-100 dark:border-slate-800 last:border-0"
+                                title="Xem chi tiết các đơn theo phương thức này"
+                                @onclick="() => OpenPaymentMethodDetail(pay)">
                                 <td class="py-1.5 px-2">
                                     <div class="flex items-center gap-2">
                                         <span class="w-7 h-7 rounded-lg @pay.IconClass flex items-center justify-center shrink-0">
@@ -488,6 +492,9 @@
                                 <td class="py-1.5 px-2 text-center font-semibold text-slate-700 dark:text-slate-300">@pay.OrderCount</td>
                                 <td class="py-1.5 px-2 text-right font-mono font-bold text-slate-900 dark:text-white">@($"{pay.Amount:N0}đ")</td>
                                 <td class="py-1.5 px-2 text-right font-mono text-slate-500">@($"{pay.Percentage:F1}%")</td>
+                                <td class="text-center py-1.5 px-2 text-slate-300 dark:text-slate-600">
+                                    <iconify-icon icon="solar:alt-arrow-right-linear" class="text-sm"></iconify-icon>
+                                </td>
                             </tr>
                         }
                     </tbody>
@@ -646,6 +653,71 @@
                                     <td class="text-center font-semibold">@item.Quantity</td>
                                     <td class="text-right font-semibold whitespace-nowrap">@($"{item.SubTotal:N0} đ")</td>
                                     <td class="whitespace-nowrap">@item.PaymentMethodLabel</td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+}
+
+@if (showPaymentModal && selectedPaymentStat != null)
+{
+    <div class="reports-modal-backdrop" role="presentation" @onclick="ClosePaymentModal">
+        <section class="reports-stock-modal reports-detail-modal" role="dialog" aria-modal="true" aria-labelledby="payment-modal-title" @onclick:stopPropagation>
+            <div class="reports-stock-modal-header">
+                <div>
+                    <h2 id="payment-modal-title">Chi tiết đơn theo phương thức thanh toán</h2>
+                    <p>@selectedPaymentStat.DisplayName · @GetPeriodDisplayName()</p>
+                </div>
+                <button type="button" class="reports-modal-close" aria-label="Đóng" @onclick="ClosePaymentModal">&times;</button>
+            </div>
+
+            <div class="reports-detail-summary">
+                <div><span>Số đơn</span><strong>@selectedPaymentOrders.Count</strong></div>
+                <div><span>Tổng tiền</span><strong>@($"{selectedPaymentOrders.Sum(o => o.Amount):N0} đ")</strong></div>
+                <div><span>Tỷ lệ trong kỳ</span><strong>@selectedPaymentStat.Percentage.ToString("F1")%</strong></div>
+            </div>
+
+            <div class="reports-detail-table-wrap">
+                <table class="reports-detail-table">
+                    <thead>
+                        <tr>
+                            <th>Mã đơn</th>
+                            <th>Ngày đặt</th>
+                            <th>Khách hàng</th>
+                            <th>Thanh toán</th>
+                            <th class="text-right">Số tiền</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (!selectedPaymentOrders.Any())
+                        {
+                            <tr>
+                                <td colspan="5" class="reports-detail-empty">Không có đơn hàng nào trong chu kỳ này.</td>
+                            </tr>
+                        }
+                        else
+                        {
+                            @foreach (var item in selectedPaymentOrders)
+                            {
+                                <tr>
+                                    <td>
+                                        <strong>#@item.OrderID</strong>
+                                        <span class="reports-detail-status @item.StatusClass">@item.StatusLabel</span>
+                                    </td>
+                                    <td class="whitespace-nowrap">@item.OrderDate.ToString("dd/MM/yyyy HH:mm")</td>
+                                    <td>
+                                        <strong>@item.CustomerName</strong>
+                                        @if (!string.IsNullOrWhiteSpace(item.CustomerPhone))
+                                        {
+                                            <span>@item.CustomerPhone</span>
+                                        }
+                                    </td>
+                                    <td class="whitespace-nowrap">@item.PaymentMethodLabel</td>
+                                    <td class="text-right font-semibold whitespace-nowrap">@($"{item.Amount:N0} đ")</td>
                                 </tr>
                             }
                         }
@@ -1279,29 +1351,29 @@
         var total = validOrders.Sum(o => o.FinalAmount);
 
         var cashOrders = validOrders
-            .Where(o => string.Equals(o.PaymentMethod, "Cash", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(o.PaymentMethod, PaymentMethod.COD, StringComparison.OrdinalIgnoreCase))
+            .Where(o => IsCashPayment(o.PaymentMethod))
             .ToList();
 
         var transferOrders = validOrders
-            .Where(o => string.Equals(o.PaymentMethod, PaymentMethod.BankTransfer, StringComparison.OrdinalIgnoreCase))
+            .Where(o => IsTransferPayment(o.PaymentMethod))
             .ToList();
 
         var result = new List<PaymentStatItem>
         {
-            CreatePaymentStat("Tiền mặt / COD", cashOrders, total, "solar:wallet-money-bold", "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300"),
-            CreatePaymentStat("Chuyển khoản / Quét QR", transferOrders, total, "solar:card-transfer-bold", "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300")
+            CreatePaymentStat("Tiền mặt / COD", "cash", cashOrders, total, "solar:wallet-money-bold", "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300"),
+            CreatePaymentStat("Chuyển khoản / Quét QR", "transfer", transferOrders, total, "solar:card-transfer-bold", "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300")
         };
 
         return result;
     }
 
-    private static PaymentStatItem CreatePaymentStat(string displayName, List<Order> orders, decimal total, string icon, string iconClass)
+    private static PaymentStatItem CreatePaymentStat(string displayName, string groupKey, List<Order> orders, decimal total, string icon, string iconClass)
     {
         var amount = orders.Sum(o => o.FinalAmount);
         return new PaymentStatItem
         {
             DisplayName = displayName,
+            GroupKey = groupKey,
             OrderCount = orders.Count,
             Amount = amount,
             Percentage = total > 0 ? amount / total * 100m : 0m,
@@ -1407,6 +1479,18 @@
         public string StatusClass { get; set; } = "";
     }
 
+    public class PaymentOrderItem
+    {
+        public int OrderID { get; set; }
+        public DateTime OrderDate { get; set; }
+        public string CustomerName { get; set; } = "";
+        public string? CustomerPhone { get; set; }
+        public decimal Amount { get; set; }
+        public string PaymentMethodLabel { get; set; } = "";
+        public string StatusLabel { get; set; } = "";
+        public string StatusClass { get; set; } = "";
+    }
+
     public class CategoryShareItem
     {
         public string CategoryName { get; set; } = "";
@@ -1418,6 +1502,7 @@
     public class PaymentStatItem
     {
         public string DisplayName { get; set; } = "";
+        public string GroupKey { get; set; } = "";
         public int OrderCount { get; set; }
         public decimal Amount { get; set; }
         public decimal Percentage { get; set; }
