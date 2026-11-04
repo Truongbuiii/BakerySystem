@@ -124,7 +124,7 @@ CREATE TABLE Promotion (
     CONSTRAINT UQ_Promotion_PromotionCode UNIQUE (PromotionCode),
     CONSTRAINT CK_Promotion_Type CHECK (PromotionType IN ('Product', 'OrderTier', 'Invoice')),
     CONSTRAINT CK_Promotion_Date CHECK (EndDate >= StartDate),
-    CONSTRAINT CK_Promotion_Status CHECK (Status IN ('Active', 'Inactive'))
+    CONSTRAINT CK_Promotion_Status CHECK (Status IN ('Active', 'Inactive', 'Draft'))
 );
 GO
 

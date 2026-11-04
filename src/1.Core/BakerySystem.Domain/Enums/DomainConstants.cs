@@ -43,7 +43,6 @@ public static class PromotionStatus
     public const string Active = "Active";
     public const string Inactive = "Inactive";
     public const string Draft = "Draft";
-    public const string Hidden = "Hidden";
 }
 
 public static class PromotionType
@@ -52,4 +51,3 @@ public static class PromotionType
     public const string OrderTier = "OrderTier";     // 2. Giảm tự động theo mức tiền hóa đơn đạt được (PromotionOrderTier)
     public const string Invoice = "Invoice";         // 3. Giảm theo mã Voucher hóa đơn (PromotionInvoice)
 }
-

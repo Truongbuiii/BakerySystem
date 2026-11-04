@@ -108,6 +108,30 @@ public static class BakeryDataSeeder
                     ALTER TABLE [Promotion] ADD [PromotionType] varchar(30) NOT NULL DEFAULT 'Invoice';
                 END;
 
+                -- Đồng bộ các trạng thái khuyến mãi với chức năng bản nháp và tạm dừng.
+                IF EXISTS (
+                    SELECT 1
+                    FROM sys.check_constraints
+                    WHERE [name] = N'CK_Promotion_Status'
+                      AND [parent_object_id] = OBJECT_ID(N'[Promotion]')
+                      AND [definition] NOT LIKE N'%Draft%'
+                )
+                BEGIN
+                    ALTER TABLE [Promotion] DROP CONSTRAINT [CK_Promotion_Status];
+                END;
+
+                IF NOT EXISTS (
+                    SELECT 1
+                    FROM sys.check_constraints
+                    WHERE [name] = N'CK_Promotion_Status'
+                      AND [parent_object_id] = OBJECT_ID(N'[Promotion]')
+                )
+                BEGIN
+                    ALTER TABLE [Promotion]
+                    ADD CONSTRAINT [CK_Promotion_Status]
+                    CHECK ([Status] IN ('Active', 'Inactive', 'Draft'));
+                END;
+
                 -- 5. Bổ sung các cột mới cho PromotionInvoice
                 IF COL_LENGTH('PromotionInvoice', 'VoucherCode') IS NULL
                 BEGIN

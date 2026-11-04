@@ -223,9 +223,13 @@ public static class MobileApiEndpoints
                         && p.StartDate <= today
                         && p.EndDate >= today, ct);
 
+                var linkedPromotionOrderCount = promotion is null
+                    ? 0
+                    : await db.Orders.CountAsync(order => order.PromotionID == promotion.PromotionID, ct);
+
                 if (promotion is null
                     || promotion.PromotionInvoice is { UsageLimit: not null } invoice
-                        && invoice.UsedCount >= invoice.UsageLimit)
+                        && linkedPromotionOrderCount >= invoice.UsageLimit)
                     return Results.BadRequest("Promotion is inactive, expired, or no longer available.");
 
                 if (promotion.PromotionInvoice is { } invoiceCondition
@@ -278,7 +282,10 @@ public static class MobileApiEndpoints
                 order.OrderDetails.Add(orderLine);
 
             if (promotion?.PromotionInvoice is { } usedInvoice)
-                usedInvoice.UsedCount++;
+            {
+                var linkedPromotionOrderCount = await db.Orders.CountAsync(order => order.PromotionID == promotion.PromotionID, ct);
+                usedInvoice.UsedCount = linkedPromotionOrderCount + 1;
+            }
 
             db.Orders.Add(order);
             await db.SaveChangesAsync(ct);

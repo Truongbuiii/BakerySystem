@@ -320,14 +320,16 @@ public sealed class PromotionService(IBakeryDbContext db)
 
     public async Task SetStatusAsync(int promotionId, string status, CancellationToken ct = default)
     {
-        var promotion = await db.Promotions.FindAsync([promotionId], ct)
-            ?? throw new InvalidOperationException("Không tìm thấy chương trình khuyến mãi.");
-        if (status is not (PromotionStatus.Active or PromotionStatus.Hidden or PromotionStatus.Draft))
+        if (status is not (PromotionStatus.Active or PromotionStatus.Inactive or PromotionStatus.Draft))
             throw new InvalidOperationException("Trạng thái chương trình không hợp lệ.");
         if (status == PromotionStatus.Draft && await HasBeenUsedAsync(promotionId, ct))
             throw new InvalidOperationException("Khuyến mãi đã được dùng trong đơn hàng, không thể chuyển về nháp.");
-        promotion.Status = status;
-        await db.SaveChangesAsync(ct);
+
+        var updated = await db.Promotions
+            .Where(p => p.PromotionID == promotionId)
+            .ExecuteUpdateAsync(setters => setters.SetProperty(p => p.Status, status), ct);
+        if (updated == 0)
+            throw new InvalidOperationException("Không tìm thấy chương trình khuyến mãi.");
     }
 
     public async Task UpdateAsync(
