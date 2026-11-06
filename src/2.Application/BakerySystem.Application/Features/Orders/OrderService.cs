@@ -45,9 +45,18 @@ public sealed class OrderService(IBakeryDbContext db)
         {
             var shipperTransitionAllowed =
                 (order.Status == OrderStatus.Confirmed && newStatus == OrderStatus.Shipping) ||
-                (order.Status == OrderStatus.Shipping && newStatus == OrderStatus.Completed);
+                (order.Status == OrderStatus.Shipping && newStatus == OrderStatus.Delivered) ||
+                (order.Status == OrderStatus.Shipping && newStatus == OrderStatus.Completed) ||
+                (order.Status == OrderStatus.Delivered && newStatus == OrderStatus.Completed);
 
             if (!shipperTransitionAllowed)
+                return false;
+        }
+
+        if (actorRole is AccountRole.Admin or AccountRole.Employee)
+        {
+            // Admin/Employee không được tự ý bấm hoàn tất khi đơn đang giao ngoài đường hoặc chờ khách nhận
+            if ((order.Status == OrderStatus.Shipping || order.Status == OrderStatus.Delivered) && newStatus == OrderStatus.Completed)
                 return false;
         }
 
@@ -80,6 +89,7 @@ public sealed class OrderService(IBakeryDbContext db)
         var shouldRestoreStock = order.Status is OrderStatus.Confirmed
             or OrderStatus.InProgress
             or OrderStatus.Shipping
+            or OrderStatus.Delivered
             or OrderStatus.Completed;
 
         order.Status = OrderStatus.Cancelled;

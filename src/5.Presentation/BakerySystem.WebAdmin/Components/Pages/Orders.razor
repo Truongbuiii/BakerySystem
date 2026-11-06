@@ -6,9 +6,9 @@
 @inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthStateProvider
 
-<PageTitle>@(isShipper ? "Đơn Giao Hàng" : "Quản Lý Đơn Đặt Hàng") | BakerySystem</PageTitle>
+<PageTitle>@(isShipper ? "Đơn Giao Hàng (Shipper)" : "Quản Lý Đơn Đặt Hàng") | BakerySystem</PageTitle>
 
-<div class="space-y-4">
+<div class="w-full bg-slate-50 min-h-screen pb-20 space-y-4 @(isShipper ? "shipper-orders-page max-w-5xl mx-auto px-2 sm:px-4" : "")">
     <!-- 1. Header Trang -->
     <div class="bakery-page-header pb-2 border-b border-border dark:border-darkborder flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
@@ -17,16 +17,20 @@
                     <iconify-icon icon="solar:home-2-linear"></iconify-icon> Trang chủ
                 </a>
                 <span>/</span>
-                <span class="text-slate-800 dark:text-slate-200 font-semibold">Đơn đặt hàng</span>
+                <span class="text-slate-800 dark:text-slate-200 font-semibold">@(isShipper ? "Đơn giao hàng" : "Đơn đặt hàng")</span>
             </div>
             <h2 class="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2 mb-0">
                 <iconify-icon icon="@(isShipper ? "solar:delivery-bold" : "solar:bill-list-bold")" class="text-primary"></iconify-icon>
-                @(isShipper ? "Đơn Giao Hàng" : "Quản Lý Đơn Đặt Hàng & Tiến Trình")
+                @(isShipper ? "Quản Lý Đơn Giao Hàng (Shipper)" : "Quản Lý Đơn Đặt Hàng & Giao Hàng")
             </h2>
+            @if (isShipper)
+            {
+                <p class="text-xs text-slate-500 mb-0 mt-0.5">Danh sách đơn hàng cần nhận giao, chỉ đường bản đồ & xác nhận giao hàng cho khách</p>
+            }
         </div>
 
         <div class="flex items-center gap-2">
-            <button class="bakery-btn bakery-btn-secondary bakery-btn-sm" @onclick="LoadOrdersAsync">
+            <button class="bakery-btn bakery-btn-secondary @(isShipper ? "shipper-refresh-button" : "bakery-btn-sm")" @onclick="LoadOrdersAsync">
                 <iconify-icon icon="solar:restart-linear" class="text-base"></iconify-icon>
                 <span>Tải lại</span>
             </button>
@@ -48,34 +52,8 @@
         </div>
     </div>
 
-    <!-- 2. 4 Thẻ KPI Chuẩn Dashboard -->
-    @if (isShipper)
-    {
-        <div class="bakery-kpi-grid">
-            <div class="bakery-kpi-card" @onclick='() => FilterByStatus(OrderStatus.Confirmed)' style="cursor: pointer;" title="Xem các đơn chờ nhận giao">
-                <div class="bakery-kpi-content">
-                    <span class="bakery-kpi-label">Chờ nhận giao</span>
-                    <div class="bakery-kpi-val text-blue-600">@orders.Count(o => o.Status == OrderStatus.Confirmed) đơn</div>
-                    <div class="bakery-kpi-subtext">Quầy đã duyệt, chờ shipper nhận</div>
-                </div>
-                <div class="bakery-kpi-iconbox bakery-kpi-blue">
-                    <iconify-icon icon="solar:box-minimalistic-bold"></iconify-icon>
-                </div>
-            </div>
-
-            <div class="bakery-kpi-card" @onclick='() => FilterByStatus(OrderStatus.Shipping)' style="cursor: pointer;" title="Xem các đơn đang giao">
-                <div class="bakery-kpi-content">
-                    <span class="bakery-kpi-label">Đang giao cho khách</span>
-                    <div class="bakery-kpi-val text-purple-600">@orders.Count(o => o.Status == OrderStatus.Shipping) đơn</div>
-                    <div class="bakery-kpi-subtext">Bấm giao xong khi khách đã nhận</div>
-                </div>
-                <div class="bakery-kpi-iconbox bakery-kpi-purple">
-                    <iconify-icon icon="solar:delivery-bold"></iconify-icon>
-                </div>
-            </div>
-        </div>
-    }
-    else
+    <!-- 2. Thẻ KPI Chuẩn Dashboard -->
+    @if (!isShipper)
     {
         <div class="bakery-kpi-grid">
             <!-- KPI 1: Chờ duyệt -->
@@ -90,12 +68,12 @@
                 </div>
             </div>
 
-            <!-- KPI 2: Đang chuẩn bị hàng -->
-            <div class="bakery-kpi-card" @onclick='() => FilterByStatus(OrderStatus.InProgress)' style="cursor: pointer;" title="Xem các đơn đang chuẩn bị">
+            <!-- KPI 2: Đã duyệt / Chờ giao -->
+            <div class="bakery-kpi-card" @onclick='() => FilterByStatus(OrderStatus.Confirmed)' style="cursor: pointer;" title="Xem các đơn đã duyệt">
                 <div class="bakery-kpi-content">
-                    <span class="bakery-kpi-label">Đang chuẩn bị hàng</span>
-                    <div class="bakery-kpi-val text-blue-600">@orders.Count(o => o.Status == OrderStatus.InProgress) đơn</div>
-                    <div class="bakery-kpi-subtext">Đã được nhân viên duyệt</div>
+                    <span class="bakery-kpi-label">Đã duyệt / Sẵn sàng</span>
+                    <div class="bakery-kpi-val text-blue-600">@orders.Count(o => o.Status == OrderStatus.Confirmed) đơn</div>
+                    <div class="bakery-kpi-subtext">Chờ shipper nhận giao</div>
                 </div>
                 <div class="bakery-kpi-iconbox bakery-kpi-blue">
                     <iconify-icon icon="solar:box-minimalistic-bold"></iconify-icon>
@@ -129,10 +107,40 @@
     }
 
     <!-- 3. Thanh Lọc Trạng Thái & Tìm Kiếm -->
-    <div class="bakery-card p-3">
+    <div class="bakery-card p-3 @(isShipper ? "shipper-filter-card" : "")"
+         style="@(isShipper ? "width:100%;margin-left:auto;margin-right:auto;" : "")">
         <div class="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
             
             <!-- Tabs lọc trạng thái dạng Pill Buttons -->
+            @if (isShipper)
+            {
+                <div class="sticky top-0 z-30 -mx-3 px-3 py-3 bg-slate-50/95 backdrop-blur">
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-1.5 p-1 rounded-2xl bg-slate-200/80 shadow-sm">
+                        <button type="button"
+                                class="min-h-11 rounded-xl px-2 text-xs font-bold transition-colors @(selectedStatus == OrderStatus.Confirmed ? "bg-blue-600 text-white shadow-sm" : "text-slate-600 hover:bg-white")"
+                                @onclick='() => FilterByStatus(OrderStatus.Confirmed)'>
+                            Chờ lấy (@orders.Count(o => o.Status == OrderStatus.Confirmed))
+                        </button>
+                        <button type="button"
+                                class="min-h-11 rounded-xl px-2 text-xs font-bold transition-colors @(selectedStatus == OrderStatus.Shipping ? "bg-amber-500 text-white shadow-sm" : "text-slate-600 hover:bg-white")"
+                                @onclick='() => FilterByStatus(OrderStatus.Shipping)'>
+                            Đang giao (@orders.Count(o => o.Status == OrderStatus.Shipping))
+                        </button>
+                        <button type="button"
+                                class="min-h-11 rounded-xl px-2 text-xs font-bold transition-colors @(selectedStatus == OrderStatus.Delivered ? "bg-sky-600 text-white shadow-sm" : "text-slate-600 hover:bg-white")"
+                                @onclick='() => FilterByStatus(OrderStatus.Delivered)'>
+                            Chờ khách nhận (@orders.Count(o => o.Status == OrderStatus.Delivered))
+                        </button>
+                        <button type="button"
+                                class="min-h-11 rounded-xl px-2 text-xs font-bold transition-colors @(selectedStatus == OrderStatus.Completed ? "bg-emerald-600 text-white shadow-sm" : "text-slate-600 hover:bg-white")"
+                                @onclick='() => FilterByStatus(OrderStatus.Completed)'>
+                            Đã giao xong (@orders.Count(o => o.Status == OrderStatus.Completed))
+                        </button>
+                    </div>
+                </div>
+            }
+            else
+            {
             <div class="bakery-order-tab-bar">
                 <button type="button" 
                         class="bakery-order-tab @(selectedStatus == "All" ? "active" : "")"
@@ -140,33 +148,20 @@
                     <span>Tất cả</span>
                     <span class="bakery-order-tab-badge">@orders.Count</span>
                 </button>
-                @if (!isShipper)
-                {
-                    <button type="button" 
-                            class="bakery-order-tab @(selectedStatus == OrderStatus.Pending ? "active" : "")"
-                            @onclick='() => FilterByStatus(OrderStatus.Pending)'>
-                        <iconify-icon icon="solar:clock-circle-linear" class="text-amber-500"></iconify-icon>
-                        <span>Chờ duyệt</span>
-                        <span class="bakery-order-tab-badge">@orders.Count(o => o.Status == OrderStatus.Pending)</span>
-                    </button>
-                }
+                <button type="button" 
+                        class="bakery-order-tab @(selectedStatus == OrderStatus.Pending ? "active" : "")"
+                        @onclick='() => FilterByStatus(OrderStatus.Pending)'>
+                    <iconify-icon icon="solar:clock-circle-linear" class="text-amber-500"></iconify-icon>
+                    <span>Chờ duyệt</span>
+                    <span class="bakery-order-tab-badge">@orders.Count(o => o.Status == OrderStatus.Pending)</span>
+                </button>
                 <button type="button" 
                         class="bakery-order-tab @(selectedStatus == OrderStatus.Confirmed ? "active" : "")"
                         @onclick='() => FilterByStatus(OrderStatus.Confirmed)'>
                     <iconify-icon icon="solar:check-circle-linear" class="text-blue-500"></iconify-icon>
-                    <span>@(isShipper ? "Chờ nhận giao" : "Đã duyệt")</span>
+                    <span>Đã duyệt / Chờ shipper</span>
                     <span class="bakery-order-tab-badge">@orders.Count(o => o.Status == OrderStatus.Confirmed)</span>
                 </button>
-                @if (!isShipper)
-                {
-                    <button type="button" 
-                            class="bakery-order-tab @(selectedStatus == OrderStatus.InProgress ? "active" : "")"
-                            @onclick='() => FilterByStatus(OrderStatus.InProgress)'>
-                        <iconify-icon icon="solar:box-minimalistic-linear" class="text-orange-500"></iconify-icon>
-                        <span>Đang chuẩn bị</span>
-                        <span class="bakery-order-tab-badge">@orders.Count(o => o.Status == OrderStatus.InProgress)</span>
-                    </button>
-                }
                 <button type="button" 
                         class="bakery-order-tab @(selectedStatus == OrderStatus.Shipping ? "active" : "")"
                         @onclick='() => FilterByStatus(OrderStatus.Shipping)'>
@@ -174,402 +169,710 @@
                     <span>Đang giao</span>
                     <span class="bakery-order-tab-badge">@orders.Count(o => o.Status == OrderStatus.Shipping)</span>
                 </button>
+                <button type="button" 
+                        class="bakery-order-tab @(selectedStatus == OrderStatus.Delivered ? "active" : "")"
+                        @onclick='() => FilterByStatus(OrderStatus.Delivered)'>
+                    <iconify-icon icon="solar:box-minimalistic-bold" class="text-sky-500"></iconify-icon>
+                    <span>Chờ khách nhận</span>
+                    <span class="bakery-order-tab-badge">@orders.Count(o => o.Status == OrderStatus.Delivered)</span>
+                </button>
+                <button type="button" 
+                        class="bakery-order-tab @(selectedStatus == OrderStatus.Completed ? "active" : "")"
+                        @onclick='() => FilterByStatus(OrderStatus.Completed)'>
+                    <iconify-icon icon="solar:check-circle-linear" class="text-emerald-500"></iconify-icon>
+                    <span>Hoàn tất</span>
+                    <span class="bakery-order-tab-badge">@orders.Count(o => o.Status == OrderStatus.Completed)</span>
+                </button>
+                <button type="button" 
+                        class="bakery-order-tab @(selectedStatus == OrderStatus.Cancelled ? "active" : "")"
+                        @onclick='() => FilterByStatus(OrderStatus.Cancelled)'>
+                    <iconify-icon icon="solar:close-circle-linear" class="text-red-500"></iconify-icon>
+                    <span>Đã hủy</span>
+                    <span class="bakery-order-tab-badge">@orders.Count(o => o.Status == OrderStatus.Cancelled)</span>
+                </button>
+            </div>
+            }
+
+            <!-- Ô tìm kiếm đơn hàng chuẩn Wrapper -->
+            <div class="flex flex-wrap items-center gap-2">
+                <div class="bakery-search-input-wrap" style="min-width: 240px; max-width: 320px;">
+                    <iconify-icon icon="solar:magnifer-linear"></iconify-icon>
+                    <input type="text" 
+                           class="bakery-search-input"
+                           placeholder="@(isShipper ? "Tìm mã đơn, tên khách, SĐT, địa chỉ..." : "Mã đơn, tên khách, SĐT...")"
+                           @bind="searchQuery" 
+                           @bind:event="oninput" />
+                </div>
                 @if (!isShipper)
                 {
-                    <button type="button" 
-                            class="bakery-order-tab @(selectedStatus == OrderStatus.Completed ? "active" : "")"
-                            @onclick='() => FilterByStatus(OrderStatus.Completed)'>
-                        <iconify-icon icon="solar:check-circle-linear" class="text-emerald-500"></iconify-icon>
-                        <span>Hoàn tất</span>
-                        <span class="bakery-order-tab-badge">@orders.Count(o => o.Status == OrderStatus.Completed)</span>
-                    </button>
-                    <button type="button" 
-                            class="bakery-order-tab @(selectedStatus == OrderStatus.Cancelled ? "active" : "")"
-                            @onclick='() => FilterByStatus(OrderStatus.Cancelled)'>
-                        <iconify-icon icon="solar:close-circle-linear" class="text-red-500"></iconify-icon>
-                        <span>Đã hủy</span>
-                        <span class="bakery-order-tab-badge">@orders.Count(o => o.Status == OrderStatus.Cancelled)</span>
-                    </button>
+                    <select class="bakery-input" style="width: auto;" @bind="selectedPaymentStatus">
+                        <option value="All">Tất cả thanh toán</option>
+                        <option value="Paid">Đã thanh toán</option>
+                        <option value="Unpaid">Chưa thanh toán</option>
+                    </select>
+                    <label class="text-xs text-slate-500 flex items-center gap-1">Từ <input class="bakery-input" style="width: 130px;" type="date" @bind="dateFrom" /></label>
+                    <label class="text-xs text-slate-500 flex items-center gap-1">Đến <input class="bakery-input" style="width: 130px;" type="date" @bind="dateTo" /></label>
+                    <button class="bakery-btn bakery-btn-outline bakery-btn-sm" @onclick="ResetAdvancedSearch">Đặt lại</button>
+                }
+                else
+                {
+                    @if (!string.IsNullOrWhiteSpace(searchQuery) || selectedStatus != "All")
+                    {
+                        <button class="bakery-btn bakery-btn-outline bakery-btn-sm" @onclick="ResetAdvancedSearch">
+                            <iconify-icon icon="solar:restart-linear"></iconify-icon> Xem tất cả
+                        </button>
+                    }
                 }
             </div>
-
-            <!-- Ô tìm kiếm đơn hàng chuẩn Wrapper (không đè icon) -->
-            <div class="bakery-search-input-wrap" style="max-width: 280px;">
-                <iconify-icon icon="solar:magnifer-linear"></iconify-icon>
-                <input type="text" 
-                       class="bakery-search-input"
-                       placeholder="Mã đơn, tên khách, SĐT..."
-                       @bind="searchQuery" 
-                       @bind:event="oninput" />
-            </div>
-            <select class="bakery-input" @bind="selectedPaymentStatus">
-                <option value="All">Tất cả thanh toán</option>
-                <option value="Paid">Đã thanh toán</option>
-                <option value="Unpaid">Chưa thanh toán</option>
-            </select>
-            <label class="text-xs text-slate-500">Từ ngày<input class="bakery-input" type="date" @bind="dateFrom" /></label>
-            <label class="text-xs text-slate-500">Đến ngày<input class="bakery-input" type="date" @bind="dateTo" /></label>
-            <button class="bakery-btn bakery-btn-outline bakery-btn-sm" @onclick="ResetAdvancedSearch">Đặt lại</button>
         </div>
     </div>
 
-    <!-- 4. Bảng Dữ Liệu Đơn Hàng -->
-    <div class="bakery-card overflow-hidden">
-        <div class="bakery-table-responsive">
-            <table id="orders-table" class="bakery-table">
-                <thead>
-                    <tr>
-                        <th style="width: 110px;">Mã Đơn</th>
-                        <th style="width: 125px;">Thời Gian</th>
-                        <th style="min-width: 220px;">Khách Hàng / Nhận Bánh</th>
-                        <th class="text-center" style="width: 85px;">Số Món</th>
-                        <th class="text-right" style="width: 135px;">Tổng Tiền</th>
-                        <th class="text-center" style="width: 120px;">Thanh Toán</th>
-                        <th class="text-center" style="width: 125px;">Trạng Thái</th>
-                        <th class="text-right" style="width: 240px; min-width: 240px;">Thao Tác</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @if (filteredOrders.Count == 0)
-                    {
-                        <tr>
-                            <td colspan="8" class="text-center py-12 text-slate-400">
-                                <iconify-icon icon="solar:box-minimalistic-linear" class="text-4xl text-slate-300 mb-2"></iconify-icon>
-                                <p class="text-xs font-semibold mb-0">Không có đơn hàng nào trong danh mục này</p>
-                                <p class="text-[11px] mb-0">Thử chọn tab trạng thái khác hoặc xóa tìm kiếm.</p>
-                            </td>
-                        </tr>
-                    }
-                    else
-                    {
-                        @foreach (var order in filteredOrders)
-                        {
-                            <tr>
-                                <!-- Mã đơn -->
-                                <td>
-                                    <span class="bakery-code-badge">#HD-@order.OrderID.ToString("D4")</span>
-                                </td>
+    <!-- 4. KHU VỰC HIỂN THỊ ĐƠN HÀNG: PHÂN BIỆT RÕ RỆT SHIPPER vs ADMIN/QUẦY -->
+    @if (isShipper)
+    {
+        <!-- ========================================================
+             GIAO DIỆN CHUYÊN DỤNG CHO SHIPPER (DELIVERY TASK CARDS)
+             Hiển thị trực quan: Người nhận, SĐT gọi điện, Địa chỉ mở Google Maps,
+             Danh sách món bánh, Số tiền thu COD / Đã trả, Nút nhận & giao to rõ.
+             ======================================================== -->
+        @if (filteredOrders.Count == 0)
+        {
+            <div class="bakery-card p-12 text-center text-slate-400">
+                <div class="w-16 h-16 mx-auto rounded-2xl bg-purple-50 dark:bg-purple-950/30 text-purple-600 dark:text-purple-400 flex items-center justify-center mb-3">
+                    <iconify-icon icon="solar:delivery-bold" class="text-3xl"></iconify-icon>
+                </div>
+                <h4 class="text-base font-bold text-slate-800 dark:text-slate-100 mb-1">Hiện không có đơn giao hàng nào</h4>
+                <p class="text-xs text-slate-500 mb-0">Khi quầy duyệt đơn online mới, đơn sẽ xuất hiện tại đây để bạn nhận đơn đi giao.</p>
+            </div>
+        }
+        else
+        {
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                @foreach (var order in filteredOrders)
+                {
+                    var receiverName = order.ReceiverName ?? order.Customer?.FullName ?? "Khách nhận bánh";
+                    var receiverPhone = !string.IsNullOrWhiteSpace(order.ReceiverPhone)
+                        ? order.ReceiverPhone
+                        : (order.Customer != null && order.Customer.FullName != "Khách vãng lai" ? order.Customer.Phone : null);
+                    var isPaid = order.PaymentStatus == PaymentStatus.Paid;
+                    var isDelivering = order.Status == OrderStatus.Shipping;
+                    var totalQty = order.OrderDetails?.Sum(d => d.Quantity) ?? 0;
 
-                                <!-- Thời gian -->
-                                <td class="text-xs text-slate-500">
-                                    <div class="font-medium text-slate-700 dark:text-slate-300">@order.OrderDate.ToString("dd/MM/yyyy")</div>
-                                    <div class="text-[11px] font-mono text-slate-400">@order.OrderDate.ToString("HH:mm")</div>
-                                </td>
-
-                                <!-- Khách hàng -->
-                                <td>
-                                    <div class="font-semibold text-xs text-slate-900 dark:text-white mb-0.5">
-                                        @(order.ReceiverName ?? order.Customer?.FullName ?? "Khách tại quầy")
+                    <article class="rounded-2xl bg-white p-4 shadow-sm border border-slate-100 flex flex-col justify-between @(isDelivering ? "ring-2 ring-emerald-100" : "")"
+                             style="border-radius:1rem;background:#fff;padding:1rem;box-shadow:0 1px 3px rgba(15,23,42,.08);">
+                        <div>
+                            <!-- Header Card: Mã đơn & Trạng thái -->
+                            <div class="flex items-start justify-between gap-2 pb-3 border-b border-dashed border-slate-200 dark:border-slate-700">
+                                <div>
+                                    <div class="flex items-center gap-2">
+                                        <span class="bakery-code-badge text-xs font-mono font-bold">#HD-@order.OrderID.ToString("D4")</span>
+                                        <span class="text-[11px] text-slate-500 flex items-center gap-1">
+                                            <iconify-icon icon="solar:calendar-linear"></iconify-icon>
+                                            @order.OrderDate.ToString("dd/MM HH:mm")
+                                        </span>
                                     </div>
-                                    @if (!string.IsNullOrWhiteSpace(order.ReceiverPhone))
+                                </div>
+                                <div>
+                                    @if (order.Status == OrderStatus.Confirmed)
                                     {
-                                        <div class="text-[11px] text-slate-500 flex items-center gap-1 mb-0.5">
-                                            <iconify-icon icon="solar:phone-linear" class="text-xs text-slate-400"></iconify-icon>
-                                            <span class="font-mono">@order.ReceiverPhone</span>
-                                        </div>
+                                        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
+                                            <iconify-icon icon="solar:clock-circle-bold"></iconify-icon> Chờ nhận giao
+                                        </span>
                                     }
-                                    else if (order.Customer != null && order.Customer.FullName != "Khách vãng lai" && !string.IsNullOrWhiteSpace(order.Customer.Phone))
+                                    else if (order.Status == OrderStatus.Shipping)
                                     {
-                                        <div class="text-[11px] text-slate-500 flex items-center gap-1 mb-0.5">
-                                            <iconify-icon icon="solar:phone-linear" class="text-xs text-slate-400"></iconify-icon>
-                                            <span class="font-mono">@order.Customer.Phone</span>
+                                        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-purple-100 text-purple-700 animate-pulse">
+                                            <iconify-icon icon="solar:delivery-bold"></iconify-icon> Đang đi giao
+                                        </span>
+                                    }
+                                    else if (order.Status == OrderStatus.Delivered)
+                                    {
+                                        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300">
+                                            <iconify-icon icon="solar:box-minimalistic-bold"></iconify-icon> Chờ khách nhận
+                                        </span>
+                                    }
+                                    else if (order.Status == OrderStatus.Completed)
+                                    {
+                                        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
+                                            <iconify-icon icon="solar:check-circle-bold"></iconify-icon> Hoàn tất
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="bakery-badge text-xs font-semibold">@order.Status</span>
+                                    }
+                                </div>
+                            </div>
+
+                            <!-- Khối Người Nhận & Địa Chỉ Giao (TRỰC QUAN NHẤT) -->
+                            <div class="mt-3 space-y-2.5">
+                                <!-- Tên khách & SĐT có nút gọi ngay -->
+                                <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700/70">
+                                    <div class="flex items-center gap-2.5">
+                                        <div class="w-9 h-9 rounded-full bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-300 flex items-center justify-center shrink-0">
+                                            <iconify-icon icon="solar:user-bold" class="text-lg"></iconify-icon>
+                                        </div>
+                                        <div class="min-w-0 flex-1">
+                                            <div class="text-sm font-bold text-slate-900 dark:text-white leading-tight truncate">
+                                                @receiverName
+                                            </div>
+                                            <div class="text-[11px] text-slate-400">Người nhận bánh</div>
+                                        </div>
+                                    </div>
+
+                                    @if (!string.IsNullOrWhiteSpace(receiverPhone))
+                                    {
+                                        <div class="flex items-center gap-2 mt-2.5 pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
+                                            <a href="tel:@receiverPhone" class="flex-1 py-1.5 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-xs transition-colors">
+                                                <iconify-icon icon="solar:phone-calling-bold" class="text-sm"></iconify-icon>
+                                                <span>Gọi: @receiverPhone</span>
+                                            </a>
+                                            <button type="button" @onclick="() => CopyPhone(receiverPhone)" class="py-1.5 px-2.5 rounded-lg bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-50 text-xs font-semibold flex items-center gap-1" title="Sao chép số điện thoại">
+                                                <iconify-icon icon="solar:copy-linear"></iconify-icon>
+                                                <span>Chép</span>
+                                            </button>
                                         </div>
                                     }
                                     else
                                     {
-                                        <div class="text-[11px] text-slate-400 dark:text-slate-500 flex items-center gap-1 mb-0.5">
-                                            <iconify-icon icon="solar:user-linear" class="text-xs text-slate-300 dark:text-slate-600"></iconify-icon>
-                                            <span>Không có SĐT (Vãng lai)</span>
+                                        <div class="mt-2 pt-2 border-t border-slate-200/60 dark:border-slate-700/60 text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                                            <iconify-icon icon="solar:danger-triangle-linear"></iconify-icon>
+                                            <span>Không có SĐT người nhận</span>
+                                        </div>
+                                    }
+                                </div>
+
+                                <!-- Địa chỉ giao hàng & Nút mở Google Maps chỉ đường -->
+                                <div class="p-3 rounded-xl bg-blue-50/50 dark:bg-blue-950/20 border border-blue-200/60 dark:border-blue-900/50">
+                                    <div class="flex items-start gap-2">
+                                        <iconify-icon icon="solar:map-point-wave-bold" class="text-rose-500 text-lg shrink-0 mt-0.5"></iconify-icon>
+                                        <div class="flex-1 min-w-0">
+                                            <div class="text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-0.5">Địa chỉ giao bánh:</div>
+                                            <div class="text-base font-semibold text-slate-900 leading-relaxed">
+                                                @(string.IsNullOrWhiteSpace(order.ShippingAddress) ? "Nhận bánh tại quầy (Không có địa chỉ giao)" : order.ShippingAddress)
+                                            </div>
+                                        </div>
+                                    </div>
+                                    @if (!string.IsNullOrWhiteSpace(order.ShippingAddress))
+                                    {
+                                        <div class="mt-2.5 pt-2 border-t border-blue-200/50 dark:border-blue-800/40">
+                                            <a href="https://www.google.com/maps/search/?api=1&query=@Uri.EscapeDataString(order.ShippingAddress)" target="_blank" class="w-full py-1.5 px-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-colors shadow-xs">
+                                                <iconify-icon icon="solar:routing-2-bold" class="text-base"></iconify-icon>
+                                                <span>Mở Google Maps chỉ đường</span>
+                                            </a>
+                                        </div>
+                                    }
+                                </div>
+
+                                <div class="grid grid-cols-2 gap-2">
+                                    @if (!string.IsNullOrWhiteSpace(receiverPhone))
+                                    {
+                                        <a href="tel:@receiverPhone" class="min-h-12 rounded-xl bg-blue-100 text-blue-700 font-bold text-sm flex items-center justify-center gap-1.5 active:scale-[0.98] transition-transform"
+                                           style="min-height:3rem;padding:.75rem;border-radius:.75rem;background:#dbeafe;color:#1d4ed8;font-weight:700;display:flex;align-items:center;justify-content:center;gap:.375rem;">
+                                            <iconify-icon icon="solar:phone-calling-bold" class="text-lg"></iconify-icon>
+                                            <span>Gọi khách</span>
+                                        </a>
+                                    }
+                                    else
+                                    {
+                                        <div class="min-h-12 rounded-xl bg-slate-100 text-slate-400 font-semibold text-xs flex items-center justify-center gap-1.5">
+                                            <iconify-icon icon="solar:phone-disabled-linear" class="text-lg"></iconify-icon>
+                                            <span>Thiếu SĐT</span>
                                         </div>
                                     }
                                     @if (!string.IsNullOrWhiteSpace(order.ShippingAddress))
                                     {
-                                        <div class="text-[11px] text-slate-500 truncate max-w-xs flex items-center gap-1" title="@order.ShippingAddress">
-                                            <iconify-icon icon="solar:map-point-linear" class="text-xs text-slate-400 shrink-0"></iconify-icon>
-                                            <span>@order.ShippingAddress</span>
+                                        <a href="https://www.google.com/maps/search/?api=1&query=@Uri.EscapeDataString(order.ShippingAddress)" target="_blank" rel="noopener" class="min-h-12 rounded-xl bg-emerald-100 text-emerald-700 font-bold text-sm flex items-center justify-center gap-1.5 active:scale-[0.98] transition-transform"
+                                           style="min-height:3rem;padding:.75rem;border-radius:.75rem;background:#dcfce7;color:#047857;font-weight:700;display:flex;align-items:center;justify-content:center;gap:.375rem;">
+                                            <iconify-icon icon="solar:routing-2-bold" class="text-lg"></iconify-icon>
+                                            <span>Chỉ đường</span>
+                                        </a>
+                                    }
+                                    else
+                                    {
+                                        <div class="min-h-12 rounded-xl bg-slate-100 text-slate-400 font-semibold text-xs flex items-center justify-center gap-1.5">
+                                            <iconify-icon icon="solar:map-point-remove-linear" class="text-lg"></iconify-icon>
+                                            <span>Không có địa chỉ</span>
                                         </div>
                                     }
-                                </td>
+                                </div>
 
-                                <!-- Số món -->
-                                <td class="text-center">
-                                    <button type="button" 
-                                            class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold transition-colors"
-                                            @onclick="() => OpenDetailModal(order)"
-                                            title="Bấm để xem danh sách món">
-                                        <span>@(order.OrderDetails?.Sum(d => d.Quantity) ?? 0)</span>
-                                        <span class="text-[11px] font-medium text-slate-500">món</span>
-                                    </button>
-                                </td>
-
-                                <!-- Tổng tiền -->
-                                <td class="text-right">
-                                    <div class="text-xs font-bold text-slate-900 dark:text-white">
-                                        @($"{order.FinalAmount:N0} đ")
+                                <!-- Ghi chú đơn nếu có -->
+                                @if (!string.IsNullOrWhiteSpace(order.Note))
+                                {
+                                    <div class="p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/40 text-xs text-amber-900 dark:text-amber-200 flex items-start gap-2">
+                                        <iconify-icon icon="solar:notes-bold" class="text-amber-600 text-base shrink-0 mt-0.5"></iconify-icon>
+                                        <div class="flex-1">
+                                            <strong class="font-bold">Lưu ý của khách:</strong>
+                                            <div class="mt-0.5 font-medium">@order.Note</div>
+                                        </div>
                                     </div>
-                                    @if (order.DiscountAmount > 0)
-                                    {
-                                        <div class="text-[10px] text-emerald-600 font-medium">
-                                            -@($"{order.DiscountAmount:N0}đ")
-                                        </div>
-                                    }
-                                </td>
+                                }
+                            </div>
 
-                                <!-- Thanh toán -->
-                                <td class="text-center">
-                                    <span class="bakery-badge @(order.PaymentStatus == "Paid" ? "bakery-badge-success" : "bakery-badge-warning") text-[10px] py-0.5 px-2">
-                                        @(order.PaymentStatus == "Paid" ? "Đã trả" : "Chưa trả")
+                            <!-- Danh Sách Món Bánh Cần Giao (HIỂN THỊ TRỰC TIẾP TRÊN CARD) -->
+                            <div class="mt-3 pt-3 border-t border-slate-200/70 dark:border-slate-800">
+                                <div class="flex items-center justify-between text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">
+                                    <span class="flex items-center gap-1.5">
+                                        <iconify-icon icon="solar:box-minimalistic-bold" class="text-primary text-sm"></iconify-icon>
+                                        <span>Chi tiết món giao:</span>
                                     </span>
-                                    <div class="text-[10px] text-slate-400 mt-1 font-medium">@order.PaymentMethod</div>
-                                </td>
+                                    <span class="text-primary font-bold">@totalQty món bánh</span>
+                                </div>
 
-                                <!-- Trạng thái -->
-                                <td class="text-center">
-                                    @switch (order.Status)
+                                <div class="space-y-1.5 max-h-36 overflow-y-auto pr-1">
+                                    @if (order.OrderDetails != null && order.OrderDetails.Any())
                                     {
-                                        case OrderStatus.Pending:
-                                            <span class="bakery-badge bakery-badge-warning text-xs font-semibold">Chờ duyệt</span>
-                                            break;
-                                        case OrderStatus.Confirmed:
-                                            <span class="bakery-badge bakery-badge-primary text-xs font-semibold">Đã duyệt</span>
-                                            break;
-                                        case OrderStatus.InProgress:
-                                            <span class="bakery-badge bakery-badge-warning text-xs font-semibold">Đang chuẩn bị</span>
-                                            break;
-                                        case OrderStatus.Shipping:
-                                            <span class="bakery-badge bakery-badge-secondary text-xs font-semibold" style="background-color: #f3e8ff; color: #7e22ce;">Đang giao</span>
-                                            break;
-                                        case OrderStatus.Completed:
-                                            <span class="bakery-badge bakery-badge-success text-xs font-semibold">Hoàn tất</span>
-                                            break;
-                                        case OrderStatus.Cancelled:
-                                            <span class="bakery-badge bakery-badge-error text-xs font-semibold">Đã hủy</span>
-                                            break;
-                                        default:
-                                            <span class="bakery-badge text-xs">@order.Status</span>
-                                            break;
-                                    }
-                                </td>
-
-                                <!-- Thao tác Xử lý đơn hàng -->
-                                <td class="text-right">
-                                    <div class="bakery-order-actions-wrap">
-                                        @if (order.Status == OrderStatus.Pending && !isShipper)
+                                        @foreach (var detail in order.OrderDetails)
                                         {
-                                            <button type="button" 
-                                                    class="bakery-order-btn-action bakery-order-btn-blue"
-                                                    title="Duyệt đơn và chuyển sang chuẩn bị hàng"
-                                                    @onclick='() => ChangeOrderStatus(order, OrderStatus.Confirmed)'>
-                                                <iconify-icon icon="solar:check-circle-linear"></iconify-icon>
-                                                <span>Duyệt</span>
-                                            </button>
-                                            <button type="button" 
-                                                    class="bakery-order-btn-action bakery-order-btn-cancel"
-                                                    title="Hủy đơn hàng này"
-                                                    @onclick="() => CancelOrder(order)">
-                                                <iconify-icon icon="solar:close-circle-linear"></iconify-icon>
-                                                <span>Hủy</span>
-                                            </button>
+                                            <div class="flex items-center justify-between text-xs py-1.5 px-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
+                                                <div class="min-w-0 pr-2">
+                                                    <div class="font-semibold text-slate-900 dark:text-white truncate">
+                                                        @detail.Product?.ProductName
+                                                    </div>
+                                                    <div class="text-[10px] text-slate-400">
+                                                        @detail.Product?.Category?.CategoryName &bull; @($"{detail.UnitPrice:N0} đ")
+                                                    </div>
+                                                </div>
+                                                <div class="text-right shrink-0">
+                                                    <span class="inline-flex items-center justify-center px-2 py-0.5 rounded bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 font-bold text-xs">
+                                                        x @detail.Quantity
+                                                    </span>
+                                                </div>
+                                            </div>
                                         }
-                                        else if (order.Status == OrderStatus.Confirmed)
+                                    }
+                                    else
+                                    {
+                                        <div class="text-xs text-slate-400 italic">Không có chi tiết món</div>
+                                    }
+                                </div>
+                            </div>
+
+                            <!-- Khối Tiền Cần Thu (COD / Đã Thanh Toán) -->
+                            <div class="mt-3">
+                                @if (isPaid)
+                                {
+                                    <div class="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 flex items-center justify-between">
+                                        <div>
+                                            <div class="text-xs font-bold text-emerald-800 dark:text-emerald-300 flex items-center gap-1">
+                                                <iconify-icon icon="solar:check-circle-bold" class="text-base text-emerald-600"></iconify-icon>
+                                                <span>ĐÃ THANH TOÁN ONLINE</span>
+                                            </div>
+                                            <div class="text-[11px] text-emerald-700 dark:text-emerald-400 mt-0.5">
+                                                Không thu thêm tiền của khách (@order.PaymentMethod)
+                                            </div>
+                                        </div>
+                                        <div class="text-right">
+                                            <div class="text-sm font-extrabold text-emerald-700 dark:text-emerald-300 font-mono">
+                                                @($"{order.FinalAmount:N0} đ")
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border-2 border-amber-400 dark:border-amber-600 flex items-center justify-between shadow-xs">
+                                        <div>
+                                            <div class="text-xs font-extrabold text-amber-900 dark:text-amber-200 flex items-center gap-1.5">
+                                                <iconify-icon icon="solar:wallet-money-bold" class="text-lg text-amber-600"></iconify-icon>
+                                                <span>CẦN THU TIỀN MẶT (COD):</span>
+                                            </div>
+                                            <div class="text-[11px] text-amber-700 dark:text-amber-300 font-medium mt-0.5">
+                                                Thu đúng tiền khi giao bánh
+                                            </div>
+                                        </div>
+                                        <div class="text-right">
+                                            <div class="text-xl font-bold text-rose-600 dark:text-rose-400 font-mono">
+                                                @($"{order.FinalAmount:N0} đ")
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+
+                        <!-- Nút Thao Tác To Dưới Đáy Thẻ -->
+                        <div class="mt-4 pt-3 border-t border-slate-200 dark:border-slate-800 space-y-2"
+                             style="margin-top:1rem;padding-top:.75rem;border-top:1px solid #e2e8f0;display:flex;flex-direction:column;gap:.5rem;">
+                            @if (order.Status == OrderStatus.Confirmed)
+                            {
+                                <button type="button" 
+                                        class="w-full py-3.5 px-4 rounded-xl bg-blue-700 hover:bg-blue-800 active:scale-[0.99] text-white font-bold text-sm flex items-center justify-center gap-2 shadow-sm transition-all"
+                                        style="width:100%;min-height:3.25rem;padding:.875rem;border-radius:.75rem;background:#1d4ed8;color:#fff;font-weight:700;font-size:.875rem;display:flex;align-items:center;justify-content:center;gap:.5rem;"
+                                        @onclick='() => ChangeOrderStatus(order, OrderStatus.Shipping)'>
+                                    <iconify-icon icon="solar:delivery-bold" class="text-xl"></iconify-icon>
+                                    <span>📦 NHẬN GIAO ĐƠN NÀY</span>
+                                </button>
+                            }
+                            else if (order.Status == OrderStatus.Shipping)
+                            {
+                                <button type="button" 
+                                        class="w-full py-3.5 px-4 rounded-xl bg-amber-600 hover:bg-amber-700 active:scale-[0.99] text-white font-bold text-sm flex items-center justify-center gap-2 shadow-sm transition-all"
+                                        style="width:100%;min-height:3.25rem;padding:.875rem;border-radius:.75rem;background:#d97706;color:#fff;font-weight:700;font-size:.875rem;display:flex;align-items:center;justify-content:center;gap:.5rem;"
+                                        @onclick='() => ChangeOrderStatus(order, OrderStatus.Delivered)'>
+                                    <iconify-icon icon="solar:box-minimalistic-bold" class="text-xl"></iconify-icon>
+                                    <span>📦 BÁO ĐÃ GIAO BÁNH TỚI NƠI</span>
+                                </button>
+                            }
+                            else if (order.Status == OrderStatus.Delivered)
+                            {
+                                <div class="p-3 rounded-xl bg-sky-50 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-800 text-xs text-sky-800 dark:text-sky-300 flex items-center gap-2 font-medium">
+                                    <iconify-icon icon="solar:clock-circle-bold" class="text-sky-600 text-lg shrink-0"></iconify-icon>
+                                    <span>Đã báo giao bánh tới nơi. Đang chờ khách bấm xác nhận nhận bánh trên Mobile App để hoàn tất đơn.</span>
+                                </div>
+                            }
+                            else if (order.Status == OrderStatus.Completed)
+                            {
+                                <div class="p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 text-xs text-emerald-800 dark:text-emerald-300 flex items-center justify-center gap-1.5 font-bold">
+                                    <iconify-icon icon="solar:check-circle-bold" class="text-emerald-600 text-base"></iconify-icon>
+                                    <span>Đơn hàng đã hoàn tất thành công</span>
+                                </div>
+                            }
+
+                            <button type="button" 
+                                    class="w-full py-1.5 px-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
+                                    @onclick="() => OpenDetailModal(order)">
+                                <iconify-icon icon="solar:bill-check-linear" class="text-sm text-primary"></iconify-icon>
+                                <span>Xem chi tiết hóa đơn (bill)</span>
+                            </button>
+                        </div>
+                        </article>
+                }
+            </div>
+        }
+    }
+    else
+    {
+        <!-- ========================================================
+             BẢNG DỮ LIỆU ĐƠN HÀNG DÀNH CHO ADMIN & NHÂN VIÊN QUẦY
+             Đã loại bỏ hoàn toàn chữ "Bắt đầu làm" / "Bếp làm bánh".
+             Sản phẩm nhập sẵn chỉ cần duyệt -> đóng gói / xuất giao shipper.
+             ======================================================== -->
+        <div class="bakery-card overflow-hidden">
+            <div class="bakery-table-responsive">
+                <table id="orders-table" class="bakery-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 110px;">Mã Đơn</th>
+                            <th style="width: 125px;">Thời Gian</th>
+                            <th style="min-width: 220px;">Khách Hàng / Nhận Bánh</th>
+                            <th class="text-center" style="width: 85px;">Số Món</th>
+                            <th class="text-right" style="width: 135px;">Tổng Tiền</th>
+                            <th class="text-center" style="width: 120px;">Thanh Toán</th>
+                            <th class="text-center" style="width: 125px;">Trạng Thái</th>
+                            <th class="text-right" style="width: 240px; min-width: 240px;">Thao Tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (filteredOrders.Count == 0)
+                        {
+                            <tr>
+                                <td colspan="8" class="text-center py-12 text-slate-400">
+                                    <iconify-icon icon="solar:box-minimalistic-linear" class="text-4xl text-slate-300 mb-2"></iconify-icon>
+                                    <p class="text-xs font-semibold mb-0">Không có đơn hàng nào trong danh mục này</p>
+                                    <p class="text-[11px] mb-0">Thử chọn tab trạng thái khác hoặc xóa tìm kiếm.</p>
+                                </td>
+                            </tr>
+                        }
+                        else
+                        {
+                            @foreach (var order in filteredOrders)
+                            {
+                                <tr>
+                                    <!-- Mã đơn -->
+                                    <td>
+                                        <span class="bakery-code-badge">#HD-@order.OrderID.ToString("D4")</span>
+                                    </td>
+
+                                    <!-- Thời gian -->
+                                    <td class="text-xs text-slate-500">
+                                        <div class="font-medium text-slate-700 dark:text-slate-300">@order.OrderDate.ToString("dd/MM/yyyy")</div>
+                                        <div class="text-[11px] font-mono text-slate-400">@order.OrderDate.ToString("HH:mm")</div>
+                                    </td>
+
+                                    <!-- Khách hàng -->
+                                    <td>
+                                        <div class="font-semibold text-xs text-slate-900 dark:text-white mb-0.5">
+                                            @(order.ReceiverName ?? order.Customer?.FullName ?? "Khách tại quầy")
+                                        </div>
+                                        @if (!string.IsNullOrWhiteSpace(order.ReceiverPhone))
                                         {
-                                            @if (isShipper)
-                                            {
-                                                <button type="button" 
-                                                        class="bakery-order-btn-action bakery-order-btn-purple"
-                                                        title="Nhận đơn và bắt đầu giao cho khách"
-                                                        @onclick='() => ChangeOrderStatus(order, OrderStatus.Shipping)'>
-                                                    <iconify-icon icon="solar:delivery-linear"></iconify-icon>
-                                                    <span>Nhận giao</span>
-                                                </button>
-                                            }
-                                            else
+                                            <div class="text-[11px] text-slate-500 flex items-center gap-1 mb-0.5">
+                                                <iconify-icon icon="solar:phone-linear" class="text-xs text-slate-400"></iconify-icon>
+                                                <span class="font-mono">@order.ReceiverPhone</span>
+                                            </div>
+                                        }
+                                        else if (order.Customer != null && order.Customer.FullName != "Khách vãng lai" && !string.IsNullOrWhiteSpace(order.Customer.Phone))
+                                        {
+                                            <div class="text-[11px] text-slate-500 flex items-center gap-1 mb-0.5">
+                                                <iconify-icon icon="solar:phone-linear" class="text-xs text-slate-400"></iconify-icon>
+                                                <span class="font-mono">@order.Customer.Phone</span>
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <div class="text-[11px] text-slate-400 dark:text-slate-500 flex items-center gap-1 mb-0.5">
+                                                <iconify-icon icon="solar:user-linear" class="text-xs text-slate-300 dark:text-slate-600"></iconify-icon>
+                                                <span>Không có SĐT</span>
+                                            </div>
+                                        }
+                                        @if (!string.IsNullOrWhiteSpace(order.ShippingAddress))
+                                        {
+                                            <div class="text-[11px] text-slate-500 truncate max-w-xs flex items-center gap-1" title="@order.ShippingAddress">
+                                                <iconify-icon icon="solar:map-point-linear" class="text-xs text-slate-400 shrink-0"></iconify-icon>
+                                                <span>@order.ShippingAddress</span>
+                                            </div>
+                                        }
+                                    </td>
+
+                                    <!-- Số món -->
+                                    <td class="text-center">
+                                        <button type="button" 
+                                                class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold transition-colors"
+                                                @onclick="() => OpenDetailModal(order)"
+                                                title="Bấm để xem danh sách món">
+                                            <span>@(order.OrderDetails?.Sum(d => d.Quantity) ?? 0)</span>
+                                            <span class="text-[11px] font-medium text-slate-500">món</span>
+                                        </button>
+                                    </td>
+
+                                    <!-- Tổng tiền -->
+                                    <td class="text-right">
+                                        <div class="text-xs font-bold text-slate-900 dark:text-white">
+                                            @($"{order.FinalAmount:N0} đ")
+                                        </div>
+                                        @if (order.DiscountAmount > 0)
+                                        {
+                                            <div class="text-[10px] text-emerald-600 font-medium">
+                                                -@($"{order.DiscountAmount:N0}đ")
+                                            </div>
+                                        }
+                                    </td>
+
+                                    <!-- Thanh toán -->
+                                    <td class="text-center">
+                                        <span class="bakery-badge @(order.PaymentStatus == "Paid" ? "bakery-badge-success" : "bakery-badge-warning") text-[10px] py-0.5 px-2">
+                                            @(order.PaymentStatus == "Paid" ? "Đã trả" : "Chưa trả")
+                                        </span>
+                                        <div class="text-[10px] text-slate-400 mt-1 font-medium">@order.PaymentMethod</div>
+                                    </td>
+
+                                    <!-- Trạng thái -->
+                                    <td class="text-center">
+                                        @switch (order.Status)
+                                        {
+                                            case OrderStatus.Pending:
+                                                <span class="bakery-badge bakery-badge-warning text-xs font-semibold">Chờ duyệt</span>
+                                                break;
+                                            case OrderStatus.Confirmed:
+                                                <span class="bakery-badge bakery-badge-primary text-xs font-semibold">Đã duyệt (Chờ shipper nhận)</span>
+                                                break;
+                                            case OrderStatus.InProgress:
+                                                <span class="bakery-badge bakery-badge-warning text-xs font-semibold">Đang đóng gói</span>
+                                                break;
+                                            case OrderStatus.Shipping:
+                                                <span class="bakery-badge bakery-badge-secondary text-xs font-semibold" style="background-color: #f3e8ff; color: #7e22ce;">Shipper đang giao</span>
+                                                break;
+                                            case OrderStatus.Delivered:
+                                                <span class="bakery-badge text-xs font-semibold" style="background-color: #e0f2fe; color: #0369a1;">Đã giao (Chờ khách nhận)</span>
+                                                break;
+                                            case OrderStatus.Completed:
+                                                <span class="bakery-badge bakery-badge-success text-xs font-semibold">Hoàn tất</span>
+                                                break;
+                                            case OrderStatus.Cancelled:
+                                                <span class="bakery-badge bakery-badge-error text-xs font-semibold">Đã hủy</span>
+                                                break;
+                                            default:
+                                                <span class="bakery-badge text-xs">@order.Status</span>
+                                                break;
+                                        }
+                                    </td>
+
+                                    <!-- Thao tác Xử lý đơn hàng của Quầy / Admin -->
+                                    <td class="text-right">
+                                        <div class="bakery-order-actions-wrap">
+                                            @if (order.Status == OrderStatus.Pending)
                                             {
                                                 <button type="button" 
                                                         class="bakery-order-btn-action bakery-order-btn-blue"
-                                                        title="Bắt đầu chuẩn bị đơn"
-                                                        @onclick='() => ChangeOrderStatus(order, OrderStatus.InProgress)'>
-                                                    <iconify-icon icon="solar:box-minimalistic-linear"></iconify-icon>
-                                                    <span>Chuẩn bị</span>
+                                                        title="Duyệt đơn và giữ tồn kho bánh"
+                                                        @onclick='() => ChangeOrderStatus(order, OrderStatus.Confirmed)'>
+                                                    <iconify-icon icon="solar:check-circle-linear"></iconify-icon>
+                                                    <span>Duyệt</span>
                                                 </button>
                                                 <button type="button" 
                                                         class="bakery-order-btn-action bakery-order-btn-cancel"
                                                         title="Hủy đơn hàng này"
                                                         @onclick="() => CancelOrder(order)">
+                                                    <iconify-icon icon="solar:close-circle-linear"></iconify-icon>
                                                     <span>Hủy</span>
                                                 </button>
                                             }
-                                        }
-                                        else if (order.Status == OrderStatus.InProgress && !isShipper)
-                                        {
+                                            else if (order.Status == OrderStatus.Confirmed)
+                                            {
+                                                <span class="text-[11px] text-blue-600 dark:text-blue-400 font-medium mr-1 flex items-center gap-1">
+                                                    <iconify-icon icon="solar:clock-circle-linear"></iconify-icon> Chờ shipper
+                                                </span>
+                                                <button type="button" 
+                                                        class="bakery-order-btn-action bakery-order-btn-cancel"
+                                                        title="Hủy đơn hàng này trước khi shipper nhận"
+                                                        @onclick="() => CancelOrder(order)">
+                                                    <iconify-icon icon="solar:close-circle-linear"></iconify-icon>
+                                                    <span>Hủy</span>
+                                                </button>
+                                            }
+                                            else if (order.Status == OrderStatus.Shipping)
+                                            {
+                                                <span class="text-[11px] text-purple-600 dark:text-purple-400 font-medium mr-1 flex items-center gap-1">
+                                                    <iconify-icon icon="solar:delivery-bold"></iconify-icon> Đang giao
+                                                </span>
+                                            }
+                                            else if (order.Status == OrderStatus.Delivered)
+                                            {
+                                                <span class="text-[11px] text-sky-600 dark:text-sky-400 font-medium mr-1 flex items-center gap-1">
+                                                    <iconify-icon icon="solar:box-minimalistic-bold"></iconify-icon> Chờ khách nhận
+                                                </span>
+                                            }
+                                            else if (order.Status == OrderStatus.Completed)
+                                            {
+                                                <span class="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium mr-1 flex items-center gap-1">
+                                                    <iconify-icon icon="solar:check-circle-bold"></iconify-icon> Hoàn tất
+                                                </span>
+                                            }
+
+                                            <!-- Nút xem chi tiết / In hóa đơn -->
                                             <button type="button" 
-                                                    class="bakery-order-btn-action bakery-order-btn-purple"
-                                                    title="Chuyển đơn sang trạng thái đang giao"
-                                                    @onclick='() => ChangeOrderStatus(order, OrderStatus.Shipping)'>
-                                                <iconify-icon icon="solar:delivery-linear"></iconify-icon>
-                                                <span>Giao</span>
+                                                    class="bakery-order-btn-action bakery-order-btn-view"
+                                                    title="Xem chi tiết các món trong đơn"
+                                                    @onclick="() => OpenDetailModal(order)">
+                                                <iconify-icon icon="solar:eye-linear"></iconify-icon>
+                                                <span>Xem bill</span>
                                             </button>
-                                            <button type="button" class="bakery-order-btn-action bakery-order-btn-cancel"
-                                                    title="Hủy đơn hàng này" @onclick="() => CancelOrder(order)">
-                                                <span>Hủy</span>
-                                            </button>
-                                        }
-                                        else if (order.Status == OrderStatus.Shipping)
-                                        {
-                                            <button type="button" 
-                                                    class="bakery-order-btn-action bakery-order-btn-green"
-                                                    title="Xác nhận khách đã nhận bánh thành công"
-                                                    @onclick='() => ChangeOrderStatus(order, OrderStatus.Completed)'>
-                                                <iconify-icon icon="solar:check-circle-bold"></iconify-icon>
-                                                <span>@(isShipper ? "Giao xong" : "Hoàn tất")</span>
-                                            </button>
-                                        }
-
-                                        <!-- Nút xem chi tiết / In hóa đơn -->
-                                        <button type="button" 
-                                                class="bakery-order-btn-action bakery-order-btn-view"
-                                                title="Xem chi tiết các món trong đơn"
-                                                @onclick="() => OpenDetailModal(order)">
-                                            <iconify-icon icon="solar:eye-linear"></iconify-icon>
-                                            <span>Xem bill</span>
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                        }
-                    }
-                </tbody>
-            </table>
-        </div>
-
-        <div class="orders-mobile-list">
-            @if (filteredOrders.Count == 0)
-            {
-                <div class="order-mobile-empty">
-                    <iconify-icon icon="solar:box-minimalistic-linear"></iconify-icon>
-                    <p>Không có đơn hàng nào trong danh mục này</p>
-                </div>
-            }
-            else
-            {
-                @foreach (var order in filteredOrders)
-                {
-                    var receiverName = order.ReceiverName ?? order.Customer?.FullName ?? "Khách tại quầy";
-                    var receiverPhone = !string.IsNullOrWhiteSpace(order.ReceiverPhone)
-                        ? order.ReceiverPhone
-                        : (order.Customer != null && order.Customer.FullName != "Khách vãng lai" ? order.Customer.Phone : null);
-
-                    <article class="order-mobile-card">
-                        <div class="order-mobile-head">
-                            <span class="bakery-code-badge">#HD-@order.OrderID.ToString("D4")</span>
-                            <span class="bakery-badge @GetStatusBadgeClass(order.Status) text-[10px]">@GetStatusLabel(order.Status)</span>
-                        </div>
-
-                        <div class="order-mobile-main">
-                            <div class="order-mobile-customer">@receiverName</div>
-                            <div class="order-mobile-amount">@($"{order.FinalAmount:N0} đ")</div>
-                        </div>
-
-                        @if (!string.IsNullOrWhiteSpace(receiverPhone))
-                        {
-                            <a class="order-mobile-phone" href="tel:@receiverPhone">
-                                <iconify-icon icon="solar:phone-bold"></iconify-icon>
-                                <span>@receiverPhone</span>
-                            </a>
-                        }
-                        else
-                        {
-                            <div class="order-mobile-phone is-muted">
-                                <iconify-icon icon="solar:user-linear"></iconify-icon>
-                                <span>Không có SĐT</span>
-                            </div>
-                        }
-
-                        @if (!string.IsNullOrWhiteSpace(order.ShippingAddress))
-                        {
-                            <div class="order-mobile-address">
-                                <iconify-icon icon="solar:map-point-linear"></iconify-icon>
-                                <span>@order.ShippingAddress</span>
-                            </div>
-                        }
-
-                        <div class="order-mobile-meta">
-                            <span><iconify-icon icon="solar:calendar-linear"></iconify-icon> @order.OrderDate.ToString("dd/MM HH:mm")</span>
-                            <span><iconify-icon icon="solar:bag-5-linear"></iconify-icon> @(order.OrderDetails?.Sum(d => d.Quantity) ?? 0) món</span>
-                            <span class="bakery-badge @(order.PaymentStatus == "Paid" ? "bakery-badge-success" : "bakery-badge-warning") text-[10px]">
-                                @(order.PaymentStatus == "Paid" ? "Đã trả" : "Chưa trả")
-                            </span>
-                            <span class="order-mobile-payment-method">@order.PaymentMethod</span>
-                        </div>
-
-                        <div class="order-mobile-actions">
-                            @if (order.Status == OrderStatus.Pending && !isShipper)
-                            {
-                                <button type="button" class="bakery-order-btn-action bakery-order-btn-blue"
-                                        @onclick='() => ChangeOrderStatus(order, OrderStatus.Confirmed)'>
-                                    <iconify-icon icon="solar:check-circle-linear"></iconify-icon>
-                                    <span>Duyệt</span>
-                                </button>
-                                <button type="button" class="bakery-order-btn-action bakery-order-btn-cancel"
-                                        @onclick="() => CancelOrder(order)">
-                                    <span>Hủy</span>
-                                </button>
+                                        </div>
+                                    </td>
+                                </tr>
                             }
-                            else if (order.Status == OrderStatus.Confirmed)
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Mobile View dành cho Admin/Nhân viên trên điện thoại -->
+            <div class="orders-mobile-list">
+                @if (filteredOrders.Count == 0)
+                {
+                    <div class="order-mobile-empty">
+                        <iconify-icon icon="solar:box-minimalistic-linear"></iconify-icon>
+                        <p>Không có đơn hàng nào trong danh mục này</p>
+                    </div>
+                }
+                else
+                {
+                    @foreach (var order in filteredOrders)
+                    {
+                        var receiverName = order.ReceiverName ?? order.Customer?.FullName ?? "Khách tại quầy";
+                        var receiverPhone = !string.IsNullOrWhiteSpace(order.ReceiverPhone)
+                            ? order.ReceiverPhone
+                            : (order.Customer != null && order.Customer.FullName != "Khách vãng lai" ? order.Customer.Phone : null);
+
+                        <article class="order-mobile-card">
+                            <div class="order-mobile-head">
+                                <span class="bakery-code-badge">#HD-@order.OrderID.ToString("D4")</span>
+                                <span class="bakery-badge @GetStatusBadgeClass(order.Status) text-[10px]">@GetStatusLabel(order.Status)</span>
+                            </div>
+
+                            <div class="order-mobile-main">
+                                <div class="order-mobile-customer">@receiverName</div>
+                                <div class="order-mobile-amount">@($"{order.FinalAmount:N0} đ")</div>
+                            </div>
+
+                            @if (!string.IsNullOrWhiteSpace(receiverPhone))
                             {
-                                @if (isShipper)
-                                {
-                                    <button type="button" class="bakery-order-btn-action bakery-order-btn-purple"
-                                            @onclick='() => ChangeOrderStatus(order, OrderStatus.Shipping)'>
-                                        <iconify-icon icon="solar:delivery-linear"></iconify-icon>
-                                        <span>Nhận giao</span>
-                                    </button>
-                                }
-                                else
+                                <a class="order-mobile-phone" href="tel:@receiverPhone">
+                                    <iconify-icon icon="solar:phone-bold"></iconify-icon>
+                                    <span>@receiverPhone</span>
+                                </a>
+                            }
+                            else
+                            {
+                                <div class="order-mobile-phone is-muted">
+                                    <iconify-icon icon="solar:user-linear"></iconify-icon>
+                                    <span>Không có SĐT</span>
+                                </div>
+                            }
+
+                            @if (!string.IsNullOrWhiteSpace(order.ShippingAddress))
+                            {
+                                <div class="order-mobile-address">
+                                    <iconify-icon icon="solar:map-point-linear"></iconify-icon>
+                                    <span>@order.ShippingAddress</span>
+                                </div>
+                            }
+
+                            <div class="order-mobile-meta">
+                                <span><iconify-icon icon="solar:calendar-linear"></iconify-icon> @order.OrderDate.ToString("dd/MM HH:mm")</span>
+                                <span><iconify-icon icon="solar:bag-5-linear"></iconify-icon> @(order.OrderDetails?.Sum(d => d.Quantity) ?? 0) món</span>
+                                <span class="bakery-badge @(order.PaymentStatus == "Paid" ? "bakery-badge-success" : "bakery-badge-warning") text-[10px]">
+                                    @(order.PaymentStatus == "Paid" ? "Đã trả" : "Chưa trả")
+                                </span>
+                                <span class="order-mobile-payment-method">@order.PaymentMethod</span>
+                            </div>
+
+                            <div class="order-mobile-actions">
+                                @if (order.Status == OrderStatus.Pending)
                                 {
                                     <button type="button" class="bakery-order-btn-action bakery-order-btn-blue"
-                                            @onclick='() => ChangeOrderStatus(order, OrderStatus.InProgress)'>
-                                        <iconify-icon icon="solar:box-minimalistic-linear"></iconify-icon>
-                                        <span>Chuẩn bị</span>
+                                            @onclick='() => ChangeOrderStatus(order, OrderStatus.Confirmed)'>
+                                        <iconify-icon icon="solar:check-circle-linear"></iconify-icon>
+                                        <span>Duyệt</span>
                                     </button>
                                     <button type="button" class="bakery-order-btn-action bakery-order-btn-cancel"
                                             @onclick="() => CancelOrder(order)">
                                         <span>Hủy</span>
                                     </button>
                                 }
-                            }
-                            else if (order.Status == OrderStatus.InProgress && !isShipper)
-                            {
-                                <button type="button" class="bakery-order-btn-action bakery-order-btn-purple"
-                                        @onclick='() => ChangeOrderStatus(order, OrderStatus.Shipping)'>
-                                    <iconify-icon icon="solar:delivery-linear"></iconify-icon>
-                                    <span>Giao</span>
-                                </button>
-                                <button type="button" class="bakery-order-btn-action bakery-order-btn-cancel"
-                                        @onclick="() => CancelOrder(order)">
-                                    <span>Hủy</span>
-                                </button>
-                            }
-                            else if (order.Status == OrderStatus.Shipping)
-                            {
-                                <button type="button" class="bakery-order-btn-action bakery-order-btn-green"
-                                        @onclick='() => ChangeOrderStatus(order, OrderStatus.Completed)'>
-                                    <iconify-icon icon="solar:check-circle-bold"></iconify-icon>
-                                    <span>@(isShipper ? "Giao xong" : "Hoàn tất")</span>
-                                </button>
-                            }
+                                else if (order.Status == OrderStatus.Confirmed)
+                                {
+                                    <span class="text-[11px] text-blue-600 font-medium flex items-center gap-1">
+                                        <iconify-icon icon="solar:clock-circle-linear"></iconify-icon> Chờ shipper nhận
+                                    </span>
+                                    <button type="button" class="bakery-order-btn-action bakery-order-btn-cancel"
+                                            @onclick="() => CancelOrder(order)">
+                                        <span>Hủy</span>
+                                    </button>
+                                }
+                                else if (order.Status == OrderStatus.Shipping)
+                                {
+                                    <span class="text-[11px] text-purple-600 font-medium flex items-center gap-1">
+                                        <iconify-icon icon="solar:delivery-bold"></iconify-icon> Shipper đang giao
+                                    </span>
+                                }
+                                else if (order.Status == OrderStatus.Delivered)
+                                {
+                                    <span class="text-[11px] text-sky-600 font-medium flex items-center gap-1">
+                                        <iconify-icon icon="solar:box-minimalistic-bold"></iconify-icon> Chờ khách nhận bánh
+                                    </span>
+                                }
+                                else if (order.Status == OrderStatus.Completed)
+                                {
+                                    <span class="text-[11px] text-emerald-600 font-medium flex items-center gap-1">
+                                        <iconify-icon icon="solar:check-circle-bold"></iconify-icon> Hoàn tất
+                                    </span>
+                                }
 
-                            <button type="button" class="bakery-order-btn-action bakery-order-btn-view"
-                                    @onclick="() => OpenDetailModal(order)">
-                                <iconify-icon icon="solar:eye-linear"></iconify-icon>
-                                <span>Xem bill</span>
-                            </button>
-                        </div>
-                    </article>
+                                <button type="button" class="bakery-order-btn-action bakery-order-btn-view"
+                                        @onclick="() => OpenDetailModal(order)">
+                                    <iconify-icon icon="solar:eye-linear"></iconify-icon>
+                                    <span>Xem bill</span>
+                                </button>
+                            </div>
+                        </article>
+                    }
                 }
-            }
+            </div>
         </div>
-    </div>
+    }
 </div>
 
 <!-- ================= MODAL CHI TIẾT HÓA ĐƠN (MODERN POP-UP) ================= -->
@@ -595,176 +898,180 @@
                                     <span class="bakery-badge bakery-badge-warning text-xs font-semibold">Chờ duyệt</span>
                                     break;
                                 case OrderStatus.Confirmed:
-                                    <span class="bakery-badge bakery-badge-primary text-xs font-semibold">Đã duyệt</span>
+                                    <span class="bakery-badge bakery-badge-primary text-xs font-semibold">Đã duyệt / Sẵn sàng</span>
                                     break;
                                 case OrderStatus.InProgress:
-                                    <span class="bakery-badge bakery-badge-warning text-xs font-semibold">Đang chuẩn bị</span>
+                                    <span class="bakery-badge bakery-badge-warning text-xs font-semibold">Đang đóng gói</span>
                                     break;
                                 case OrderStatus.Shipping:
-                                    <span class="bakery-badge bakery-badge-purple text-xs font-semibold">Đang giao hàng</span>
+                                    <span class="bakery-badge bakery-badge-secondary text-xs font-semibold" style="background-color: #f3e8ff; color: #7e22ce;">Đang giao</span>
                                     break;
                                 case OrderStatus.Completed:
-                                    <span class="bakery-badge bakery-badge-success text-xs font-semibold">Đã hoàn tất</span>
+                                    <span class="bakery-badge bakery-badge-success text-xs font-semibold">Hoàn tất</span>
                                     break;
                                 case OrderStatus.Cancelled:
-                                    <span class="bakery-badge bakery-badge-danger text-xs font-semibold">Đã hủy đơn</span>
+                                    <span class="bakery-badge bakery-badge-error text-xs font-semibold">Đã hủy</span>
                                     break;
                                 default:
                                     <span class="bakery-badge text-xs">@selectedOrder.Status</span>
                                     break;
                             }
                         </h3>
-                        <div class="bakery-bill-subtitle">
-                            <span><iconify-icon icon="solar:calendar-date-linear" class="text-xs"></iconify-icon> Thời gian đặt: <strong>@selectedOrder.OrderDate.ToString("dd/MM/yyyy HH:mm:ss")</strong></span>
-                            <span>•</span>
-                            <span>Kênh bán: <strong>@(selectedOrder.ShippingAddress == "Mua trực tiếp tại quầy" || selectedOrder.ReceiverName == "Khách mua tại quầy" ? "Bán tại quầy POS" : "Website Trực Tuyến")</strong></span>
-                        </div>
+                        <p class="bakery-bill-time">
+                            <iconify-icon icon="solar:clock-circle-linear"></iconify-icon>
+                            <span>Thời gian tạo đơn: @selectedOrder.OrderDate.ToString("dd/MM/yyyy HH:mm:ss")</span>
+                        </p>
                     </div>
                 </div>
 
-                <!-- Nút đóng tròn -->
                 <button type="button" class="bakery-bill-close-btn" @onclick="() => selectedOrder = null" title="Đóng cửa sổ">
-                    <iconify-icon icon="solar:close-circle-linear"></iconify-icon>
+                    <iconify-icon icon="solar:close-circle-bold"></iconify-icon>
                 </button>
             </div>
 
-            <!-- 2. Nội dung cuộn của hóa đơn -->
-            <div class="bakery-bill-body scrollbar-thin">
-                <!-- 2.1. Thẻ thông tin 2 cột (Khách hàng & Thanh toán) -->
-                <div class="bakery-bill-info-grid">
-                    <!-- Thẻ trái: Khách hàng & Giao nhận -->
+            <!-- 2. Nội dung chi tiết hóa đơn (cuộn độc lập) -->
+            <div class="bakery-bill-body">
+                
+                <!-- Hai khối thông tin: Khách hàng nhận & Thanh toán -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    
+                    <!-- Khối thông tin khách hàng nhận bánh -->
                     <div class="bakery-bill-info-box">
-                        <div class="bakery-bill-info-box-header">
-                            <iconify-icon icon="solar:user-circle-bold" class="text-base"></iconify-icon>
-                            <span>Khách Hàng & Giao Nhận</span>
-                        </div>
-                        <div class="bakery-bill-info-row">
-                            <span class="bakery-bill-info-label">Người nhận bánh:</span>
-                            <span class="bakery-bill-info-val text-primary font-bold">
-                                @(selectedOrder.ReceiverName ?? selectedOrder.Customer?.FullName ?? "Khách lẻ")
-                            </span>
-                        </div>
-                        <div class="bakery-bill-info-row">
-                            <span class="bakery-bill-info-label">Số điện thoại:</span>
-                            <span class="bakery-bill-info-val font-mono">
-                                @(!string.IsNullOrWhiteSpace(selectedOrder.ReceiverPhone) ? selectedOrder.ReceiverPhone : (selectedOrder.Customer != null && selectedOrder.Customer.FullName != "Khách vãng lai" && !string.IsNullOrWhiteSpace(selectedOrder.Customer.Phone) ? selectedOrder.Customer.Phone : "Không có (Khách vãng lai)"))
-                            </span>
-                        </div>
-                        <div class="bakery-bill-info-row">
-                            <span class="bakery-bill-info-label">Địa chỉ giao:</span>
-                            <span class="bakery-bill-info-val text-slate-700 dark:text-slate-300">
-                                @(!string.IsNullOrWhiteSpace(selectedOrder.ShippingAddress) ? selectedOrder.ShippingAddress : "Nhận tại quầy cửa hàng")
-                            </span>
-                        </div>
-                        @if (!string.IsNullOrWhiteSpace(selectedOrder.Note))
-                        {
-                            <div class="bakery-bill-note-box">
-                                <iconify-icon icon="solar:chat-round-dots-bold" class="text-amber-500 text-sm mt-0.5 shrink-0"></iconify-icon>
-                                <div>
-                                    <strong>Ghi chú đơn bánh:</strong> @selectedOrder.Note
-                                </div>
-                            </div>
-                        }
-                    </div>
-
-                    <!-- Thẻ phải: Thông tin Thanh toán -->
-                    <div class="bakery-bill-info-box">
-                        <div class="bakery-bill-info-box-header" style="color: #059669 !important; border-bottom-color: #a7f3d0 !important;">
-                            <iconify-icon icon="solar:wallet-money-bold" class="text-base"></iconify-icon>
-                            <span>Thanh Toán & Kênh Bán</span>
-                        </div>
-                        <div class="bakery-bill-info-row">
-                            <span class="bakery-bill-info-label">Phương thức:</span>
-                            <span class="bakery-bill-info-val">
-                                <span class="px-2 py-0.5 rounded text-xs font-semibold bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300">
-                                    @selectedOrder.PaymentMethod
+                        <h4 class="bakery-bill-info-title">
+                            <iconify-icon icon="solar:user-bold" class="text-primary"></iconify-icon>
+                            <span>Thông tin người nhận</span>
+                        </h4>
+                        <div class="space-y-1.5 text-xs">
+                            <div class="flex items-center justify-between">
+                                <span class="text-slate-400">Khách hàng:</span>
+                                <span class="font-bold text-slate-800 dark:text-slate-200">
+                                    @(selectedOrder.ReceiverName ?? selectedOrder.Customer?.FullName ?? "Khách tại quầy")
                                 </span>
-                            </span>
-                        </div>
-                        <div class="bakery-bill-info-row">
-                            <span class="bakery-bill-info-label">Trạng thái thanh toán:</span>
-                            <span class="bakery-bill-info-val">
-                                @if (selectedOrder.PaymentStatus == "Paid")
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-slate-400">Số điện thoại:</span>
+                                @if (!string.IsNullOrWhiteSpace(selectedOrder.ReceiverPhone))
                                 {
-                                    <span class="px-2 py-0.5 rounded text-xs font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 inline-flex items-center gap-1">
-                                        <iconify-icon icon="solar:check-circle-bold"></iconify-icon> Đã thanh toán
-                                    </span>
+                                    <a href="tel:@selectedOrder.ReceiverPhone" class="font-mono font-bold text-primary hover:underline flex items-center gap-1">
+                                        <iconify-icon icon="solar:phone-calling-bold"></iconify-icon>
+                                        @selectedOrder.ReceiverPhone
+                                    </a>
+                                }
+                                else if (selectedOrder.Customer != null && selectedOrder.Customer.FullName != "Khách vãng lai" && !string.IsNullOrWhiteSpace(selectedOrder.Customer.Phone))
+                                {
+                                    <a href="tel:@selectedOrder.Customer.Phone" class="font-mono font-bold text-primary hover:underline flex items-center gap-1">
+                                        <iconify-icon icon="solar:phone-calling-bold"></iconify-icon>
+                                        @selectedOrder.Customer.Phone
+                                    </a>
                                 }
                                 else
                                 {
-                                    <span class="px-2 py-0.5 rounded text-xs font-bold bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 inline-flex items-center gap-1">
-                                        <iconify-icon icon="solar:clock-circle-bold"></iconify-icon> Chưa thanh toán
-                                    </span>
+                                    <span class="text-slate-400 italic">Không có SĐT</span>
                                 }
-                            </span>
+                            </div>
+                            <div class="flex items-start justify-between gap-2">
+                                <span class="text-slate-400 shrink-0">Địa chỉ giao:</span>
+                                <span class="text-right text-slate-700 dark:text-slate-300 font-medium">
+                                    @(string.IsNullOrWhiteSpace(selectedOrder.ShippingAddress) ? "Nhận bánh tại quầy" : selectedOrder.ShippingAddress)
+                                </span>
+                            </div>
+                            @if (!string.IsNullOrWhiteSpace(selectedOrder.ShippingAddress))
+                            {
+                                <div class="pt-1 text-right">
+                                    <a href="https://www.google.com/maps/search/?api=1&query=@Uri.EscapeDataString(selectedOrder.ShippingAddress)" target="_blank" class="inline-flex items-center gap-1 text-[11px] text-blue-600 hover:underline font-bold">
+                                        <iconify-icon icon="solar:routing-2-bold"></iconify-icon> Mở Google Maps
+                                    </a>
+                                </div>
+                            }
                         </div>
-                        <div class="bakery-bill-info-row">
-                            <span class="bakery-bill-info-label">Nhân viên phụ trách:</span>
-                            <span class="bakery-bill-info-val">
-                                @(selectedOrder.Employee?.FullName ?? "Hệ thống tự động")
-                            </span>
+                    </div>
+
+                    <!-- Khối thông tin thanh toán & nhân viên -->
+                    <div class="bakery-bill-info-box">
+                        <h4 class="bakery-bill-info-title">
+                            <iconify-icon icon="solar:wallet-money-bold" class="text-emerald-600"></iconify-icon>
+                            <span>Thanh toán & Thu ngân</span>
+                        </h4>
+                        <div class="space-y-1.5 text-xs">
+                            <div class="flex items-center justify-between">
+                                <span class="text-slate-400">Hình thức trả:</span>
+                                <span class="font-semibold text-slate-800 dark:text-slate-200">@selectedOrder.PaymentMethod</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-slate-400">Trạng thái:</span>
+                                <span class="bakery-badge @(selectedOrder.PaymentStatus == "Paid" ? "bakery-badge-success" : "bakery-badge-warning") text-[10px] py-0.5 px-2">
+                                    @(selectedOrder.PaymentStatus == "Paid" ? "Đã thanh toán" : "Chưa thanh toán (Thu tiền mặt)")
+                                </span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-slate-400">Nhân viên lập:</span>
+                                <span class="text-slate-700 dark:text-slate-300 font-medium">
+                                    @(selectedOrder.Employee?.FullName ?? "Hệ thống / Online")
+                                </span>
+                            </div>
+                            @if (!string.IsNullOrWhiteSpace(selectedOrder.Note))
+                            {
+                                <div class="flex items-start justify-between gap-2 pt-1 border-t border-slate-200/60 dark:border-slate-700/60">
+                                    <span class="text-slate-400 shrink-0">Ghi chú:</span>
+                                    <span class="text-right text-amber-600 font-medium italic">@selectedOrder.Note</span>
+                                </div>
+                            }
                         </div>
                     </div>
                 </div>
 
-                <!-- 2.2. Bảng Danh sách món bánh chi tiết -->
-                <div>
-                    <div class="flex items-center justify-between mb-2">
-                        <h4 class="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-0 flex items-center gap-1.5">
-                            <iconify-icon icon="solar:cup-hot-linear" class="text-primary text-base"></iconify-icon>
-                            <span>Danh Sách Sản Phẩm Trong Đơn</span>
-                        </h4>
-                        <span class="text-xs text-slate-400">@(selectedOrder.OrderDetails?.Count ?? 0) dòng sản phẩm</span>
-                    </div>
+                <!-- Bảng danh sách các món bánh trong đơn hàng -->
+                <div class="bakery-bill-items-wrap">
+                    <h4 class="text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 flex items-center justify-between">
+                        <span class="flex items-center gap-1.5">
+                            <iconify-icon icon="solar:bag-5-bold" class="text-primary"></iconify-icon>
+                            <span>Danh sách món bánh (@(selectedOrder.OrderDetails?.Sum(d => d.Quantity) ?? 0) cái)</span>
+                        </span>
+                    </h4>
 
-                    <div class="bakery-bill-table-wrap">
-                        <table class="bakery-bill-table">
+                    <div class="bakery-table-responsive">
+                        <table class="bakery-table text-xs">
                             <thead>
                                 <tr>
-                                    <th style="width: 50px;" class="text-center">#</th>
-                                    <th>Tên Món Bánh</th>
-                                    <th class="text-right" style="width: 140px;">Đơn Giá</th>
-                                    <th class="text-center" style="width: 110px;">Số Lượng</th>
-                                    <th class="text-right" style="width: 150px;">Thành Tiền</th>
+                                    <th class="text-center" style="width: 40px;">STT</th>
+                                    <th>Món Bánh</th>
+                                    <th>Loại Bánh</th>
+                                    <th class="text-center" style="width: 70px;">SL</th>
+                                    <th class="text-right" style="width: 100px;">Đơn Giá</th>
+                                    <th class="text-right" style="width: 110px;">Thành Tiền</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                @if (selectedOrder.OrderDetails != null && selectedOrder.OrderDetails.Count > 0)
+                                @if (selectedOrder.OrderDetails != null && selectedOrder.OrderDetails.Any())
                                 {
-                                    int stt = 1;
-                                    @foreach (var d in selectedOrder.OrderDetails)
+                                    int index = 1;
+                                    @foreach (var detail in selectedOrder.OrderDetails)
                                     {
                                         <tr>
-                                            <td class="text-center font-mono text-slate-400 text-xs">@(stt++)</td>
+                                            <td class="text-center font-mono text-slate-400">@index</td>
                                             <td>
-                                                <div class="font-bold text-slate-800 dark:text-white text-xs mb-0.5">
-                                                    @(d.Product?.ProductName ?? $"Sản phẩm #{d.ProductID}")
-                                                </div>
-                                                @if (d.Product?.Category != null)
-                                                {
-                                                    <span class="text-[11px] text-slate-400">@d.Product.Category.CategoryName</span>
-                                                }
+                                                <div class="font-bold text-slate-900 dark:text-white">@detail.Product?.ProductName</div>
                                             </td>
-                                            <td class="text-right font-mono text-xs text-slate-600 dark:text-slate-300">
-                                                @($"{d.UnitPrice:N0} đ")
+                                            <td class="text-slate-500">
+                                                @(detail.Product?.Category?.CategoryName ?? "-")
                                             </td>
-                                            <td class="text-center">
-                                                <span class="inline-block px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 font-bold text-xs text-slate-700 dark:text-slate-300">
-                                                    @d.Quantity cái
-                                                </span>
+                                            <td class="text-center font-bold text-primary font-mono">
+                                                @detail.Quantity
                                             </td>
-                                            <td class="text-right font-mono font-bold text-xs text-blue-700 dark:text-blue-400">
-                                                @($"{d.SubTotal:N0} đ")
+                                            <td class="text-right font-mono text-slate-600 dark:text-slate-400">
+                                                @($"{detail.UnitPrice:N0} đ")
+                                            </td>
+                                            <td class="text-right font-bold text-slate-900 dark:text-white font-mono">
+                                                @($"{detail.SubTotal:N0} đ")
                                             </td>
                                         </tr>
+                                        index++;
                                     }
                                 }
                                 else
                                 {
                                     <tr>
-                                        <td colspan="5" class="text-center py-6 text-slate-400 text-xs">
-                                            Không tìm thấy chi tiết sản phẩm nào.
-                                        </td>
+                                        <td colspan="6" class="text-center py-4 text-slate-400">Không có dữ liệu chi tiết món bánh</td>
                                     </tr>
                                 }
                             </tbody>
@@ -772,32 +1079,30 @@
                     </div>
                 </div>
 
-                <!-- 2.3. Bảng Tổng Kết Tài Chính (Gọn gàng, chỉ giữ thông tin cần thiết) -->
-                <div class="bakery-bill-bottom-wrap">
-                    <div class="bakery-bill-summary-card">
-                        <div class="bakery-bill-summary-row">
-                            <span>Tạm tính tiền bánh:</span>
-                            <span class="font-semibold text-slate-800 dark:text-white font-mono">@($"{selectedOrder.TotalAmount:N0} đ")</span>
+                <!-- Tổng kết tiền đơn hàng -->
+                <div class="bakery-bill-summary-wrap">
+                    <div class="space-y-1.5 text-xs">
+                        <div class="flex items-center justify-between">
+                            <span class="text-slate-500">Tổng tiền hàng:</span>
+                            <span class="font-mono font-semibold text-slate-700 dark:text-slate-300">
+                                @($"{selectedOrder.TotalAmount:N0} đ")
+                            </span>
                         </div>
                         @if (selectedOrder.DiscountAmount > 0)
                         {
-                            <div class="bakery-bill-summary-row" style="color: #059669 !important;">
-                                <span>Giảm giá khuyến mãi:</span>
-                                <span class="font-bold font-mono">-@($"{selectedOrder.DiscountAmount:N0} đ")</span>
+                            <div class="flex items-center justify-between text-emerald-600">
+                                <span>Giảm giá / Ưu đãi:</span>
+                                <span class="font-mono font-bold">-@($"{selectedOrder.DiscountAmount:N0} đ")</span>
                             </div>
                         }
-                        <div class="bakery-bill-summary-row">
-                            <span>Phí giao hàng:</span>
-                            <span class="font-medium text-slate-600 dark:text-slate-300">Miễn phí</span>
-                        </div>
-                        <div class="bakery-bill-summary-divider"></div>
-                        <div class="bakery-bill-summary-total">
-                            <span>TỔNG CỘNG:</span>
-                            <span class="bakery-bill-summary-total-val font-mono">
+                        <div class="flex items-center justify-between pt-2 border-t border-slate-200 dark:border-slate-700 text-sm">
+                            <span class="font-bold text-slate-900 dark:text-white">Số tiền thanh toán:</span>
+                            <span class="font-mono font-extrabold text-blue-600 dark:text-blue-400 text-base">
                                 @($"{selectedOrder.FinalAmount:N0} đ")
                             </span>
                         </div>
                     </div>
+                </div>
             </div>
 
             <!-- 3. Footer thao tác (In ấn, Chuyển trạng thái, Đóng) -->
@@ -822,43 +1127,23 @@
                             <span>Duyệt đơn</span>
                         </button>
                     }
-                    else if (selectedOrder.Status == OrderStatus.Confirmed)
-                    {
-                        @if (isShipper)
-                        {
-                            <button type="button" 
-                                    class="bakery-order-btn-action bakery-order-btn-purple text-xs px-3 py-1.5"
-                                    @onclick='() => ChangeSelectedOrderStatus(OrderStatus.Shipping)'>
-                                <iconify-icon icon="solar:delivery-linear"></iconify-icon>
-                                <span>Nhận giao</span>
-                            </button>
-                        }
-                        else
-                        {
-                            <button type="button" 
-                                    class="bakery-order-btn-action bakery-order-btn-blue text-xs px-3 py-1.5"
-                                    @onclick='() => ChangeSelectedOrderStatus(OrderStatus.InProgress)'>
-                                <iconify-icon icon="solar:box-minimalistic-linear"></iconify-icon>
-                                <span>Bắt đầu chuẩn bị</span>
-                            </button>
-                        }
-                    }
-                    else if (selectedOrder.Status == OrderStatus.InProgress && !isShipper)
+                    else if (selectedOrder.Status == OrderStatus.Confirmed && isShipper)
                     {
                         <button type="button" 
-                                class="bakery-order-btn-action bakery-order-btn-purple text-xs px-3 py-1.5"
+                                class="bakery-order-btn-action bakery-order-btn-blue text-xs px-3 py-1.5"
                                 @onclick='() => ChangeSelectedOrderStatus(OrderStatus.Shipping)'>
                             <iconify-icon icon="solar:delivery-linear"></iconify-icon>
-                            <span>Chuyển sang đang giao</span>
+                            <span>Nhận giao đơn</span>
                         </button>
                     }
-                    else if (selectedOrder.Status == OrderStatus.Shipping)
+                    else if (selectedOrder.Status == OrderStatus.Shipping && isShipper)
                     {
                         <button type="button" 
-                                class="bakery-order-btn-action bakery-order-btn-green text-xs px-3 py-1.5"
-                                @onclick='() => ChangeSelectedOrderStatus(OrderStatus.Completed)'>
-                            <iconify-icon icon="solar:check-circle-bold"></iconify-icon>
-                            <span>@(isShipper ? "Giao xong" : "Xác nhận hoàn tất")</span>
+                                class="bakery-order-btn-action text-xs px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold"
+                                style="background-color: #d97706; color: white;"
+                                @onclick='() => ChangeSelectedOrderStatus(OrderStatus.Delivered)'>
+                            <iconify-icon icon="solar:box-minimalistic-bold"></iconify-icon>
+                            <span>Báo đã giao bánh</span>
                         </button>
                     }
 
@@ -867,7 +1152,6 @@
                             @onclick="() => selectedOrder = null">
                         Đóng
                     </button>
-                </div>
                 </div>
             </div>
         </div>
@@ -907,7 +1191,8 @@
         .Where(o => string.IsNullOrWhiteSpace(searchQuery) ||
                     o.OrderID.ToString().Contains(searchQuery) ||
                     (o.ReceiverName != null && o.ReceiverName.Contains(searchQuery, StringComparison.OrdinalIgnoreCase)) ||
-                    (o.ReceiverPhone != null && o.ReceiverPhone.Contains(searchQuery)))
+                    (o.ReceiverPhone != null && o.ReceiverPhone.Contains(searchQuery)) ||
+                    (o.ShippingAddress != null && o.ShippingAddress.Contains(searchQuery, StringComparison.OrdinalIgnoreCase)))
         .ToList();
 
     private void ResetAdvancedSearch()
@@ -933,7 +1218,7 @@
     private async Task LoadOrdersAsync()
     {
         orders = isShipper
-            ? await OrderService.GetOrdersAsync(new[] { OrderStatus.Confirmed, OrderStatus.Shipping })
+            ? await OrderService.GetOrdersAsync(new[] { OrderStatus.Confirmed, OrderStatus.Shipping, OrderStatus.Delivered, OrderStatus.Completed })
             : await OrderService.GetOrdersAsync();
     }
 
@@ -959,10 +1244,19 @@
 
         if (isShipper &&
             !((order.Status == OrderStatus.Confirmed && newStatus == OrderStatus.Shipping) ||
-              (order.Status == OrderStatus.Shipping && newStatus == OrderStatus.Completed)))
+              (order.Status == OrderStatus.Shipping && newStatus == OrderStatus.Delivered)))
         {
             await JS.InvokeVoidAsync("alert", "Bạn không có quyền thực hiện thao tác này trên đơn hàng.");
             return;
+        }
+
+        if (isShipper && newStatus == OrderStatus.Delivered)
+        {
+            var confirmMsg = order.PaymentStatus == PaymentStatus.Paid
+                ? $"Xác nhận bạn đã giao đơn #HD-{order.OrderID:D4} tới nơi cho khách?\nKhách sẽ nhận thông báo bấm 'Xác nhận đã nhận bánh' trên Mobile App."
+                : $"Xác nhận bạn đã giao đơn #HD-{order.OrderID:D4} và thu đủ {order.FinalAmount:N0} đ tiền mặt (COD)?\nKhách sẽ nhận thông báo bấm 'Xác nhận đã nhận bánh' trên Mobile App.";
+            bool ok = await JS.InvokeAsync<bool>("confirm", confirmMsg);
+            if (!ok) return;
         }
 
         if (!await OrderService.ChangeStatusAsync(order, newStatus, currentRole))
@@ -992,15 +1286,15 @@
     {
         if (isShipper) return;
         if (order.Status == OrderStatus.Cancelled) return;
-        bool confirmed = await JS.InvokeAsync<bool>("confirm", $"B?n c? ch?c mu?n h?y ??n h?ng #HD-{order.OrderID:D4}?");
+        bool confirmed = await JS.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn hủy đơn hàng #HD-{order.OrderID:D4}?");
         if (!confirmed) return;
 
-        var reason = await JS.InvokeAsync<string?>("prompt", "Nh?p l? do h?y ??n h?ng:");
+        var reason = await JS.InvokeAsync<string?>("prompt", "Nhập lý do hủy đơn hàng:");
         if (reason == null) return;
         reason = reason.Trim();
         if (string.IsNullOrWhiteSpace(reason))
         {
-            await JS.InvokeVoidAsync("alert", "Vui l?ng nh?p l? do h?y ??n.");
+            await JS.InvokeVoidAsync("alert", "Vui lòng nhập lý do hủy đơn.");
             return;
         }
 
@@ -1013,12 +1307,27 @@
         selectedOrder = order;
     }
 
+    private async Task CopyPhone(string? phone)
+    {
+        if (string.IsNullOrWhiteSpace(phone)) return;
+        try
+        {
+            await JS.InvokeVoidAsync("navigator.clipboard.writeText", phone);
+            await JS.InvokeVoidAsync("alert", $"Đã sao chép số điện thoại: {phone}");
+        }
+        catch
+        {
+            // Ignore
+        }
+    }
+
     private static string GetStatusLabel(string status) => status switch
     {
         OrderStatus.Pending => "Chờ duyệt",
         OrderStatus.Confirmed => "Đã duyệt",
-        OrderStatus.InProgress => "Đang chuẩn bị",
+        OrderStatus.InProgress => "Đang đóng gói",
         OrderStatus.Shipping => "Đang giao",
+        OrderStatus.Delivered => "Chờ khách nhận",
         OrderStatus.Completed => "Hoàn tất",
         OrderStatus.Cancelled => "Đã hủy",
         _ => status
@@ -1030,6 +1339,7 @@
         OrderStatus.Confirmed => "bakery-badge-primary",
         OrderStatus.InProgress => "bakery-badge-warning",
         OrderStatus.Shipping => "bakery-badge-secondary",
+        OrderStatus.Delivered => "bakery-badge-primary",
         OrderStatus.Completed => "bakery-badge-success",
         OrderStatus.Cancelled => "bakery-badge-error",
         _ => "bakery-badge-secondary"

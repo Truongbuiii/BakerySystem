@@ -281,6 +281,9 @@ public class CartService
     public Task<bool> CancelOrderAsync(int orderId, int? customerId = null) =>
         _apiClient.CancelOrderAsync(orderId, customerId);
 
+    public Task<bool> ConfirmReceivedOrderAsync(int orderId, int? customerId = null) =>
+        _apiClient.ConfirmReceivedOrderAsync(orderId, customerId);
+
     public void ReOrder(Order order)
     {
         if (order.OrderDetails == null || !order.OrderDetails.Any()) return;

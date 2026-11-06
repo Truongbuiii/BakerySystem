@@ -96,6 +96,18 @@ public sealed class MobileApiClient(HttpClient httpClient)
         return response.IsSuccessStatusCode;
     }
 
+    public async Task<bool> ConfirmReceivedOrderAsync(
+        int orderId,
+        int? customerId,
+        CancellationToken ct = default)
+    {
+        using var response = await httpClient.PostAsJsonAsync(
+            $"api/mobile/orders/{orderId}/confirm-received",
+            new ConfirmReceivedMobileOrderRequest(customerId),
+            ct);
+        return response.IsSuccessStatusCode;
+    }
+
     private async Task<TResponse> SendAsync<TRequest, TResponse>(
         HttpMethod method,
         string uri,

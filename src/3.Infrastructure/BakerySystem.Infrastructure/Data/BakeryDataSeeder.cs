@@ -205,7 +205,7 @@ public static class BakeryDataSeeder
                     ALTER TABLE [Orders] DROP CONSTRAINT [CK_Orders_Status];
                 END;
                 ALTER TABLE [Orders] ADD CONSTRAINT [CK_Orders_Status]
-                    CHECK ([Status] IN ('Pending', 'Confirmed', 'InProgress', 'Shipping', 'Completed', 'Cancelled'));
+                    CHECK ([Status] IN ('Pending', 'Confirmed', 'InProgress', 'Shipping', 'Delivered', 'Completed', 'Cancelled'));
 
                 IF OBJECT_ID(N'[CK_Account_Role]', N'C') IS NOT NULL
                 BEGIN

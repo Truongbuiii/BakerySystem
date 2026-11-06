@@ -20,3 +20,5 @@ public sealed record CreateMobileOrderLine(
     decimal SubTotal);
 
 public sealed record CancelMobileOrderRequest(int? CustomerId);
+
+public sealed record ConfirmReceivedMobileOrderRequest(int? CustomerId);

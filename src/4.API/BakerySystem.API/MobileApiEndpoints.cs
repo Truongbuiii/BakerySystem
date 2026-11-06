@@ -313,6 +313,26 @@ public static class MobileApiEndpoints
         })
         .WithSummary("Cancel a pending mobile order");
 
+        group.MapPost("/orders/{orderId:int}/confirm-received", async (
+            int orderId,
+            ConfirmReceivedMobileOrderRequest request,
+            IBakeryDbContext db,
+            CancellationToken ct) =>
+        {
+            var order = await db.Orders.FirstOrDefaultAsync(
+                o => o.OrderID == orderId, ct);
+            if (order is null
+                || (request.CustomerId.HasValue && request.CustomerId.Value > 0 && order.CustomerID != request.CustomerId.Value)
+                || (order.Status != OrderStatus.Delivered && order.Status != OrderStatus.Shipping))
+                return Results.BadRequest("Order cannot be confirmed at current status.");
+
+            order.Status = OrderStatus.Completed;
+            order.PaymentStatus = PaymentStatus.Paid;
+            await db.SaveChangesAsync(ct);
+            return Results.Ok();
+        })
+        .WithSummary("Confirm that customer received the order");
+
         return endpoints;
     }
 }

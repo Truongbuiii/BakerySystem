@@ -513,15 +513,15 @@ else
                     <span>Đã duyệt</span>
                     <span style="opacity: 0.8; font-size: 10px;">(@customerOrders.Count(o => o.Status == OrderStatus.Confirmed))</span>
                 </button>
-                <button class="order-filter-pill @(currentOrderStatusFilter == OrderStatus.InProgress ? "active" : "")" @onclick='() => SetOrderStatusFilter(OrderStatus.InProgress)'>
-                    <iconify-icon icon="solar:chef-hat-minimalistic-bold" style="color: #C2410C;"></iconify-icon>
-                    <span>Làm bánh</span>
-                    <span style="opacity: 0.8; font-size: 10px;">(@customerOrders.Count(o => o.Status == OrderStatus.InProgress))</span>
-                </button>
                 <button class="order-filter-pill @(currentOrderStatusFilter == OrderStatus.Shipping ? "active" : "")" @onclick='() => SetOrderStatusFilter(OrderStatus.Shipping)'>
                     <iconify-icon icon="solar:scooter-bold" style="color: #0284C7;"></iconify-icon>
                     <span>Đang giao</span>
                     <span style="opacity: 0.8; font-size: 10px;">(@customerOrders.Count(o => o.Status == OrderStatus.Shipping))</span>
+                </button>
+                <button class="order-filter-pill @(currentOrderStatusFilter == OrderStatus.Delivered ? "active" : "")" @onclick='() => SetOrderStatusFilter(OrderStatus.Delivered)'>
+                    <iconify-icon icon="solar:box-minimalistic-bold" style="color: #D97706;"></iconify-icon>
+                    <span>Chờ nhận bánh</span>
+                    <span style="opacity: 0.8; font-size: 10px;">(@customerOrders.Count(o => o.Status == OrderStatus.Delivered))</span>
                 </button>
                 <button class="order-filter-pill @(currentOrderStatusFilter == OrderStatus.Completed ? "active" : "")" @onclick='() => SetOrderStatusFilter(OrderStatus.Completed)'>
                     <iconify-icon icon="solar:check-circle-bold" style="color: #16A34A;"></iconify-icon>
@@ -642,11 +642,32 @@ else
                                 </div>
                             </div>
 
+                            @if (order.Status == OrderStatus.Delivered)
+                            {
+                                <div style="background: #F0FDF4; border: 1.5px solid #86EFAC; border-radius: 10px; padding: 8px 12px; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+                                    <div style="display: flex; align-items: center; gap: 8px;">
+                                        <iconify-icon icon="solar:delivery-bold" style="font-size: 20px; color: #16A34A;"></iconify-icon>
+                                        <div style="font-size: 11px; color: #166534; font-weight: 600;">
+                                            Shipper báo đã giao bánh đến nơi! Bạn hãy kiểm tra bánh và bấm xác nhận nhé.
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+
                             <!-- Action Buttons Row -->
-                            <div style="display: flex; justify-content: flex-end; gap: 8px;">
+                            <div style="display: flex; justify-content: flex-end; align-items: center; flex-wrap: wrap; gap: 8px;">
+                                @if (order.Status == OrderStatus.Delivered)
+                                {
+                                    <button type="button" class="btn-order-action btn-confirm-received" 
+                                            style="background: #16A34A; color: white; border: none; font-weight: 800; padding: 8px 14px; border-radius: 10px; display: flex; align-items: center; gap: 6px; box-shadow: 0 4px 12px rgba(22, 163, 74, 0.25);"
+                                            @onclick="() => ConfirmReceivedOrder(order.OrderID)">
+                                        <iconify-icon icon="solar:check-circle-bold" style="font-size: 16px;"></iconify-icon>
+                                        <span>Xác nhận đã nhận bánh</span>
+                                    </button>
+                                }
                                 <button type="button" class="btn-order-action btn-order-detail" @onclick="() => OpenOrderDetail(order)">
                                     <iconify-icon icon="solar:eye-linear"></iconify-icon>
-                                    <span>Xem chi tiết & Tiến trình</span>
+                                    <span>Xem chi tiết &amp; Tiến trình</span>
                                 </button>
                                 <button type="button" class="btn-order-action btn-order-reorder" @onclick="() => ReOrderFromHistory(order)">
                                     <iconify-icon icon="solar:cart-large-2-bold"></iconify-icon>
@@ -1467,23 +1488,23 @@ else
 
                             <div class="timeline-step @(IsStepActiveOrCompleted(selectedOrderForDetail.Status, OrderStatus.Confirmed))">
                                 <div class="timeline-step-icon">
-                                    <iconify-icon icon="solar:clock-circle-bold"></iconify-icon>
+                                    <iconify-icon icon="solar:check-circle-bold"></iconify-icon>
                                 </div>
-                                <span class="timeline-step-title">Chờ duyệt</span>
-                            </div>
-
-                            <div class="timeline-step @(IsStepActiveOrCompleted(selectedOrderForDetail.Status, OrderStatus.InProgress))">
-                                <div class="timeline-step-icon">
-                                    <iconify-icon icon="solar:chef-hat-minimalistic-bold"></iconify-icon>
-                                </div>
-                                <span class="timeline-step-title">Làm bánh</span>
+                                <span class="timeline-step-title">Đã duyệt</span>
                             </div>
 
                             <div class="timeline-step @(IsStepActiveOrCompleted(selectedOrderForDetail.Status, OrderStatus.Shipping))">
                                 <div class="timeline-step-icon">
                                     <iconify-icon icon="solar:scooter-bold"></iconify-icon>
                                 </div>
-                                <span class="timeline-step-title">Giao hàng</span>
+                                <span class="timeline-step-title">Đang giao</span>
+                            </div>
+
+                            <div class="timeline-step @(IsStepActiveOrCompleted(selectedOrderForDetail.Status, OrderStatus.Delivered))">
+                                <div class="timeline-step-icon">
+                                    <iconify-icon icon="solar:box-minimalistic-bold"></iconify-icon>
+                                </div>
+                                <span class="timeline-step-title">Đã tới nơi</span>
                             </div>
 
                             <div class="timeline-step @(IsStepActiveOrCompleted(selectedOrderForDetail.Status, OrderStatus.Completed))">
@@ -1495,6 +1516,20 @@ else
                         </div>
                     }
                 </div>
+
+                @if (selectedOrderForDetail.Status == OrderStatus.Delivered)
+                {
+                    <div style="background: #F0FDF4; border: 1.5px solid #86EFAC; border-radius: 14px; padding: 12px 14px; margin-bottom: 14px; text-align: center;">
+                        <iconify-icon icon="solar:delivery-bold" style="font-size: 28px; color: #16A34A; margin-bottom: 4px;"></iconify-icon>
+                        <h6 style="margin: 0 0 4px; font-size: 13px; font-weight: 800; color: #166534;">Shipper đã giao bánh đến nơi!</h6>
+                        <p style="margin: 0 0 10px; font-size: 11px; color: #15803D;">Vui lòng kiểm tra bánh và bấm nút bên dưới để hoàn tất đơn hàng.</p>
+                        <button type="button" class="btn-bk-primary" style="width: 100%; padding: 10px; font-weight: 800; background: #16A34A; font-size: 13px;"
+                                @onclick="() => ConfirmReceivedOrder(selectedOrderForDetail.OrderID)">
+                            <iconify-icon icon="solar:check-circle-bold"></iconify-icon>
+                            <span>XÁC NHẬN ĐÃ NHẬN BÁNH</span>
+                        </button>
+                    </div>
+                }
 
                 <!-- Receiver Information -->
                 <div style="background: white; border: 1px solid var(--bk-border); border-radius: 14px; padding: 12px 14px; margin-bottom: 14px;">
@@ -1570,6 +1605,14 @@ else
             </div>
 
             <div class="sheet-footer" style="display: flex; gap: 8px;">
+                @if (selectedOrderForDetail.Status == OrderStatus.Delivered)
+                {
+                    <button type="button" class="btn-bk-primary" style="flex: 2; padding: 12px; font-weight: 800; background: #16A34A; color: white;"
+                            @onclick="() => ConfirmReceivedOrder(selectedOrderForDetail.OrderID)">
+                        <iconify-icon icon="solar:check-circle-bold"></iconify-icon>
+                        <span>ĐÃ NHẬN ĐƯỢC BÁNH</span>
+                    </button>
+                }
                 <button type="button" class="btn-order-action btn-order-reorder" style="flex: 1; padding: 12px; justify-content: center; font-size: 13px;"
                         @onclick="() => { ReOrderFromHistory(selectedOrderForDetail); CloseOrderDetail(); }">
                     <iconify-icon icon="solar:cart-large-2-bold"></iconify-icon>
@@ -2617,6 +2660,26 @@ else
         }
     }
 
+    private async Task ConfirmReceivedOrder(int orderId)
+    {
+        int? customerId = CustomerSession.IsLoggedIn ? CustomerSession.CurrentCustomer?.CustomerId : null;
+        var ok = await CartService.ConfirmReceivedOrderAsync(orderId, customerId);
+        if (ok)
+        {
+            ShowToast($"Cảm ơn bạn! Đã xác nhận đã nhận đơn hàng #{orderId} thành công.");
+            await LoadOrdersAsync();
+            if (selectedOrderForDetail != null && selectedOrderForDetail.OrderID == orderId)
+            {
+                selectedOrderForDetail.Status = OrderStatus.Completed;
+                selectedOrderForDetail.PaymentStatus = PaymentStatus.Paid;
+            }
+        }
+        else
+        {
+            ShowToast($"Không thể xác nhận đơn hàng #{orderId}.");
+        }
+    }
+
     private string IsStepActiveOrCompleted(string currentStatus, string stepStatus)
     {
         int currentRank = GetStatusRank(currentStatus);
@@ -2631,8 +2694,8 @@ else
     {
         OrderStatus.Pending => 1,
         OrderStatus.Confirmed => 2,
-        OrderStatus.InProgress => 3,
-        OrderStatus.Shipping => 4,
+        OrderStatus.Shipping => 3,
+        OrderStatus.Delivered => 4,
         OrderStatus.Completed => 5,
         _ => 0
     };
@@ -2657,8 +2720,9 @@ else
     {
         OrderStatus.Pending => "Chờ duyệt",
         OrderStatus.Confirmed => "Đã duyệt",
-        OrderStatus.InProgress => "Đang làm bánh",
+        OrderStatus.InProgress => "Đang soạn hàng",
         OrderStatus.Shipping => "Đang giao",
+        OrderStatus.Delivered => "Shipper báo đã giao hàng",
         OrderStatus.Completed => "Hoàn tất",
         OrderStatus.Cancelled => "Đã hủy",
         _ => status
@@ -2677,6 +2741,7 @@ else
         OrderStatus.Confirmed => "status-confirmed",
         OrderStatus.InProgress => "status-preparing",
         OrderStatus.Shipping => "status-shipping",
+        OrderStatus.Delivered => "status-delivered",
         OrderStatus.Completed => "status-completed",
         OrderStatus.Cancelled => "status-cancelled",
         _ => "status-pending"
@@ -2685,9 +2750,10 @@ else
     private string GetStatusIcon(string status) => status switch
     {
         OrderStatus.Pending => "solar:clock-circle-bold",
-        OrderStatus.Confirmed => "solar:fire-bold",
-        OrderStatus.InProgress => "solar:chef-hat-minimalistic-bold",
+        OrderStatus.Confirmed => "solar:check-circle-bold",
+        OrderStatus.InProgress => "solar:box-minimalistic-bold",
         OrderStatus.Shipping => "solar:scooter-bold",
+        OrderStatus.Delivered => "solar:box-minimalistic-bold",
         OrderStatus.Completed => "solar:check-circle-bold",
         OrderStatus.Cancelled => "solar:close-circle-bold",
         _ => "solar:question-circle-linear"
