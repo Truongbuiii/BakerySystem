@@ -3,6 +3,7 @@ using BakerySystem.Application.Features.Dashboard;
 using BakerySystem.Application.Features.Products;
 using BakerySystem.Application.Features.Inventory;
 using BakerySystem.Application.Features.Employees;
+using BakerySystem.Application.Features.Customers;
 using BakerySystem.Application.Features.Orders;
 using BakerySystem.Application.Features.Pos;
 using BakerySystem.Application.Features.CustomerOrders;
@@ -21,6 +22,7 @@ public static class DependencyInjection
         services.AddScoped<InventoryService>();
         services.AddScoped<PromotionService>();
         services.AddScoped<EmployeeService>();
+        services.AddScoped<CustomerService>();
         services.AddScoped<OrderService>();
         services.AddScoped<PosService>();
         services.AddScoped<CustomerOrderService>();

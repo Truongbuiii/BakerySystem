@@ -2700,13 +2700,7 @@ else
         _ => 0
     };
 
-    private string GetVipTier(decimal totalSpent)
-    {
-        if (totalSpent >= 3000000m) return "VIP KIM CƯƠNG";
-        if (totalSpent >= 1500000m) return "VIP VÀNG";
-        if (totalSpent >= 500000m) return "VIP BẠC";
-        return "THÀNH VIÊN";
-    }
+    private string GetVipTier(decimal totalSpent) => CustomerLoyaltyTier.GetTierName(totalSpent).ToUpper();
 
     private string GetCustomerInitials(string? fullName)
     {

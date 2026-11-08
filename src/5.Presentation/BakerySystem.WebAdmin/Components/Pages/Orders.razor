@@ -1268,7 +1268,11 @@
     [SupplyParameterFromQuery(Name = "order")]
     public int? OrderIdFromQuery { get; set; }
 
+    [SupplyParameterFromQuery(Name = "customer")]
+    public int? CustomerIdFromQuery { get; set; }
+
     private List<Order> filteredOrders => orders
+        .Where(o => !CustomerIdFromQuery.HasValue || o.CustomerID == CustomerIdFromQuery.Value)
         .Where(o => selectedStatus == "All" || o.Status == selectedStatus)
         .Where(o => selectedPaymentStatus == "All" || o.PaymentStatus == selectedPaymentStatus)
         .Where(o => !dateFrom.HasValue || o.OrderDate.Date >= dateFrom.Value.Date)
@@ -1282,6 +1286,7 @@
 
     private void ResetAdvancedSearch()
     {
+        CustomerIdFromQuery = null;
         searchQuery = string.Empty;
         selectedStatus = "All";
         selectedPaymentStatus = "All";
