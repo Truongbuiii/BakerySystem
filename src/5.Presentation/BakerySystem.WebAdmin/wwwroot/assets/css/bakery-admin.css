@@ -6349,3 +6349,915 @@ html.dark .shipper-payment-cod {
     border: 1px solid #a7f3d0 !important;
     color: #047857 !important;
 }
+
+
+/* ==========================================================================
+   PROMOTION DETAIL PAGE STYLES (CHI TIẾT KHUYẾN MÃI HIỆN ĐẠI)
+   ========================================================================== */
+
+/* Nút quay lại chuẩn */
+.promotion-back-btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 0.5rem !important;
+    padding: 0.5rem 0.875rem !important;
+    background: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 8px !important;
+    color: #334155 !important;
+    font-size: 0.8125rem !important;
+    font-weight: 600 !important;
+    text-decoration: none !important;
+    transition: all 0.15s ease !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
+}
+
+.promotion-back-btn:hover {
+    background: #f8fafc !important;
+    border-color: #94a3b8 !important;
+    color: #0f172a !important;
+    transform: translateX(-2px) !important;
+}
+
+html.dark .promotion-back-btn {
+    background: #1e293b !important;
+    border-color: #334155 !important;
+    color: #cbd5e1 !important;
+}
+
+html.dark .promotion-back-btn:hover {
+    background: #334155 !important;
+    border-color: #475569 !important;
+    color: #ffffff !important;
+}
+
+/* Banner tiêu đề trang chi tiết */
+.promotion-hero-card {
+    background: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 14px !important;
+    padding: 1.25rem 1.5rem !important;
+    margin-bottom: 1.25rem !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    flex-wrap: wrap !important;
+    gap: 1rem !important;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05) !important;
+}
+
+html.dark .promotion-hero-card {
+    background: #1e293b !important;
+    border-color: #334155 !important;
+}
+
+.promotion-hero-title {
+    font-size: 1.35rem !important;
+    font-weight: 800 !important;
+    color: #0f172a !important;
+    margin: 0.25rem 0 0.5rem 0 !important;
+    line-height: 1.3 !important;
+}
+
+html.dark .promotion-hero-title {
+    color: #ffffff !important;
+}
+
+.promotion-code-tag {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 0.35rem !important;
+    padding: 0.25rem 0.625rem !important;
+    border-radius: 6px !important;
+    background: #eff6ff !important;
+    border: 1px solid #bfdbfe !important;
+    color: #1d4ed8 !important;
+    font-family: inherit !important;
+    font-weight: 700 !important;
+    font-size: 0.8125rem !important;
+}
+
+html.dark .promotion-code-tag {
+    background: rgba(29, 78, 216, 0.2) !important;
+    border-color: rgba(191, 219, 254, 0.2) !important;
+    color: #93c5fd !important;
+}
+
+/* Lưới 2 cột cho trang chi tiết */
+.promotion-detail-grid {
+    display: grid !important;
+    grid-template-columns: 400px 1fr !important;
+    gap: 1.25rem !important;
+    align-items: start !important;
+}
+
+@media (max-width: 1024px) {
+    .promotion-detail-grid {
+        grid-template-columns: 1fr !important;
+    }
+}
+
+/* THẺ VOUCHER TRỰC QUAN (DIGITAL COUPON VOUCHER) */
+.promotion-voucher-ticket {
+    position: relative !important;
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 50%, #1e40af 100%) !important;
+    color: #ffffff !important;
+    border-radius: 16px !important;
+    padding: 1.5rem !important;
+    overflow: hidden !important;
+    box-shadow: 0 10px 25px -5px rgba(29, 78, 216, 0.3), 0 8px 10px -6px rgba(29, 78, 216, 0.2) !important;
+    margin-bottom: 1.25rem !important;
+}
+
+.promotion-voucher-ticket.is-expired {
+    background: linear-gradient(135deg, #64748b 0%, #475569 100%) !important;
+    box-shadow: 0 10px 20px -5px rgba(71, 85, 105, 0.2) !important;
+}
+
+.promotion-voucher-ticket.is-inactive {
+    background: linear-gradient(135deg, #d97706 0%, #b45309 100%) !important;
+    box-shadow: 0 10px 20px -5px rgba(217, 119, 6, 0.2) !important;
+}
+
+.promotion-voucher-top {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    padding-bottom: 0.75rem !important;
+    border-bottom: 1px dashed rgba(255, 255, 255, 0.25) !important;
+    margin-bottom: 1rem !important;
+}
+
+.promotion-voucher-brand {
+    font-size: 0.75rem !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.08em !important;
+    text-transform: uppercase !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.4rem !important;
+    opacity: 0.9 !important;
+}
+
+.promotion-voucher-amount {
+    font-size: 2rem !important;
+    font-weight: 900 !important;
+    letter-spacing: -0.02em !important;
+    line-height: 1.1 !important;
+    margin-bottom: 0.35rem !important;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.15) !important;
+}
+
+.promotion-voucher-condition {
+    font-size: 0.8125rem !important;
+    opacity: 0.92 !important;
+    line-height: 1.4 !important;
+    margin-bottom: 1.25rem !important;
+}
+
+.promotion-voucher-code-box {
+    background: rgba(255, 255, 255, 0.18) !important;
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+    border: 1px dashed rgba(255, 255, 255, 0.45) !important;
+    border-radius: 10px !important;
+    padding: 0.625rem 0.875rem !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+}
+
+.promotion-voucher-code-val {
+    font-family: inherit !important;
+    font-size: 1.125rem !important;
+    font-weight: 800 !important;
+    letter-spacing: 0.05em !important;
+}
+
+.promotion-voucher-btn-copy {
+    background: #ffffff !important;
+    color: #1e40af !important;
+    border: none !important;
+    padding: 0.35rem 0.75rem !important;
+    border-radius: 6px !important;
+    font-size: 0.75rem !important;
+    font-weight: 700 !important;
+    cursor: pointer !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 0.3rem !important;
+    transition: all 0.15s ease !important;
+}
+
+.promotion-voucher-btn-copy:hover {
+    background: #f1f5f9 !important;
+    transform: scale(1.02) !important;
+}
+
+/* Card thông tin chi tiết & điều kiện */
+.promotion-rules-card {
+    background: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 14px !important;
+    padding: 1.25rem !important;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05) !important;
+}
+
+html.dark .promotion-rules-card {
+    background: #1e293b !important;
+    border-color: #334155 !important;
+}
+
+.promotion-rule-item {
+    display: flex !important;
+    align-items: flex-start !important;
+    gap: 0.75rem !important;
+    padding: 0.75rem 0 !important;
+    border-bottom: 1px solid #f1f5f9 !important;
+}
+
+html.dark .promotion-rule-item {
+    border-bottom-color: #334155 !important;
+}
+
+.promotion-rule-item:last-child {
+    border-bottom: none !important;
+    padding-bottom: 0 !important;
+}
+
+.promotion-rule-icon {
+    width: 32px !important;
+    height: 32px !important;
+    border-radius: 8px !important;
+    background: #eff6ff !important;
+    color: #2563eb !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 1rem !important;
+    flex-shrink: 0 !important;
+}
+
+html.dark .promotion-rule-icon {
+    background: rgba(37, 99, 235, 0.2) !important;
+    color: #60a5fa !important;
+}
+
+.promotion-rule-content {
+    flex: 1 !important;
+    min-width: 0 !important;
+}
+
+.promotion-rule-label {
+    font-size: 0.6875rem !important;
+    text-transform: uppercase !important;
+    font-weight: 700 !important;
+    color: #64748b !important;
+    letter-spacing: 0.04em !important;
+    margin-bottom: 0.2rem !important;
+}
+
+html.dark .promotion-rule-label {
+    color: #94a3b8 !important;
+}
+
+.promotion-rule-val {
+    font-size: 0.875rem !important;
+    font-weight: 600 !important;
+    color: #0f172a !important;
+    line-height: 1.4 !important;
+}
+
+html.dark .promotion-rule-val {
+    color: #ffffff !important;
+}
+
+/* Cột phải: KPI mini cards */
+.promotion-kpi-row {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)) !important;
+    gap: 1rem !important;
+    margin-bottom: 1.25rem !important;
+}
+
+.promotion-kpi-box {
+    background: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 12px !important;
+    padding: 1rem 1.25rem !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.875rem !important;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05) !important;
+}
+
+html.dark .promotion-kpi-box {
+    background: #1e293b !important;
+    border-color: #334155 !important;
+}
+
+.promotion-kpi-icon {
+    width: 44px !important;
+    height: 44px !important;
+    border-radius: 10px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 1.35rem !important;
+    flex-shrink: 0 !important;
+}
+
+/* Card lịch sử đơn hàng */
+.promotion-history-card {
+    background: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 14px !important;
+    padding: 1.25rem !important;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05) !important;
+}
+
+html.dark .promotion-history-card {
+    background: #1e293b !important;
+    border-color: #334155 !important;
+}
+
+/* ==========================================================================
+   PROMOTION MODAL STYLES (POPUP THÊM / SỬA KHUYẾN MÃI RỘNG RÃI)
+   ========================================================================== */
+.promotion-form-modal {
+    max-width: 960px !important;
+    width: 95vw !important;
+    border-radius: 20px !important;
+}
+
+.promotion-form-modal label {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0.35rem !important;
+    font-size: 0.75rem !important;
+    font-weight: 600 !important;
+    color: #475569 !important;
+}
+
+html.dark .promotion-form-modal label {
+    color: #94a3b8 !important;
+}
+
+.promotion-form-modal h3 {
+    font-size: 0.875rem !important;
+    font-weight: 700 !important;
+    color: #0f172a !important;
+    margin: 0 0 0.875rem 0 !important;
+    padding-bottom: 0.5rem !important;
+    border-bottom: 1px solid #f1f5f9 !important;
+}
+
+html.dark .promotion-form-modal h3 {
+    color: #ffffff !important;
+    border-bottom-color: #334155 !important;
+}
+
+.promotion-form-modal .promotion-form-layout {
+    display: grid !important;
+    grid-template-columns: 360px 1fr !important;
+    gap: 1.25rem !important;
+    align-items: start !important;
+}
+
+.promotion-form-modal .promotion-form-section,
+.promotion-form-modal .promotion-date-panel,
+.promotion-form-modal .promotion-condition-panel {
+    background: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 12px !important;
+    padding: 1.15rem 1.25rem !important;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04) !important;
+}
+
+html.dark .promotion-form-modal .promotion-form-section,
+html.dark .promotion-form-modal .promotion-date-panel,
+html.dark .promotion-form-modal .promotion-condition-panel {
+    background: #1e293b !important;
+    border-color: #334155 !important;
+}
+
+/* Tiêu đề nhóm trong modal */
+.promotion-group-title {
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.5rem !important;
+    font-size: 0.8125rem !important;
+    font-weight: 700 !important;
+    color: #1e293b !important;
+    margin-bottom: 0.5rem !important;
+}
+
+.promotion-group-title small {
+    font-size: 0.75rem !important;
+    font-weight: 500 !important;
+    color: #94a3b8 !important;
+}
+
+html.dark .promotion-group-title {
+    color: #f1f5f9 !important;
+}
+
+html.dark .promotion-group-title small {
+    color: #94a3b8 !important;
+}
+
+/* Fix ô input có hậu tố (ví dụ dấu %) không bị văng lơ lửng */
+.promotion-input-suffix-wrap {
+    position: relative !important;
+    display: flex !important;
+    align-items: center !important;
+    width: 100% !important;
+}
+
+.promotion-input-suffix-wrap input {
+    width: 100% !important;
+    padding-right: 2.25rem !important;
+}
+
+.promotion-input-suffix-wrap .suffix-symbol {
+    position: absolute !important;
+    right: 0.75rem !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    font-size: 0.8125rem !important;
+    font-weight: 700 !important;
+    color: #94a3b8 !important;
+    pointer-events: none !important;
+    line-height: 1 !important;
+}
+
+/* Card chọn 1 trong 2 loại khuyến mãi (Ngang, cân đối) */
+.promotion-type-grid {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 0.625rem !important;
+    margin-bottom: 0.875rem !important;
+}
+
+.promotion-type-card {
+    position: relative !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 0.5rem !important;
+    padding: 0.625rem 0.875rem !important;
+    min-height: 52px !important;
+    background: #ffffff !important;
+    border: 1.5px solid #cbd5e1 !important;
+    border-radius: 10px !important;
+    cursor: pointer !important;
+    transition: all 0.15s ease !important;
+}
+
+.promotion-type-card:hover {
+    border-color: #93c5fd !important;
+    background: #f8fafc !important;
+}
+
+.promotion-type-card.active {
+    border-color: #2563eb !important;
+    background: #eff6ff !important;
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.12) !important;
+}
+
+html.dark .promotion-type-card {
+    background: #1e293b !important;
+    border-color: #334155 !important;
+}
+
+html.dark .promotion-type-card.active {
+    background: rgba(37, 99, 235, 0.2) !important;
+    border-color: #3b82f6 !important;
+}
+
+.promotion-type-card-content {
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.625rem !important;
+    min-width: 0 !important;
+}
+
+.promotion-type-card-content .icon {
+    font-size: 1.25rem !important;
+    flex-shrink: 0 !important;
+}
+
+.promotion-type-card-content .text-wrap {
+    min-width: 0 !important;
+}
+
+.promotion-type-card-content .title {
+    display: block !important;
+    font-size: 0.75rem !important;
+    font-weight: 700 !important;
+    color: #0f172a !important;
+    line-height: 1.2 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+}
+
+html.dark .promotion-type-card-content .title {
+    color: #f8fafc !important;
+}
+
+.promotion-type-card-content .desc {
+    display: block !important;
+    font-size: 0.6875rem !important;
+    color: #64748b !important;
+    line-height: 1.2 !important;
+    margin-top: 0.15rem !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+}
+
+html.dark .promotion-type-card-content .desc {
+    color: #94a3b8 !important;
+}
+
+.promotion-type-radio-dot {
+    width: 18px !important;
+    height: 18px !important;
+    border-radius: 50% !important;
+    border: 2px solid #cbd5e1 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex-shrink: 0 !important;
+    background: #ffffff !important;
+    transition: all 0.15s ease !important;
+}
+
+.promotion-type-card.active .promotion-type-radio-dot {
+    border-color: #2563eb !important;
+    background: #2563eb !important;
+}
+
+.promotion-type-card.active .promotion-type-radio-dot::after {
+    content: "" !important;
+    width: 6px !important;
+    height: 6px !important;
+    border-radius: 50% !important;
+    background: #ffffff !important;
+}
+
+/* Tabs chọn kiểu giảm: % hoặc VNĐ */
+.promotion-discount-tabs {
+    display: inline-flex !important;
+    background: #f1f5f9 !important;
+    padding: 3px !important;
+    border-radius: 8px !important;
+    margin-bottom: 0.875rem !important;
+}
+
+html.dark .promotion-discount-tabs {
+    background: #0f172a !important;
+}
+
+.promotion-discount-tab-btn {
+    padding: 0.35rem 0.85rem !important;
+    border-radius: 6px !important;
+    font-size: 0.75rem !important;
+    font-weight: 700 !important;
+    color: #64748b !important;
+    border: none !important;
+    background: transparent !important;
+    cursor: pointer !important;
+    transition: all 0.15s ease !important;
+}
+
+.promotion-discount-tab-btn.active {
+    background: #ffffff !important;
+    color: #2563eb !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08) !important;
+}
+
+html.dark .promotion-discount-tab-btn.active {
+    background: #1e293b !important;
+    color: #60a5fa !important;
+}
+
+/* Sub-section header với badge đếm số lượng */
+.promotion-sub-section-header {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 0.5rem !important;
+    margin-bottom: 0.5rem !important;
+}
+
+.promotion-count-badge {
+    display: inline-flex !important;
+    align-items: center !important;
+    font-size: 0.6875rem !important;
+    font-weight: 700 !important;
+    padding: 0.15rem 0.5rem !important;
+    border-radius: 9999px !important;
+    background: #eff6ff !important;
+    color: #1d4ed8 !important;
+    border: 1px solid #bfdbfe !important;
+}
+
+html.dark .promotion-count-badge {
+    background: rgba(29, 78, 216, 0.2) !important;
+    border-color: rgba(191, 219, 254, 0.2) !important;
+    color: #93c5fd !important;
+}
+
+/* Toolbar bộ lọc sản phẩm chuẩn chỉ */
+.promotion-filter-toolbar {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0.5rem !important;
+    margin-bottom: 0.625rem !important;
+}
+
+.promotion-filter-inputs {
+    display: grid !important;
+    grid-template-columns: 190px 1fr !important;
+    gap: 0.5rem !important;
+}
+
+.promotion-filter-select {
+    width: 100% !important;
+    height: 34px !important;
+    font-size: 0.75rem !important;
+    font-weight: 500 !important;
+    padding: 0 0.5rem !important;
+    border-radius: 8px !important;
+    border: 1px solid #cbd5e1 !important;
+    background-color: #ffffff !important;
+    color: #1e293b !important;
+}
+
+html.dark .promotion-filter-select {
+    background-color: #0f172a !important;
+    border-color: #334155 !important;
+    color: #f1f5f9 !important;
+}
+
+.promotion-filter-search-box {
+    position: relative !important;
+    display: flex !important;
+    align-items: center !important;
+    width: 100% !important;
+}
+
+.promotion-filter-search-box iconify-icon {
+    position: absolute !important;
+    left: 0.625rem !important;
+    color: #94a3b8 !important;
+    font-size: 0.875rem !important;
+    pointer-events: none !important;
+}
+
+.promotion-filter-search-input {
+    width: 100% !important;
+    height: 34px !important;
+    padding-left: 2rem !important;
+    padding-right: 1.75rem !important;
+    font-size: 0.75rem !important;
+    border-radius: 8px !important;
+    border: 1px solid #cbd5e1 !important;
+    background-color: #ffffff !important;
+    color: #1e293b !important;
+}
+
+html.dark .promotion-filter-search-input {
+    background-color: #0f172a !important;
+    border-color: #334155 !important;
+    color: #f1f5f9 !important;
+}
+
+.promotion-filter-clear {
+    position: absolute !important;
+    right: 0.5rem !important;
+    background: transparent !important;
+    border: none !important;
+    color: #94a3b8 !important;
+    cursor: pointer !important;
+    font-size: 0.75rem !important;
+    padding: 0.2rem !important;
+}
+
+.promotion-filter-actions-row {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 0.5rem !important;
+    flex-wrap: wrap !important;
+}
+
+.promotion-pills-group {
+    display: inline-flex !important;
+    background: #e2e8f0 !important;
+    padding: 2px !important;
+    border-radius: 6px !important;
+    gap: 2px !important;
+}
+
+html.dark .promotion-pills-group {
+    background: #334155 !important;
+}
+
+.promotion-pill-btn {
+    padding: 0.25rem 0.65rem !important;
+    border-radius: 5px !important;
+    font-size: 0.6875rem !important;
+    font-weight: 600 !important;
+    color: #475569 !important;
+    background: transparent !important;
+    border: none !important;
+    cursor: pointer !important;
+    transition: all 0.15s ease !important;
+}
+
+html.dark .promotion-pill-btn {
+    color: #cbd5e1 !important;
+}
+
+.promotion-pill-btn.active {
+    background: #2563eb !important;
+    color: #ffffff !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) !important;
+}
+
+.promotion-quick-links {
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.4rem !important;
+    font-size: 0.75rem !important;
+}
+
+.promotion-quick-link-btn {
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    font-size: 0.75rem !important;
+    font-weight: 600 !important;
+    color: #2563eb !important;
+    cursor: pointer !important;
+    text-decoration: underline !important;
+}
+
+.promotion-quick-link-btn.secondary {
+    color: #64748b !important;
+    font-weight: 500 !important;
+}
+
+.promotion-quick-links .sep {
+    color: #cbd5e1 !important;
+    font-size: 0.75rem !important;
+}
+
+/* Danh sách món bánh & Thẻ sản phẩm chuẩn chỉ */
+.promotion-form-modal .promotion-product-list {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 0.5rem !important;
+    max-height: 250px !important;
+    overflow-y: auto !important;
+    padding: 0.625rem !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 10px !important;
+    background: #f8fafc !important;
+}
+
+html.dark .promotion-form-modal .promotion-product-list {
+    background: #0f172a !important;
+    border-color: #334155 !important;
+}
+
+.promotion-form-modal .promotion-product-card {
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.625rem !important;
+    padding: 0.5rem 0.65rem !important;
+    background: #ffffff !important;
+    border: 1.5px solid #e2e8f0 !important;
+    border-radius: 8px !important;
+    cursor: pointer !important;
+    user-select: none !important;
+    transition: all 0.15s ease !important;
+    min-height: 52px !important;
+}
+
+.promotion-form-modal .promotion-product-card:hover {
+    border-color: #93c5fd !important;
+    background: #f8fafc !important;
+}
+
+.promotion-form-modal .promotion-product-card.is-selected {
+    border-color: #2563eb !important;
+    background: #eff6ff !important;
+}
+
+html.dark .promotion-form-modal .promotion-product-card {
+    background: #1e293b !important;
+    border-color: #334155 !important;
+}
+
+html.dark .promotion-form-modal .promotion-product-card.is-selected {
+    background: rgba(37, 99, 235, 0.18) !important;
+    border-color: #3b82f6 !important;
+}
+
+.promotion-form-modal .promotion-product-checkbox {
+    width: 16px !important;
+    height: 16px !important;
+    border-radius: 4px !important;
+    accent-color: #2563eb !important;
+    cursor: pointer !important;
+    flex-shrink: 0 !important;
+}
+
+.promotion-prod-body {
+    flex: 1 !important;
+    min-width: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0.15rem !important;
+}
+
+.promotion-prod-name {
+    font-size: 0.75rem !important;
+    font-weight: 700 !important;
+    color: #0f172a !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    line-height: 1.25 !important;
+}
+
+html.dark .promotion-prod-name {
+    color: #f8fafc !important;
+}
+
+.promotion-prod-sub {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 0.35rem !important;
+    width: 100% !important;
+}
+
+.promotion-prod-badge {
+    font-size: 0.625rem !important;
+    font-weight: 600 !important;
+    color: #64748b !important;
+    background: #f1f5f9 !important;
+    padding: 0.1rem 0.35rem !important;
+    border-radius: 4px !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    max-width: 100px !important;
+}
+
+html.dark .promotion-prod-badge {
+    background: #334155 !important;
+    color: #cbd5e1 !important;
+}
+
+.promotion-prod-price {
+    font-size: 0.75rem !important;
+    font-weight: 700 !important;
+    color: #059669 !important;
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+}
+
+html.dark .promotion-prod-price {
+    color: #34d399 !important;
+}
+
+.promotion-prod-check-icon {
+    font-size: 1.15rem !important;
+    color: #2563eb !important;
+    flex-shrink: 0 !important;
+}
+
+@media (max-width: 900px) {
+    .promotion-form-modal .promotion-form-layout {
+        grid-template-columns: 1fr !important;
+    }
+}
+
+@media (max-width: 540px) {
+    .promotion-type-grid {
+        grid-template-columns: 1fr !important;
+    }
+    .promotion-form-modal .promotion-product-list {
+        grid-template-columns: 1fr !important;
+    }
+    .promotion-filter-inputs {
+        grid-template-columns: 1fr !important;
+    }
+}
+

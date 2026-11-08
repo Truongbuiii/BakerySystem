@@ -235,9 +235,17 @@ public static class MobileApiEndpoints
                 if (promotion.PromotionInvoice is { } invoiceCondition
                     && totalAmount >= invoiceCondition.MinOrderAmount)
                 {
-                    var invoiceDiscount = totalAmount * invoiceCondition.DiscountPercent / 100m;
-                    if (invoiceCondition.MaxDiscountAmount is > 0)
-                        invoiceDiscount = Math.Min(invoiceDiscount, invoiceCondition.MaxDiscountAmount.Value);
+                    decimal invoiceDiscount;
+                    if (invoiceCondition.DiscountAmount is > 0)
+                    {
+                        invoiceDiscount = invoiceCondition.DiscountAmount.Value;
+                    }
+                    else
+                    {
+                        invoiceDiscount = totalAmount * invoiceCondition.DiscountPercent / 100m;
+                        if (invoiceCondition.MaxDiscountAmount is > 0)
+                            invoiceDiscount = Math.Min(invoiceDiscount, invoiceCondition.MaxDiscountAmount.Value);
+                    }
                     discountAmount += invoiceDiscount;
                 }
 

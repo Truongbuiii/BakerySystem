@@ -24,101 +24,366 @@
 <div class="bakery-modal-backdrop" @onclick="CancelPromotionForm">
     <div class="bakery-modal-card promotion-form-modal" @onclick:stopPropagation="true">
         <div class="bakery-modal-header">
-            <div>
-                <h4 class="text-base font-bold text-slate-900 dark:text-white mb-0">
-                    @(isEditing ? "Cập nhật khuyến mãi" : "Thêm khuyến mãi")
-                </h4>
-                <p class="text-xs text-slate-500 mb-0">Thiết lập thời hạn và điều kiện áp dụng.</p>
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 flex items-center justify-center text-xl shrink-0">
+                    <iconify-icon icon="solar:ticket-sale-bold"></iconify-icon>
+                </div>
+                <div>
+                    <h4 class="text-base font-bold text-slate-900 dark:text-white mb-0">
+                        @(isEditing ? "Cập nhật chương trình khuyến mãi" : "Thêm chương trình khuyến mãi mới")
+                    </h4>
+                    <p class="text-xs text-slate-500 mb-0">Thiết lập hình thức ưu đãi, thời hạn và quy tắc áp dụng chuẩn nghiệp vụ.</p>
+                </div>
             </div>
-            <button type="button" class="text-slate-400 text-lg" @onclick="CancelPromotionForm" aria-label="Đóng">×</button>
+            <button type="button" class="text-slate-400 hover:text-slate-600 text-xl font-bold p-1 cursor-pointer" @onclick="CancelPromotionForm" aria-label="Đóng">×</button>
         </div>
         <div class="bakery-modal-body">
-<div class="promotion-form-content">
-            <div class="promotion-form-layout">
-                <div class="promotion-form-column">
-                    <div class="promotion-form-section">
-                        <h3>Thông tin cơ bản</h3>
-                        <div class="grid gap-4">
-                            <label>Mã khuyến mãi<input class="bakery-input w-full" placeholder="BAKERY2026" @bind="campaign.PromotionCode" disabled="@editingHasUsed" /></label>
-                            <label>Tên chiến dịch<input class="bakery-input w-full" @bind="campaign.PromotionName" /></label>
-                            <label>Mô tả<textarea class="bakery-input w-full promotion-description-input" rows="3" @bind="campaign.Description"></textarea></label>
-                        </div>
-                    </div>
+            <div class="promotion-form-content">
+                <div class="promotion-form-layout">
+                    
+                    <!-- CỘT TRÁI (360px): THÔNG TIN CƠ BẢN & THỜI HẠN & GIỚI HẠN LƯỢT DÙNG -->
+                    <div class="promotion-form-column">
+                        <div class="promotion-form-section">
+                            <h3>
+                                <span class="flex items-center gap-1.5">
+                                    <iconify-icon icon="solar:info-circle-bold" class="text-primary text-base"></iconify-icon>
+                                    <span>Thông tin chung</span>
+                                </span>
+                            </h3>
+                            <div class="grid gap-3.5">
+                                <label>
+                                    <span>Mã khuyến mãi <strong class="text-rose-500">*</strong></span>
+                                    <input class="bakery-input w-full uppercase font-bold tracking-wider" 
+                                           placeholder="Ví dụ: BAKERY2026, BANHMOI..." 
+                                           @bind="campaign.PromotionCode" 
+                                           disabled="@editingHasUsed" />
+                                    <small class="text-[10px] text-slate-400">Khách hàng hoặc quầy nhập mã này để hưởng ưu đãi.</small>
+                                </label>
 
-                    <div class="promotion-date-panel">
-                        <h3>Thời hạn áp dụng</h3>
-                        <div class="grid gap-4">
-                            <label>Ngày bắt đầu<input class="bakery-input w-full" type="date" @bind="start" /></label>
-                            <label>Ngày kết thúc<input class="bakery-input w-full" type="date" @bind="end" /></label>
-                        </div>
-                    </div>
-                </div>
+                                <label>
+                                    <span>Tên chiến dịch</span>
+                                    <input class="bakery-input w-full" 
+                                           placeholder="Ví dụ: Giảm giá khai trương, Flash Sale..." 
+                                           @bind="campaign.PromotionName" />
+                                </label>
 
-                <div class="promotion-form-column">
-                    <div class="promotion-form-section">
-                        <p class="text-sm font-semibold text-slate-700 mb-2">Điều kiện áp dụng <span class="font-normal text-slate-500">(có thể chọn nhiều)</span></p>
-                        <div class="grid gap-3">
-                            <button type="button" disabled="@editingHasUsed" class="promotion-condition @(useInvoiceCondition ? "promotion-condition-active" : "")" @onclick="() => useInvoiceCondition = !useInvoiceCondition">
-                                <span class="text-lg">🧾</span><span><strong>Theo tổng đơn hàng</strong><small>Đơn từ một giá trị nhất định</small></span>
-                                <span class="promotion-condition-check">@(useInvoiceCondition ? "✓" : "")</span>
-                            </button>
-                            <button type="button" disabled="@editingHasUsed" class="promotion-condition @(useProductCondition ? "promotion-condition-active" : "")" @onclick="() => useProductCondition = !useProductCondition">
-                                <span class="text-lg">🍰</span><span><strong>Theo sản phẩm</strong><small>Chỉ giảm cho món được chọn</small></span>
-                                <span class="promotion-condition-check">@(useProductCondition ? "✓" : "")</span>
-                            </button>
-                        </div>
-                    </div>
-
-                    @if (useInvoiceCondition)
-                    {
-                        <div class="promotion-condition-panel">
-                            <h3>Theo tổng đơn hàng</h3>
-                            <div class="grid gap-4">
-                                <label>Giảm giá (%)<input class="bakery-input w-full" type="number" min="0.01" max="100" step="0.01" @bind="invoicePercent" disabled="@editingHasUsed" /></label>
-                                <label>Đơn hàng tối thiểu (đ)<input class="bakery-input w-full" type="number" min="0" step="1000" @bind="minimum" disabled="@editingHasUsed" /></label>
-                                <label>Mức giảm tối đa (đ)<input class="bakery-input w-full" type="number" min="1" step="1000" required @bind="invoiceCap" disabled="@editingHasUsed" /></label>
+                                <label>
+                                    <span>Mô tả chiến dịch</span>
+                                    <textarea class="bakery-input w-full promotion-description-input text-xs" 
+                                              rows="2" 
+                                              placeholder="Ghi chú chi tiết điều kiện hoặc lưu ý cho nhân viên..."
+                                              @bind="campaign.Description"></textarea>
+                                </label>
                             </div>
                         </div>
-                    }
 
-                    @if (useProductCondition)
-                    {
-                        <div class="promotion-condition-panel">
-                            <h3>Theo sản phẩm</h3>
-                            <div class="grid gap-4 mb-3">
-                                <label>Giảm giá sản phẩm (%)<input class="bakery-input w-full" type="number" min="0.01" max="100" step="0.01" @bind="productPercent" disabled="@editingHasUsed" /></label>
-                                <label>Mức giảm tối đa / sản phẩm (đ)<input class="bakery-input w-full" type="number" min="1" step="1000" required @bind="productCap" disabled="@editingHasUsed" /></label>
-                            </div>
-                            <p class="text-sm font-medium mb-2">Chọn sản phẩm áp dụng (@selectedProductIds.Count)</p>
-                            <div class="promotion-product-list">
-                                @foreach (var product in products)
-                                {
-                                    <label class="promotion-product-item">
-                                        <input type="checkbox" checked="@selectedProductIds.Contains(product.ProductID)" disabled="@editingHasUsed" @onchange="e => SetProductSelection(product.ProductID, e)" />
-                                        <span>@product.ProductName</span><small>@product.Price.ToString("N0") đ</small>
+                        <div class="promotion-date-panel">
+                            <h3>
+                                <span class="flex items-center gap-1.5">
+                                    <iconify-icon icon="solar:calendar-date-bold" class="text-primary text-base"></iconify-icon>
+                                    <span>Thời hạn & Giới hạn sử dụng</span>
+                                </span>
+                            </h3>
+                            <div class="grid gap-3.5">
+                                <div class="grid grid-cols-2 gap-2.5">
+                                    <label>
+                                        <span>Ngày bắt đầu</span>
+                                        <input class="bakery-input w-full" type="date" @bind="start" />
                                     </label>
-                                }
+                                    <label>
+                                        <span>Ngày kết thúc</span>
+                                        <input class="bakery-input w-full" type="date" @bind="end" />
+                                    </label>
+                                </div>
+
+                                <label>
+                                    <span>Giới hạn số lượt sử dụng toàn hệ thống</span>
+                                    <input class="bakery-input w-full font-semibold" 
+                                           type="number" 
+                                           min="1" 
+                                           step="1" 
+                                           placeholder="Để trống = Không giới hạn lượt dùng" 
+                                           @bind="usageLimit" />
+                                    <small class="text-[10px] text-slate-400">Hệ thống tự động đóng mã khi đạt đủ số lượt phát hành.</small>
+                                </label>
                             </div>
                         </div>
-                    }
-                </div>
-            </div>
+                    </div>
 
-            <div class="promotion-form-actions">
-                <p class="text-xs text-slate-500">Các điều kiện được chọn sẽ cùng thuộc một chương trình.</p>
-                <div class="flex gap-2">
-                    @if (isEditing)
-                    {
-                        <button class="bakery-btn bakery-btn-secondary" @onclick="CancelEdit" disabled="@saving">Hủy</button>
-                    }
-                    <button class="bakery-btn bakery-btn-primary" @onclick="Save" disabled="@saving">@(saving ? "Đang lưu..." : isEditing ? "Lưu thay đổi" : "Lưu bản nháp")</button>
+                    <!-- CỘT PHẢI (560px): CHỌN 1 TRONG 2 LOẠI KHUYẾN MÃI & CẤU HÌNH ĐIỀU KIỆN -->
+                    <div class="promotion-form-column">
+                        <div class="promotion-form-section">
+                            <!-- 2 Radio Cards Chọn 1 trong 2 loại khuyến mãi nằm trên 1 hàng ngang nhỏ gọn -->
+                            <div class="mb-3">
+                                <div class="promotion-group-title">
+                                    <span>Loại hình khuyến mãi</span>
+                                    <small>(Chọn 1 trong 2 hình thức bên dưới)</small>
+                                </div>
+                                <div class="promotion-type-grid">
+                                    <div class="promotion-type-card @(selectedPromoType == "invoice" ? "active" : "")"
+                                         @onclick='() => SelectPromoType("invoice")'>
+                                        <div class="promotion-type-card-content">
+                                            <span class="icon">🧾</span>
+                                            <div class="text-wrap">
+                                                <strong class="title">Theo tổng đơn hàng</strong>
+                                                <span class="desc">Đơn từ mức tối thiểu</span>
+                                            </div>
+                                        </div>
+                                        <div class="promotion-type-radio-dot"></div>
+                                    </div>
+
+                                    <div class="promotion-type-card @(selectedPromoType == "product" ? "active" : "")"
+                                         @onclick='() => SelectPromoType("product")'>
+                                        <div class="promotion-type-card-content">
+                                            <span class="icon">🍰</span>
+                                            <div class="text-wrap">
+                                                <strong class="title">Theo món bánh</strong>
+                                                <span class="desc">Chỉ giảm món được chọn</span>
+                                            </div>
+                                        </div>
+                                        <div class="promotion-type-radio-dot"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- CHI TIẾT NẾU CHỌN: GIẢM THEO TỔNG ĐƠN HÀNG -->
+                            @if (selectedPromoType == "invoice")
+                            {
+                                <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+                                    <div class="flex items-center justify-between flex-wrap gap-2 mb-2.5">
+                                        <span class="text-xs font-bold text-slate-700 dark:text-slate-300">Hình thức giảm giá:</span>
+                                        <div class="promotion-discount-tabs m-0">
+                                            <button type="button" 
+                                                    class="promotion-discount-tab-btn @(invoiceDiscountType == "percent" ? "active" : "")"
+                                                    @onclick='() => invoiceDiscountType = "percent"'
+                                                    disabled="@editingHasUsed">
+                                                Giảm theo %
+                                            </button>
+                                            <button type="button" 
+                                                    class="promotion-discount-tab-btn @(invoiceDiscountType == "amount" ? "active" : "")"
+                                                    @onclick='() => invoiceDiscountType = "amount"'
+                                                    disabled="@editingHasUsed">
+                                                Số tiền cố định (đ)
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div class="grid gap-3">
+                                        @if (invoiceDiscountType == "percent")
+                                        {
+                                            <div class="grid grid-cols-2 gap-3">
+                                                <label>
+                                                    <span>Tỷ lệ giảm giá (%) <strong class="text-rose-500">*</strong></span>
+                                                    <div class="promotion-input-suffix-wrap">
+                                                        <input class="bakery-input font-bold" 
+                                                               type="number" min="1" max="100" step="1" 
+                                                               @bind="invoicePercent" disabled="@editingHasUsed" />
+                                                        <span class="suffix-symbol">%</span>
+                                                    </div>
+                                                </label>
+                                                <label>
+                                                    <span>Mức giảm tối đa (đ) <strong class="text-rose-500">*</strong></span>
+                                                    <input class="bakery-input w-full font-semibold" 
+                                                           type="number" min="1000" step="1000" 
+                                                           placeholder="Ví dụ: 50000" 
+                                                           @bind="invoiceCap" disabled="@editingHasUsed" />
+                                                </label>
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <label>
+                                                <span>Số tiền giảm trực tiếp (đ) <strong class="text-rose-500">*</strong></span>
+                                                <input class="bakery-input w-full font-bold text-emerald-600 dark:text-emerald-400" 
+                                                       type="number" min="1000" step="1000" 
+                                                       placeholder="Ví dụ: 20000, 50000" 
+                                                       @bind="invoiceDiscountAmount" disabled="@editingHasUsed" />
+                                                <small class="text-[10px] text-slate-400">Trừ thẳng số tiền này vào hóa đơn khi thỏa giá trị tối thiểu.</small>
+                                            </label>
+                                        }
+
+                                        <label>
+                                            <span>Giá trị đơn hàng tối thiểu để áp dụng (đ)</span>
+                                            <input class="bakery-input w-full font-semibold" 
+                                                   type="number" min="0" step="5000" 
+                                                   placeholder="0 = Áp dụng mọi đơn" 
+                                                   @bind="minimum" disabled="@editingHasUsed" />
+                                            <small class="text-[10px] text-slate-400">Đơn hàng phải đạt từ mức tiền này trở lên mới có thể nhập mã voucher.</small>
+                                        </label>
+                                    </div>
+                                </div>
+                            }
+
+                            <!-- CHI TIẾT NẾU CHỌN: GIẢM THEO MÓN BÁNH -->
+                            @if (selectedPromoType == "product")
+                            {
+                                <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+                                    <div class="grid grid-cols-2 gap-3 mb-3">
+                                        <label>
+                                            <span>Tỷ lệ giảm giá món (%) <strong class="text-rose-500">*</strong></span>
+                                            <div class="promotion-input-suffix-wrap">
+                                                <input class="bakery-input font-bold" 
+                                                       type="number" min="1" max="100" step="1" 
+                                                       @bind="productPercent" disabled="@editingHasUsed" />
+                                                <span class="suffix-symbol">%</span>
+                                            </div>
+                                        </label>
+                                        <label>
+                                            <span>Mức giảm tối đa / món (đ) <strong class="text-rose-500">*</strong></span>
+                                            <input class="bakery-input w-full font-semibold" 
+                                                   type="number" min="1000" step="1000" 
+                                                   placeholder="Ví dụ: 50000" 
+                                                   @bind="productCap" disabled="@editingHasUsed" />
+                                        </label>
+                                    </div>
+
+                                    <!-- Bộ lọc tiện ích & Danh sách món bánh (Hỗ trợ 50+ sản phẩm) -->
+                                    <div class="pt-2.5 border-t border-slate-200 dark:border-slate-700">
+                                        <!-- Header số lượng món đang chọn -->
+                                        <div class="promotion-sub-section-header">
+                                            <div class="flex items-center gap-2">
+                                                <span class="text-xs font-bold text-slate-800 dark:text-slate-100">Chọn món bánh áp dụng</span>
+                                                <span class="promotion-count-badge">@selectedProductIds.Count món đã chọn</span>
+                                            </div>
+                                        </div>
+
+                                        <!-- Toolbar lọc sản phẩm -->
+                                        <div class="promotion-filter-toolbar">
+                                            <!-- Hàng 1: Dropdown Danh mục + Ô tìm kiếm tên món -->
+                                            <div class="promotion-filter-inputs">
+                                                <select class="promotion-filter-select" @bind="selectedCategoryId">
+                                                    <option value="0">Tất cả danh mục (@products.Count món)</option>
+                                                    @foreach (var cat in categories)
+                                                    {
+                                                        var countInCat = products.Count(p => p.CategoryID == cat.CategoryID);
+                                                        <option value="@cat.CategoryID">@cat.CategoryName (@countInCat món)</option>
+                                                    }
+                                                </select>
+                                                <div class="promotion-filter-search-box">
+                                                    <iconify-icon icon="solar:magnifer-linear"></iconify-icon>
+                                                    <input type="text" 
+                                                           class="promotion-filter-search-input" 
+                                                           placeholder="Tìm theo tên bánh..." 
+                                                           @bind="productSearchFilter" 
+                                                           @bind:event="oninput" />
+                                                    @if (!string.IsNullOrEmpty(productSearchFilter))
+                                                    {
+                                                        <button type="button" 
+                                                                class="promotion-filter-clear" 
+                                                                @onclick='() => productSearchFilter = ""'>✕</button>
+                                                    }
+                                                </div>
+                                            </div>
+
+                                            <!-- Hàng 2: Tab lọc Tất cả / Đã chọn + Nút thao tác nhanh -->
+                                            <div class="promotion-filter-actions-row">
+                                                <div class="promotion-pills-group">
+                                                    <button type="button" 
+                                                            class="promotion-pill-btn @(!showOnlySelectedProducts ? "active" : "")"
+                                                            @onclick="() => showOnlySelectedProducts = false">
+                                                        Tất cả (@FilteredProductsForModal.Count())
+                                                    </button>
+                                                    <button type="button" 
+                                                            class="promotion-pill-btn @(showOnlySelectedProducts ? "active" : "")"
+                                                            @onclick="() => showOnlySelectedProducts = true">
+                                                        Chỉ món đã chọn (@selectedProductIds.Count)
+                                                    </button>
+                                                </div>
+
+                                                @if (!editingHasUsed)
+                                                {
+                                                    <div class="promotion-quick-links">
+                                                        <button type="button" class="promotion-quick-link-btn" @onclick="SelectAllFilteredProducts">
+                                                            Chọn tất cả món đang lọc
+                                                        </button>
+                                                        <span class="sep">|</span>
+                                                        <button type="button" class="promotion-quick-link-btn secondary" @onclick="DeselectAllProducts">
+                                                            Bỏ chọn tất cả
+                                                        </button>
+                                                    </div>
+                                                }
+                                            </div>
+                                        </div>
+
+                                        <!-- Grid danh sách món bánh -->
+                                        <div class="promotion-product-list">
+                                            @foreach (var prod in DisplayedProductsForModal)
+                                            {
+                                                var isChecked = selectedProductIds.Contains(prod.ProductID);
+                                                <div class="promotion-product-card @(isChecked ? "is-selected" : "")" 
+                                                     @onclick="() => ToggleProductSelection(prod.ProductID)">
+                                                    <input type="checkbox" 
+                                                           class="promotion-product-checkbox"
+                                                           checked="@isChecked" 
+                                                           disabled="@editingHasUsed" 
+                                                           @onclick:stopPropagation="true"
+                                                           @onchange="e => SetProductSelection(prod.ProductID, e)" />
+                                                    <div class="promotion-prod-body">
+                                                        <div class="promotion-prod-name" title="@prod.ProductName">
+                                                            @prod.ProductName
+                                                        </div>
+                                                        <div class="promotion-prod-sub">
+                                                            @if (prod.Category is not null)
+                                                            {
+                                                                <span class="promotion-prod-badge" title="@prod.Category.CategoryName">
+                                                                    @prod.Category.CategoryName
+                                                                </span>
+                                                            }
+                                                            <span class="promotion-prod-price">
+                                                                @prod.Price.ToString("N0") đ
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                    @if (isChecked)
+                                                    {
+                                                        <iconify-icon icon="solar:check-circle-bold" class="promotion-prod-check-icon"></iconify-icon>
+                                                    }
+                                                </div>
+                                            }
+                                            @if (!DisplayedProductsForModal.Any())
+                                            {
+                                                <div class="col-span-full py-8 text-center text-xs text-slate-400">
+                                                    <iconify-icon icon="solar:box-minimalistic-linear" class="text-2xl text-slate-300 dark:text-slate-600 mb-1 block mx-auto"></iconify-icon>
+                                                    <span>Không tìm thấy món bánh nào phù hợp với bộ lọc.</span>
+                                                </div>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
                 </div>
+
+                <!-- Footer hành động -->
+                <div class="promotion-form-actions">
+                    <div class="text-xs text-slate-500">
+                        @if (selectedPromoType == "invoice")
+                        {
+                            <span>Loại ưu đãi: <strong>Giảm theo toàn bộ hóa đơn</strong> (Hóa đơn từ @(minimum > 0 ? $"{minimum:N0} đ" : "mọi mức")).</span>
+                        }
+                        else
+                        {
+                            <span>Loại ưu đãi: <strong>Giảm theo món bánh</strong> (Đang chọn @selectedProductIds.Count món bánh).</span>
+                        }
+                    </div>
+                    <div class="flex gap-2">
+                        <button class="bakery-btn bakery-btn-secondary" @onclick="CancelPromotionForm" disabled="@saving">Hủy</button>
+                        <button class="bakery-btn bakery-btn-primary" @onclick="Save" disabled="@saving">
+                            <iconify-icon icon="solar:disk-bold"></iconify-icon>
+                            <span>@(saving ? "Đang lưu..." : isEditing ? "Lưu thay đổi" : "Lưu khuyến mãi")</span>
+                        </button>
+                    </div>
+                </div>
+
+                @if (!string.IsNullOrEmpty(message))
+                {
+                    <div class="mt-3 p-2.5 rounded-lg text-xs @(saved ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-rose-50 text-rose-700 border border-rose-200") flex items-center gap-2">
+                        <iconify-icon icon="@(saved ? "solar:check-circle-bold" : "solar:danger-triangle-bold")" class="text-base"></iconify-icon>
+                        <span>@message</span>
+                    </div>
+                }
             </div>
-    @if (!string.IsNullOrEmpty(message))
-    {
-        <p class="mt-3 text-sm @(saved ? "text-emerald-600" : "text-rose-600")">@message</p>
-    }
-</div>
         </div>
     </div>
 </div>
@@ -148,9 +413,10 @@
             <label>Trạng thái
                 <select class="bakery-input w-full" @bind="promotionStatusFilter">
                     <option value="all">Tất cả trạng thái</option>
-                    <option value="@PromotionStatus.Active">Đang hoạt động</option>
-                    <option value="@PromotionStatus.Draft">Bản nháp</option>
-                    <option value="@PromotionStatus.Inactive">Đã tạm dừng</option>
+                    <option value="active">Đang áp dụng</option>
+                    <option value="expired">Đã hết hạn</option>
+                    <option value="upcoming">Sắp diễn ra</option>
+                    <option value="inactive">Đã tạm dừng</option>
                 </select>
             </label>
             <label>Điều kiện áp dụng
@@ -217,18 +483,23 @@
                     <h3>@selected.PromotionName</h3>
                     <span class="promotion-code">@selected.PromotionCode</span>
                 </div>
-                <span class="promotion-status @(IsPromotionCurrentlyValid(selected) ? "promotion-status-active" : "")">@GetStatusText(selected)</span>
+                <span class="promotion-status @(IsPromotionCurrentlyValid(selected) ? "promotion-status-active" : "")"
+                      style="@(selected.EndDate.Date < DateTime.Today ? "background: #f1f5f9; color: #64748b; border: 1px solid #cbd5e1; font-weight: 700;" : "")">
+                    @GetStatusText(selected)
+                </span>
             </div>
             <div class="promotion-detail-actions">
                 <a class="bakery-btn bakery-btn-secondary bakery-btn-sm" href="/promotions/@selected.PromotionID">Mở trang chi tiết</a>
-                <button type="button" class="bakery-btn bakery-btn-outline bakery-btn-sm" @onclick="() => BeginEdit(selected)">Sửa</button>
-                <button type="button" class="bakery-btn bakery-btn-secondary bakery-btn-sm" @onclick="() => ToggleStatus(selected)">
-                    @(selected.Status == PromotionStatus.Active ? "Tạm dừng" : "Kích hoạt")
-                </button>
-                @if (!usedPromotionIds.Contains(selected.PromotionID) &&
-                    (selected.Status != PromotionStatus.Active || selected.EndDate.Date < DateTime.Today))
+                @if (selected.EndDate.Date >= DateTime.Today)
                 {
-                    <button type="button" class="bakery-btn bakery-btn-outline bakery-btn-sm text-rose-600" @onclick="() => RequestDelete(selected)">Xóa</button>
+                    <button type="button" class="bakery-btn bakery-btn-outline bakery-btn-sm" @onclick="() => BeginEdit(selected)">Sửa</button>
+                    <button type="button" class="bakery-btn bakery-btn-secondary bakery-btn-sm" @onclick="() => ToggleStatus(selected)">
+                        @(selected.Status == PromotionStatus.Active ? "Tạm dừng" : "Kích hoạt")
+                    </button>
+                    @if (!usedPromotionIds.Contains(selected.PromotionID) && selected.Status != PromotionStatus.Active)
+                    {
+                        <button type="button" class="bakery-btn bakery-btn-outline bakery-btn-sm text-rose-600" @onclick="() => RequestDelete(selected)">Xóa</button>
+                    }
                 }
             </div>
             <dl class="promotion-detail-facts">
@@ -298,11 +569,19 @@
 @code {
     private List<Promotion> campaigns = [];
     private List<Product> products = [];
+    private List<Category> categories = [];
     private HashSet<int> usedPromotionIds = [];
     private Promotion campaign = new();
     private readonly HashSet<int> selectedProductIds = [];
-    private bool useInvoiceCondition;
+    private bool useInvoiceCondition = true;
     private bool useProductCondition;
+    private string selectedPromoType = "invoice";
+    private string invoiceDiscountType = "percent";
+    private decimal invoiceDiscountAmount = 20000;
+    private int? usageLimit;
+    private int selectedCategoryId = 0;
+    private string productSearchFilter = string.Empty;
+    private bool showOnlySelectedProducts;
     private bool saving;
     private bool isEditing;
     private bool editingHasUsed;
@@ -337,7 +616,11 @@
         await JS.InvokeVoidAsync("bakeryPdf.printReportToPdf", "Danh_Sach_Khuyen_Mai_BakerySystem", "print-promotions");
 
     private IEnumerable<Promotion> FilteredCampaigns => campaigns.Where(p =>
-        (promotionStatusFilter == "all" || p.Status == promotionStatusFilter) &&
+        (promotionStatusFilter == "all" ||
+            (promotionStatusFilter == "active" && p.Status == PromotionStatus.Active && p.StartDate.Date <= DateTime.Today && p.EndDate.Date >= DateTime.Today) ||
+            (promotionStatusFilter == "expired" && p.EndDate.Date < DateTime.Today) ||
+            (promotionStatusFilter == "upcoming" && p.StartDate.Date > DateTime.Today) ||
+            (promotionStatusFilter == "inactive" && p.Status != PromotionStatus.Active && p.EndDate.Date >= DateTime.Today)) &&
         (promotionConditionFilter == "all" ||
             (promotionConditionFilter == "invoice" && p.PromotionInvoice is not null && p.PromotionProducts.Count == 0) ||
             (promotionConditionFilter == "product" && p.PromotionInvoice is null && p.PromotionProducts.Count > 0) ||
@@ -370,6 +653,7 @@
     {
         campaigns = await PromotionManager.GetAsync();
         products = await InventoryManager.GetProductsAsync();
+        categories = await InventoryManager.GetCategoriesAsync();
         usedPromotionIds = await PromotionManager.GetUsedPromotionIdsAsync();
         selectedPromotion = campaigns.FirstOrDefault();
         if (EditPromotionId is int editId)
@@ -378,6 +662,39 @@
             if (toEdit is not null)
                 await BeginEdit(toEdit);
         }
+    }
+
+    private void SelectPromoType(string type)
+    {
+        if (editingHasUsed) return;
+        selectedPromoType = type;
+    }
+
+    private IEnumerable<Product> FilteredProductsForModal => products.Where(p =>
+        (selectedCategoryId == 0 || p.CategoryID == selectedCategoryId) &&
+        (string.IsNullOrWhiteSpace(productSearchFilter) || p.ProductName.Contains(productSearchFilter.Trim(), StringComparison.OrdinalIgnoreCase)));
+
+    private IEnumerable<Product> DisplayedProductsForModal => FilteredProductsForModal.Where(p =>
+        !showOnlySelectedProducts || selectedProductIds.Contains(p.ProductID));
+
+    private void ToggleProductSelection(int productId)
+    {
+        if (editingHasUsed) return;
+        if (!selectedProductIds.Add(productId))
+            selectedProductIds.Remove(productId);
+    }
+
+    private void SelectAllFilteredProducts()
+    {
+        if (editingHasUsed) return;
+        foreach (var p in FilteredProductsForModal)
+            selectedProductIds.Add(p.ProductID);
+    }
+
+    private void DeselectAllProducts()
+    {
+        if (editingHasUsed) return;
+        selectedProductIds.Clear();
     }
 
     private void SetProductSelection(int productId, ChangeEventArgs args)
@@ -398,13 +715,41 @@
             if (string.IsNullOrWhiteSpace(campaign.PromotionName))
                 campaign.PromotionName = campaign.PromotionCode;
 
+            useInvoiceCondition = selectedPromoType == "invoice";
+            useProductCondition = selectedPromoType == "product";
+
+            decimal? fixedAmt = (useInvoiceCondition && invoiceDiscountType == "amount") ? invoiceDiscountAmount : null;
+            decimal pct = (useInvoiceCondition && invoiceDiscountType == "amount") ? 0 : invoicePercent;
+
             if (isEditing)
-                await PromotionManager.UpdateAsync(campaign, useInvoiceCondition, useProductCondition,
-                    invoicePercent, minimum, invoiceCap, selectedProductIds, productPercent, productCap, editingHasUsed);
+                await PromotionManager.UpdateAsync(
+                    campaign, 
+                    useInvoiceCondition, 
+                    useProductCondition,
+                    pct, 
+                    minimum, 
+                    invoiceCap, 
+                    selectedProductIds, 
+                    productPercent, 
+                    productCap, 
+                    editingHasUsed,
+                    usageLimit,
+                    fixedAmt);
             else
-                await PromotionManager.SaveAsync(campaign, useInvoiceCondition, useProductCondition,
-                    invoicePercent, minimum, invoiceCap, selectedProductIds, productPercent, productCap);
-            message = isEditing ? "Đã cập nhật chương trình khuyến mãi." : "Đã lưu bản nháp. Kiểm tra lại điều kiện rồi bấm Kích hoạt khi sẵn sàng phát hành.";
+                await PromotionManager.SaveAsync(
+                    campaign, 
+                    useInvoiceCondition, 
+                    useProductCondition,
+                    pct, 
+                    minimum, 
+                    invoiceCap, 
+                    selectedProductIds, 
+                    productPercent, 
+                    productCap,
+                    usageLimit,
+                    fixedAmt);
+
+            message = isEditing ? "Đã cập nhật chương trình khuyến mãi." : "Đã tạo chương trình khuyến mãi thành công.";
             saved = true;
             ResetForm();
             promotionFormOpen = false;
@@ -436,23 +781,62 @@
             selectedProductIds.Clear();
             foreach (var item in promotion.PromotionProducts)
                 selectedProductIds.Add(item.ProductID);
+
             useInvoiceCondition = promotion.PromotionInvoice is not null;
             useProductCondition = promotion.PromotionProducts.Count > 0;
+
+            if (useProductCondition && !useInvoiceCondition)
+            {
+                selectedPromoType = "product";
+            }
+            else
+            {
+                selectedPromoType = "invoice";
+            }
+
             if (promotion.PromotionInvoice is not null)
             {
-                invoicePercent = promotion.PromotionInvoice.DiscountPercent;
+                usageLimit = promotion.PromotionInvoice.UsageLimit;
+                if (promotion.PromotionInvoice.DiscountAmount is > 0)
+                {
+                    invoiceDiscountType = "amount";
+                    invoiceDiscountAmount = promotion.PromotionInvoice.DiscountAmount.Value;
+                    invoicePercent = 10;
+                }
+                else
+                {
+                    invoiceDiscountType = "percent";
+                    invoicePercent = promotion.PromotionInvoice.DiscountPercent;
+                    invoiceDiscountAmount = 20000;
+                }
                 minimum = promotion.PromotionInvoice.MinOrderAmount;
-                invoiceCap = promotion.PromotionInvoice.MaxDiscountAmount;
+                invoiceCap = promotion.PromotionInvoice.MaxDiscountAmount ?? 50000;
             }
+            else
+            {
+                usageLimit = null;
+                invoiceDiscountType = "percent";
+                invoicePercent = 10;
+                invoiceDiscountAmount = 20000;
+                minimum = 0;
+                invoiceCap = 50000;
+            }
+
             if (promotion.PromotionProducts.Count > 0)
             {
                 productPercent = promotion.PromotionProducts.First().DiscountPercent;
-                productCap = promotion.PromotionProducts.First().MaxDiscountAmount;
+                productCap = promotion.PromotionProducts.First().MaxDiscountAmount ?? 50000;
             }
+            else
+            {
+                productPercent = 10;
+                productCap = 50000;
+            }
+
             message = editingHasUsed
-                ? "Chương trình đã có đơn hàng sử dụng. Chỉ được sửa thông tin mô tả và thời hạn."
-                : "Bạn đang chỉnh sửa chương trình chưa được sử dụng.";
-            saved = true;
+                ? "Chương trình đã có đơn hàng sử dụng. Chỉ được sửa thông tin mô tả, thời hạn và số lượt dùng."
+                : null;
+            saved = false;
         }
         catch (Exception ex)
         {
@@ -555,7 +939,19 @@
     {
         campaign = new();
         selectedProductIds.Clear();
-        useInvoiceCondition = false;
+        selectedPromoType = "invoice";
+        invoiceDiscountType = "percent";
+        invoicePercent = 10;
+        invoiceDiscountAmount = 20000;
+        minimum = 0;
+        invoiceCap = 50000;
+        productPercent = 10;
+        productCap = 50000;
+        usageLimit = null;
+        selectedCategoryId = 0;
+        productSearchFilter = string.Empty;
+        showOnlySelectedProducts = false;
+        useInvoiceCondition = true;
         useProductCondition = false;
         isEditing = false;
         editingHasUsed = false;

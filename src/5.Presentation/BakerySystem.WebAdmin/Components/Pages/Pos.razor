@@ -352,17 +352,22 @@
                                 <div class="bakery-voucher-list">
                                     @foreach (var promo in availablePromotions)
                                     {
-                                        var discountPct = promo.PromotionInvoice?.DiscountPercent ?? 0;
+                                        var discountText = promo.PromotionInvoice?.DiscountAmount is > 0 
+                                            ? $"-{promo.PromotionInvoice.DiscountAmount.Value:N0}đ" 
+                                            : (promo.PromotionInvoice != null ? $"-{promo.PromotionInvoice.DiscountPercent:0}%" : (promo.PromotionProducts.FirstOrDefault() != null ? $"-{promo.PromotionProducts.First().DiscountPercent:0}%" : ""));
+                                        
                                         var minimum = promo.PromotionInvoice?.MinOrderAmount ?? 0;
                                         var missing = Math.Max(0, minimum - totalAmount);
-                                        var isEligible = missing == 0;
+                                        var isEligible = promo.PromotionInvoice != null ? (missing == 0) : promo.PromotionProducts.Any(p => cart.Any(c => c.ProductID == p.ProductID));
+                                        var conditionSub = promo.PromotionInvoice != null ? (minimum > 0 ? $"Đơn từ {minimum / 1000:N0}k" : "Mọi đơn") : $"{promo.PromotionProducts.Count} món";
+
                                         <div class="bakery-voucher-chip @(isEligible ? "" : "bakery-voucher-chip-disabled")">
                                             <button type="button" class="inline-flex items-center gap-1.5 border-0 bg-transparent p-0 text-inherit"
                                                     @onclick="() => SelectPromotion(promo)"
-                                                    title="@(isEligible ? $"Bấm để áp dụng mã {promo.PromotionCode}" : $"Cần mua thêm {missing:N0}đ.")">
+                                                    title="@(isEligible ? $"Bấm để áp dụng mã {promo.PromotionCode}" : (promo.PromotionInvoice != null ? $"Cần mua thêm {missing:N0}đ." : "Cần chọn món áp dụng trong giỏ hàng."))">
                                                 <iconify-icon icon="solar:ticket-sale-bold" class="text-xs text-primary"></iconify-icon>
-                                                <span><span class="font-mono font-bold block">@promo.PromotionCode</span><small class="block text-[10px] text-slate-500">(Đơn từ @($"{minimum / 1000:N0}k"))</small></span>
-                                                <span class="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">(-@($"{discountPct:0}%"))</span>
+                                                <span><span class="font-mono font-bold block">@promo.PromotionCode</span><small class="block text-[10px] text-slate-500">(@conditionSub)</small></span>
+                                                <span class="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">(@discountText)</span>
                                             </button>
                                             <button type="button" class="inline-flex h-5 w-5 items-center justify-center rounded-full border border-slate-400 bg-white text-xs font-bold leading-none text-slate-700 hover:border-primary hover:text-primary dark:bg-slate-800 dark:text-slate-200"
                                                     @onclick="() => ShowPromotionDetails(promo)"
@@ -881,29 +886,48 @@
         {
             appliedPromo = null;
             discountAmount = 0;
-            voucherMessage = "M? ?u ??i kh?ng t?n t?i ho?c ?? h?t hi?u l?c.";
+            voucherMessage = "Mã ưu đãi không tồn tại hoặc đã hết hiệu lực.";
             return;
         }
 
-        if (promo.StartDate > DateTime.Now || promo.EndDate < DateTime.Now)
+        if (promo.StartDate.Date > DateTime.Today || promo.EndDate.Date < DateTime.Today)
         {
             appliedPromo = null;
             discountAmount = 0;
-            voucherMessage = "M? ?u ??i n?y ch?a b?t ??u ho?c ?? h?t h?n s? d?ng.";
+            voucherMessage = "Mã ưu đãi này chưa bắt đầu hoặc đã hết hạn sử dụng.";
             return;
         }
 
-        var invoice = promo.PromotionInvoice;
-        if (invoice is null)
+        if (promo.PromotionInvoice is { UsageLimit: not null } invCheck && invCheck.UsedCount >= invCheck.UsageLimit.Value)
         {
-            voucherMessage = "M? ?u ??i n?y ch?a c? ?i?u ki?n gi?m gi? h?p l?.";
+            appliedPromo = null;
+            discountAmount = 0;
+            voucherMessage = $"Mã {promo.PromotionCode} đã đạt giới hạn {invCheck.UsageLimit} lượt sử dụng.";
             return;
         }
 
-        if (totalAmount < invoice.MinOrderAmount)
+        if (promo.PromotionInvoice is { } invoice)
         {
-            var missing = invoice.MinOrderAmount - totalAmount;
-            voucherMessage = $"Voucher {promo.PromotionCode} y?u c?u ??n t?i thi?u {invoice.MinOrderAmount:N0}?. C?n mua th?m {missing:N0}? ?? ?p d?ng.";
+            if (totalAmount < invoice.MinOrderAmount)
+            {
+                var missing = invoice.MinOrderAmount - totalAmount;
+                voucherMessage = $"Voucher {promo.PromotionCode} yêu cầu đơn tối thiểu {invoice.MinOrderAmount:N0}đ. Cần mua thêm {missing:N0}đ để áp dụng.";
+                return;
+            }
+        }
+        else if (promo.PromotionProducts.Count > 0)
+        {
+            var allowedProductIds = promo.PromotionProducts.Select(p => p.ProductID).ToHashSet();
+            var hasMatchingProduct = cart.Any(item => allowedProductIds.Contains(item.ProductID));
+            if (!hasMatchingProduct)
+            {
+                voucherMessage = $"Mã {promo.PromotionCode} chỉ áp dụng cho một số món bánh nhất định. Giỏ hàng của bạn chưa có món bánh nào thỏa điều kiện.";
+                return;
+            }
+        }
+        else
+        {
+            voucherMessage = "Mã ưu đãi này chưa có điều kiện giảm giá hợp lệ.";
             return;
         }
 
@@ -913,31 +937,71 @@
 
     private void RecalculateDiscount()
     {
-        if (appliedPromo?.PromotionInvoice == null)
+        if (appliedPromo == null)
         {
             discountAmount = 0;
             return;
         }
 
-        var inv = appliedPromo.PromotionInvoice;
-        if (totalAmount < inv.MinOrderAmount)
+        decimal discount = 0;
+
+        if (appliedPromo.PromotionInvoice is { } inv)
         {
-            var code = appliedPromo.PromotionCode;
-            appliedPromo = null;
-            voucherCode = "";
-            discountAmount = 0;
-            voucherMessage = $"Mã {code} đã bị hủy do tổng đơn hàng không còn đủ điều kiện tối thiểu.";
-            return;
+            if (totalAmount < inv.MinOrderAmount)
+            {
+                var code = appliedPromo.PromotionCode;
+                appliedPromo = null;
+                voucherCode = "";
+                discountAmount = 0;
+                voucherMessage = $"Mã {code} đã bị hủy do tổng đơn hàng không còn đủ điều kiện tối thiểu ({inv.MinOrderAmount:N0}đ).";
+                return;
+            }
+
+            if (inv.DiscountAmount is > 0)
+            {
+                discount = inv.DiscountAmount.Value;
+                voucherMessage = $"Đã áp dụng mã {appliedPromo.PromotionCode}: Giảm {inv.DiscountAmount.Value:N0}đ";
+            }
+            else
+            {
+                discount = totalAmount * (inv.DiscountPercent / 100m);
+                if (inv.MaxDiscountAmount.HasValue && inv.MaxDiscountAmount.Value > 0 && discount > inv.MaxDiscountAmount.Value)
+                {
+                    discount = inv.MaxDiscountAmount.Value;
+                }
+                voucherMessage = $"Đã áp dụng mã {appliedPromo.PromotionCode}: Giảm {inv.DiscountPercent:0}% (-{discount:N0}đ)";
+            }
+        }
+        else if (appliedPromo.PromotionProducts.Count > 0)
+        {
+            var rulesById = appliedPromo.PromotionProducts.ToDictionary(r => r.ProductID);
+            foreach (var item in cart)
+            {
+                if (rulesById.TryGetValue(item.ProductID, out var rule))
+                {
+                    var itemDiscount = item.SubTotal * (rule.DiscountPercent / 100m);
+                    if (rule.MaxDiscountAmount.HasValue && rule.MaxDiscountAmount.Value > 0 && itemDiscount > rule.MaxDiscountAmount.Value)
+                    {
+                        itemDiscount = rule.MaxDiscountAmount.Value;
+                    }
+                    discount += itemDiscount;
+                }
+            }
+
+            if (discount <= 0)
+            {
+                var code = appliedPromo.PromotionCode;
+                appliedPromo = null;
+                voucherCode = "";
+                discountAmount = 0;
+                voucherMessage = $"Mã {code} đã bị hủy do giỏ hàng không còn món bánh được áp dụng.";
+                return;
+            }
+
+            voucherMessage = $"Đã áp dụng mã {appliedPromo.PromotionCode}: Giảm theo món bánh (-{discount:N0}đ)";
         }
 
-        var discount = totalAmount * (inv.DiscountPercent / 100m);
-        if (inv.MaxDiscountAmount.HasValue && inv.MaxDiscountAmount.Value > 0 && discount > inv.MaxDiscountAmount.Value)
-        {
-            discount = inv.MaxDiscountAmount.Value;
-        }
-
-        discountAmount = Math.Round(discount, 0);
-        voucherMessage = $"Đã áp dụng mã {appliedPromo.PromotionCode}: Giảm {inv.DiscountPercent:0}% (-{discountAmount:N0}đ)";
+        discountAmount = Math.Min(totalAmount, Math.Round(discount, 0));
     }
 
     private string? GetUpsellSuggestion()
@@ -1056,6 +1120,7 @@
     private class PosCartItem
     {
         public Product Product { get; set; } = null!;
+        public int ProductID => Product?.ProductID ?? 0;
         public int Quantity { get; set; } = 1;
         public decimal SubTotal => Product.Price * Quantity;
     }

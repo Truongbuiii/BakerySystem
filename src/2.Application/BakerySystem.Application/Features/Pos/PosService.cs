@@ -38,13 +38,16 @@ public sealed class PosService(IBakeryDbContext db)
         var today = DateTime.Today;
         var promotions = await db.Promotions
             .Include(p => p.PromotionInvoice)
+            .Include(p => p.PromotionProducts).ThenInclude(pp => pp.Product)
             .Where(p => p.Status == PromotionStatus.Active
-                     && p.PromotionInvoice != null
                      && p.StartDate <= today
                      && p.EndDate >= today
-                     && (p.PromotionInvoice.UsageLimit == null
+                     && (p.PromotionInvoice == null
+                         || p.PromotionInvoice.UsageLimit == null
                          || p.PromotionInvoice.UsedCount < p.PromotionInvoice.UsageLimit))
-            .OrderByDescending(p => p.PromotionInvoice!.DiscountPercent)
+            .OrderByDescending(p => p.PromotionInvoice != null
+                ? (p.PromotionInvoice.DiscountAmount ?? p.PromotionInvoice.DiscountPercent)
+                : (p.PromotionProducts.FirstOrDefault() != null ? p.PromotionProducts.First().DiscountPercent : 0))
             .ToListAsync(ct);
 
         return new PosCatalog
@@ -87,6 +90,7 @@ public sealed class PosService(IBakeryDbContext db)
     public Task<Promotion?> FindPromotionAsync(string code, CancellationToken ct = default) =>
         db.Promotions
             .Include(p => p.PromotionInvoice)
+            .Include(p => p.PromotionProducts).ThenInclude(pp => pp.Product)
             .FirstOrDefaultAsync(p => p.PromotionCode.ToUpper() == code.Trim().ToUpper()
                 && p.Status == PromotionStatus.Active, ct);
 
@@ -174,6 +178,15 @@ public sealed class PosService(IBakeryDbContext db)
                 SubTotal = line.SubTotal
             });
             stockById[line.ProductID].Quantity -= line.Quantity;
+        }
+
+        if (promotionId.HasValue)
+        {
+            var invoice = await db.PromotionInvoices.FirstOrDefaultAsync(pi => pi.PromotionID == promotionId.Value, ct);
+            if (invoice != null)
+            {
+                invoice.UsedCount++;
+            }
         }
 
         db.Orders.Add(order);

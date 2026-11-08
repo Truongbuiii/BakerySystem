@@ -3,15 +3,15 @@
  * Controls theme switching (Dark/Light mode), Mobile Sidebar, and Dropdowns
  */
 
+
 (function () {
-    // 1. Initialize Theme from LocalStorage or System Preference
+    // 1. Initialize Theme (Enforce Light Theme)
     function initTheme() {
-        const savedTheme = localStorage.getItem('bakery-admin-theme');
-        if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-            document.documentElement.classList.add('dark');
-        } else {
-            document.documentElement.classList.remove('dark');
-        }
+        document.documentElement.classList.remove('dark');
+        document.documentElement.classList.add('light');
+        try {
+            localStorage.removeItem('bakery-admin-theme');
+        } catch (e) { }
     }
 
     // Run theme init immediately to prevent flash of wrong theme
