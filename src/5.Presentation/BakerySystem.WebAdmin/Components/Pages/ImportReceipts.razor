@@ -35,7 +35,7 @@
         <div class="mb-2 flex items-center justify-between gap-3">
             <div>
                 <h3 class="font-bold mb-0">Danh sách sản phẩm nhập</h3>
-                <p class="text-xs text-slate-500 mb-0">Chọn bánh thuộc nhà cung cấp, nhập số lượng và giá vốn.</p>
+                <p class="text-xs text-slate-500 mb-0">Giá vốn đã lưu sẽ được điền sẵn; bạn có thể sửa lại. Thành tiền tự tính theo số lượng.</p>
             </div>
             <span class="text-xs text-slate-500">@lines.Count dòng</span>
         </div>
@@ -51,24 +51,35 @@
                 Nhà cung cấp chưa có bánh được gán. Hãy gán sản phẩm trước khi lập phiếu.
             </div>
         }
+        else if (MissingPurchasePriceCount > 0)
+        {
+            <div class="rounded-lg border border-dashed border-amber-300 bg-amber-50 p-4 text-center text-sm text-amber-700">
+                Cần cập nhật giá vốn cho @MissingPurchasePriceCount bánh trước khi lập phiếu. Cửa sổ cập nhật giá đã được mở.
+            </div>
+        }
         @foreach (var line in lines)
         {
             <div class="grid grid-cols-1 md:grid-cols-[minmax(0,2.4fr)_0.8fr_1.2fr_1.2fr_auto] gap-3 mt-3 items-end rounded-lg border border-slate-200 p-3">
                 <label>Sản phẩm
-                    <select class="bakery-input w-full" @bind="line.ProductID" @bind:after="() => ApplyPurchasePrice(line)" disabled="@(saving || products.Count == 0)">
+                    <select class="bakery-input w-full" @bind="line.ProductID" @bind:after="() => ApplyPurchasePrice(line)" disabled="@(saving || products.Count == 0 || MissingPurchasePriceCount > 0)">
                     <option value="0">Chọn sản phẩm</option>
                     @foreach (var product in products) { <option value="@product.ProductID">@product.ProductName (tồn @product.Quantity)</option> }
                     </select>
                 </label>
                 <label>Số lượng
-                    <input class="bakery-input w-full" type="number" min="1" @bind="line.Quantity" disabled="@saving" />
+                    <input class="bakery-input w-full" type="number" min="1" @bind="line.Quantity" @bind:event="oninput" disabled="@saving" />
                 </label>
                 <label>Đơn giá vốn
-                    <input class="bakery-input w-full" type="number" min="0" step="1000" @bind="line.UnitPrice" disabled="@saving" />
+                    <input class="bakery-input w-full" type="text" inputmode="numeric" value="@GetUnitPriceText(line)"
+                           @oninput="args => UnitPriceChanged(line, args)" @onblur="() => FormatUnitPrice(line)" disabled="@saving" />
+                    @if (line.ProductID > 0 && line.UnitPrice <= 0)
+                    {
+                        <span class="mt-1 block text-xs text-rose-600">Chưa có giá vốn. Nhập giá trước khi lưu phiếu.</span>
+                    }
                 </label>
                 <div class="pb-2">
                     <span class="block text-xs text-slate-500">Thành tiền</span>
-                    <strong>@((line.Quantity * line.UnitPrice).ToString("N0")) đ</strong>
+                    <strong>@((line.Quantity * line.UnitPrice).ToString("#,##0", PriceCulture)) đ</strong>
                 </div>
                 <button class="bakery-btn bakery-btn-secondary bakery-btn-sm" @onclick="() => lines.Remove(line)" disabled="@(saving || lines.Count == 1)">Xóa</button>
             </div>
@@ -78,7 +89,7 @@
     <div class="flex flex-wrap justify-between items-center mt-4 gap-3">
         <button class="bakery-btn bakery-btn-secondary" @onclick="AddLine" disabled="@(saving || supplierId <= 0 || products.Count == 0)">+ Thêm sản phẩm</button>
         <div class="flex items-center gap-4">
-            <strong>Tổng tiền: @Total.ToString("N0") đ</strong>
+            <strong>Tổng tiền: @Total.ToString("#,##0", PriceCulture) đ</strong>
             <button class="bakery-btn bakery-btn-primary" @onclick="Save" disabled="@(!CanSave)">
                 @(saving ? "Đang lưu..." : "Lưu phiếu nhập")
             </button>
@@ -120,12 +131,28 @@
                     <div class="grid max-h-80 grid-cols-1 gap-2 overflow-y-auto sm:grid-cols-2">
                         @foreach (var product in productCatalog)
                         {
-                            <label class="flex items-center gap-2 rounded-lg border border-slate-200 p-3">
-                                <input type="checkbox" checked="@assignedProductIds.Contains(product.ProductID)" @onchange="() => SelectAssignedProduct(product.ProductID)" disabled="@savingProductAssignment" />
-                                <span>@product.ProductName</span>
-                            </label>
+                            <div class="rounded-lg border border-slate-200 p-3">
+                                <label class="flex items-center gap-2">
+                                    <input type="checkbox" checked="@assignedProductIds.Contains(product.ProductID)" @onchange="() => SelectAssignedProduct(product.ProductID)" disabled="@savingProductAssignment" />
+                                    <span>@product.ProductName</span>
+                                </label>
+                                @if (assignedProductIds.Contains(product.ProductID))
+                                {
+                                    <label class="mt-2 block text-xs text-slate-600">Giá vốn mỗi bánh
+                                        <input class="bakery-input mt-1 w-full" type="text" inputmode="numeric"
+                                               value="@FormatPrice(assignmentPrices.GetValueOrDefault(product.ProductID))"
+                                               @onchange="args => UpdateAssignmentPrice(product.ProductID, args)"
+                                               disabled="@savingProductAssignment" />
+                                    </label>
+                                }
+                            </div>
                         }
                     </div>
+                }
+
+                @if (MissingAssignmentPriceCount > 0)
+                {
+                    <p class="mt-3 text-sm text-rose-600">Cần nhập giá vốn lớn hơn 0 cho @MissingAssignmentPriceCount bánh đang chọn trước khi lập phiếu.</p>
                 }
 
                 @if (!string.IsNullOrEmpty(assignmentMessage))
@@ -135,7 +162,7 @@
             </div>
             <div class="bakery-modal-footer">
                 <button type="button" class="bakery-btn bakery-btn-outline" @onclick="CloseProductAssignment" disabled="@savingProductAssignment">Đóng</button>
-                <button type="button" class="bakery-btn bakery-btn-primary" @onclick="SaveProductAssignment" disabled="@(savingProductAssignment || productCatalog.Count == 0)">
+                <button type="button" class="bakery-btn bakery-btn-primary" @onclick="SaveProductAssignment" disabled="@(savingProductAssignment || productCatalog.Count == 0 || MissingAssignmentPriceCount > 0)">
                     @(savingProductAssignment ? "Đang lưu..." : "Lưu và tiếp tục nhập")
                 </button>
             </div>
@@ -144,10 +171,12 @@
 }
 
 @code {
+    private static readonly System.Globalization.CultureInfo PriceCulture = System.Globalization.CultureInfo.GetCultureInfo("en-US");
     private List<Supplier> suppliers = [];
     private List<Product> products = [];
     private Dictionary<int, decimal> purchasePrices = [];
     private List<ImportLineInput> lines = [new()];
+    private readonly Dictionary<ImportLineInput, string> unitPriceText = [];
     private int supplierId;
     private int employeeId;
     private string? note;
@@ -156,11 +185,29 @@
     private bool saved;
     private bool saving;
     private decimal Total => lines.Sum(line => line.Quantity * line.UnitPrice);
+    private string GetUnitPriceText(ImportLineInput line) => unitPriceText.TryGetValue(line, out var value)
+        ? value
+        : FormatPrice(line.UnitPrice);
+    private static string FormatPrice(decimal value) => value.ToString("#,##0.##", PriceCulture);
+    private static bool TryParsePrice(string? value, out decimal price) => decimal.TryParse(
+        value?.Replace(",", string.Empty),
+        System.Globalization.NumberStyles.Number,
+        System.Globalization.CultureInfo.InvariantCulture,
+        out price);
+
+    private void UnitPriceChanged(ImportLineInput line, ChangeEventArgs args)
+    {
+        var value = args.Value?.ToString() ?? string.Empty;
+        unitPriceText[line] = value;
+        line.UnitPrice = TryParsePrice(value, out var price) ? price : 0;
+    }
+
+    private void FormatUnitPrice(ImportLineInput line) => unitPriceText[line] = FormatPrice(line.UnitPrice);
     private bool CanSave => !saving &&
         employeeId > 0 &&
         supplierId > 0 &&
         lines.Count > 0 &&
-        lines.All(line => line.ProductID > 0 && line.Quantity > 0 && line.UnitPrice >= 0);
+        lines.All(line => line.ProductID > 0 && line.Quantity > 0 && line.UnitPrice > 0);
 
     protected override async Task OnInitializedAsync()
     {
@@ -218,13 +265,24 @@
                 ? $"Đã xóa sản phẩm và số liệu ở {clearedLineCount} dòng không thuộc nhà cung cấp mới. Vui lòng chọn lại sản phẩm."
                 : null;
         saved = false;
+
+        if (products.Count > 0 && MissingPurchasePriceCount > 0)
+        {
+            message = "Cần cập nhật giá vốn cho các bánh đã gán trước khi lập phiếu.";
+            await OpenProductAssignment();
+        }
     }
 
     private bool productAssignmentOpen;
     private bool savingProductAssignment;
     private List<Product> productCatalog = [];
     private HashSet<int> assignedProductIds = [];
+    private Dictionary<int, decimal> assignmentPrices = [];
     private string? assignmentMessage;
+    private int MissingPurchasePriceCount => products.Count(product =>
+        !purchasePrices.TryGetValue(product.ProductID, out var price) || price <= 0);
+    private int MissingAssignmentPriceCount => assignedProductIds.Count(productId =>
+        !assignmentPrices.TryGetValue(productId, out var price) || price <= 0);
 
     private async Task OpenProductAssignment()
     {
@@ -234,6 +292,7 @@
         assignmentMessage = null;
         productCatalog = await Inventory.GetProductsAsync();
         assignedProductIds = (await Inventory.GetSupplierProductIdsAsync(supplierId)).ToHashSet();
+        assignmentPrices = await Inventory.GetSupplierProductPricesAsync(supplierId);
         productAssignmentOpen = true;
     }
 
@@ -247,6 +306,17 @@
     {
         if (!assignedProductIds.Add(productId))
             assignedProductIds.Remove(productId);
+        else if (!assignmentPrices.ContainsKey(productId))
+            assignmentPrices[productId] = 0;
+    }
+
+    private void UpdateAssignmentPrice(int productId, ChangeEventArgs args)
+    {
+        var value = args.Value?.ToString()?.Replace(",", string.Empty);
+        assignmentPrices[productId] = decimal.TryParse(value,
+            System.Globalization.NumberStyles.Number,
+            System.Globalization.CultureInfo.InvariantCulture,
+            out var price) && price > 0 ? price : 0;
     }
 
     private async Task SaveProductAssignment()
@@ -257,7 +327,7 @@
         savingProductAssignment = true;
         try
         {
-            await Inventory.SaveSupplierProductsAsync(supplierId, assignedProductIds);
+            await Inventory.SaveSupplierProductsAsync(supplierId, assignedProductIds, assignmentPrices);
             products = await Inventory.GetProductsForSupplierAsync(supplierId);
             purchasePrices = await Inventory.GetSupplierProductPricesAsync(supplierId);
             var allowedIds = products.Select(product => product.ProductID).ToHashSet();
@@ -291,6 +361,7 @@
             line.UnitPrice = purchasePrice;
         else
             line.UnitPrice = 0;
+        unitPriceText[line] = FormatPrice(line.UnitPrice);
     }
 
     private async Task Save()
@@ -314,6 +385,7 @@
             supplierId = 0;
             note = null;
             lines = [new()];
+            unitPriceText.Clear();
             products = [];
             await Load();
         }

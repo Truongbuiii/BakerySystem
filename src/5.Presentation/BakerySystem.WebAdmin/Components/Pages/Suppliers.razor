@@ -331,9 +331,10 @@
                                     @product.ProductName
                                     @if (selectedProductIds.Contains(product.ProductID))
                                     {
-                                        <input class="bakery-input mt-2 w-full text-sm" type="number" min="0" step="1000"
+                                        <input class="bakery-input mt-2 w-full text-sm" type="text" inputmode="numeric"
                                                placeholder="Giá nhập / bánh"
-                                               @bind="supplierProductPrices[product.ProductID]" />
+                                               value="@FormatPrice(supplierProductPrices[product.ProductID])"
+                                               @onchange="args => UpdateSupplierProductPrice(product.ProductID, args)" />
                                     }
                                     @if (assignedToOtherSupplier)
                                     {
@@ -442,6 +443,7 @@
 </div>
 
 @code {
+    private static readonly System.Globalization.CultureInfo PriceCulture = System.Globalization.CultureInfo.GetCultureInfo("en-US");
     private List<Supplier> suppliers = [];
     private Supplier form = new();
     private Supplier? selectedSupplier;
@@ -463,6 +465,17 @@
     private bool isImportModalOpen;
     private string? importMessage;
     private bool importSucceeded;
+
+    private static string FormatPrice(decimal value) => value.ToString("#,##0.##", PriceCulture);
+
+    private void UpdateSupplierProductPrice(int productId, ChangeEventArgs args)
+    {
+        var value = args.Value?.ToString()?.Replace(",", string.Empty);
+        supplierProductPrices[productId] = decimal.TryParse(value,
+            System.Globalization.NumberStyles.Number,
+            System.Globalization.CultureInfo.InvariantCulture,
+            out var price) && price >= 0 ? price : 0;
+    }
 
     private bool HasActiveAdvancedFilters =>
         productCountFilter >= 0 || receiptFilter != "all";
@@ -628,12 +641,10 @@
             return;
         try
         {
-            await Inventory.SaveSupplierProductsAsync(supplierProductsTarget.SupplierID, selectedProductIds);
-            foreach (var productId in selectedProductIds)
-            {
-                supplierProductPrices.TryGetValue(productId, out var purchasePrice);
-                await Inventory.SaveSupplierProductPriceAsync(supplierProductsTarget.SupplierID, productId, purchasePrice);
-            }
+            await Inventory.SaveSupplierProductsAsync(
+                supplierProductsTarget.SupplierID,
+                selectedProductIds,
+                supplierProductPrices);
             message = $"Đã cập nhật danh sách sản phẩm của {supplierProductsTarget.SupplierName}.";
             operationSucceeded = true;
             supplierProductsTarget = null;
