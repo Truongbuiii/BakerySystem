@@ -814,6 +814,16 @@ html.dark .bakery-filter-card {
     border-color: var(--bakery-border-dark) !important;
 }
 
+/* Khử xung đột khung lồng trong khung khi .bakery-filter-toolbar nằm trong .bakery-filter-card */
+.bakery-filter-card .bakery-filter-toolbar {
+    background-color: transparent !important;
+    border: none !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+    margin-bottom: 0 !important;
+    box-shadow: none !important;
+}
+
 /* Table Toolbar Header */
 .bakery-table-toolbar {
     padding: 1.125rem 1.5rem !important;
