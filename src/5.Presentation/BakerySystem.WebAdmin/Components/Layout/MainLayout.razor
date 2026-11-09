@@ -46,22 +46,19 @@
 
             <!-- Right: Header Actions -->
             <div class="flex items-center gap-2 sm:gap-3">
-                <!-- Thông tin Thu ngân & Thời gian trực tiếp trên Header thanh điều hướng -->
+                <!-- Thời gian hệ thống trực tiếp trên Header thanh điều hướng -->
                 <AuthorizeView>
                     <Authorized>
-                        @{
-                            var empName = context.User.FindFirst("FullName")?.Value ?? context.User.Identity?.Name ?? "Nhân viên";
-                            var empRoleLabel = context.User.IsInRole("Shipper") ? "Shipper" : "Thu ngân";
-                        }
-                        <div class="hidden md:flex items-center gap-2 mr-1">
-                            <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 text-xs font-semibold border border-blue-200 dark:border-blue-800 shadow-xs">
-                                <iconify-icon icon="solar:user-circle-bold" class="text-sm text-blue-600 dark:text-blue-400"></iconify-icon>
-                                <span>@empRoleLabel: <strong>@empName</strong></span>
-                            </span>
-                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-mono border border-slate-200 dark:border-slate-700">
-                                <iconify-icon icon="solar:clock-circle-linear" class="text-xs"></iconify-icon>
-                                <span>@DateTime.Now.ToString("dd/MM/yyyy HH:mm")</span>
-                            </span>
+                        <div class="hidden md:flex items-center mr-1">
+                            <div class="bakery-header-time-badge" title="Thời gian hệ thống">
+                                <span class="bakery-header-time-icon">
+                                    <iconify-icon icon="solar:clock-circle-bold"></iconify-icon>
+                                </span>
+                                <span class="bakery-header-time-val">
+                                    @DateTime.Now.ToString("dd/MM/yyyy · HH:mm")
+                                </span>
+                                <span class="bakery-header-time-dot" title="Hệ thống đang hoạt động trực tuyến"></span>
+                            </div>
                         </div>
                     </Authorized>
                 </AuthorizeView>
