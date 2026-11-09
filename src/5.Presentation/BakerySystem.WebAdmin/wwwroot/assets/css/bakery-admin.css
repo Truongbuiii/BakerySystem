@@ -25,6 +25,14 @@
     --bakery-sidebar-w: 250px;
 }
 
+iconify-icon {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    vertical-align: -0.15em !important;
+    line-height: 1 !important;
+}
+
 .bakery-qr-payment-modal {
     max-width: 390px;
 }
@@ -3470,17 +3478,17 @@ html.dark .bakery-bill-table-wrap {
     width: 100% !important;
     border-collapse: collapse !important;
     font-size: 0.8125rem !important;
+    table-layout: auto !important;
 }
 
 .bakery-bill-table th {
-    background: #f1f5f9 !important;
+    background: #f8fafc !important;
     color: #475569 !important;
     font-weight: 700 !important;
-    font-size: 0.75rem !important;
+    font-size: 0.6875rem !important;
     text-transform: uppercase !important;
-    letter-spacing: 0.03em !important;
-    padding: 0.65rem 1rem !important;
-    text-align: left !important;
+    letter-spacing: 0.04em !important;
+    padding: 0.65rem 0.875rem !important;
     border-bottom: 1px solid #e2e8f0 !important;
 }
 
@@ -3491,9 +3499,10 @@ html.dark .bakery-bill-table th {
 }
 
 .bakery-bill-table td {
-    padding: 0.75rem 1rem !important;
+    padding: 0.65rem 0.875rem !important;
     border-bottom: 1px solid #f1f5f9 !important;
     color: #1e293b !important;
+    vertical-align: middle !important;
 }
 
 html.dark .bakery-bill-table td {
@@ -3503,6 +3512,135 @@ html.dark .bakery-bill-table td {
 
 .bakery-bill-table tr:last-child td {
     border-bottom: none !important;
+}
+
+/* Định vị căn lề chuẩn 100% giữa tiêu đề (TH) và ô dữ liệu (TD) */
+.bakery-bill-table th.col-stt,
+.bakery-bill-table td.col-stt {
+    width: 50px !important;
+    text-align: center !important;
+}
+
+.bakery-bill-table th.col-product,
+.bakery-bill-table td.col-product {
+    text-align: left !important;
+}
+
+.bakery-bill-table th.col-category,
+.bakery-bill-table td.col-category {
+    width: 150px !important;
+    text-align: left !important;
+}
+
+.bakery-bill-table th.col-qty,
+.bakery-bill-table td.col-qty {
+    width: 90px !important;
+    text-align: center !important;
+}
+
+.bakery-bill-table th.col-price,
+.bakery-bill-table td.col-price {
+    width: 125px !important;
+    text-align: right !important;
+    font-variant-numeric: tabular-nums !important;
+}
+
+.bakery-bill-table th.col-total,
+.bakery-bill-table td.col-total {
+    width: 135px !important;
+    text-align: right !important;
+    font-variant-numeric: tabular-nums !important;
+}
+
+/* Container Tổng kết hóa đơn (Receipt Summary) */
+.bakery-bill-summary-container {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 1.5rem !important;
+    padding: 1rem 1.25rem !important;
+    background: #f8fafc !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 12px !important;
+}
+
+@media (max-width: 640px) {
+    .bakery-bill-summary-container {
+        flex-direction: column !important;
+        align-items: stretch !important;
+    }
+}
+
+html.dark .bakery-bill-summary-container {
+    background: #0f172a !important;
+    border-color: #334155 !important;
+}
+
+.bakery-bill-meta-box {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0.35rem !important;
+    font-size: 0.75rem !important;
+    color: #64748b !important;
+}
+
+.bakery-bill-calc-box {
+    width: 320px !important;
+    max-width: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0.35rem !important;
+    font-size: 0.75rem !important;
+}
+
+.bakery-bill-calc-row {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    color: #64748b !important;
+}
+
+.bakery-bill-calc-row strong,
+.bakery-bill-calc-row span.val {
+    color: #1e293b !important;
+    font-weight: 700 !important;
+    font-variant-numeric: tabular-nums !important;
+}
+
+html.dark .bakery-bill-calc-row strong,
+html.dark .bakery-bill-calc-row span.val {
+    color: #f1f5f9 !important;
+}
+
+.bakery-bill-calc-divider {
+    height: 1px !important;
+    background: #e2e8f0 !important;
+    margin: 0.25rem 0 !important;
+}
+
+html.dark .bakery-bill-calc-divider {
+    background: #334155 !important;
+}
+
+.bakery-bill-calc-final {
+    display: flex !important;
+    align-items: baseline !important;
+    justify-content: space-between !important;
+    font-size: 0.875rem !important;
+    font-weight: 800 !important;
+    color: #0f172a !important;
+}
+
+html.dark .bakery-bill-calc-final {
+    color: #ffffff !important;
+}
+
+.bakery-bill-calc-final-amount {
+    font-size: 1.25rem !important;
+    font-weight: 900 !important;
+    color: #e11d48 !important;
+    font-variant-numeric: tabular-nums !important;
 }
 
 /* Summary Section at Bottom of Bill (Clean & Concise) */
