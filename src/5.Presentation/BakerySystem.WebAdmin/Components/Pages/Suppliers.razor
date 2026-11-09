@@ -90,14 +90,14 @@
     {
         <div class="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 bg-slate-50/60 dark:bg-slate-800/40 p-3 rounded-xl">
             <div>
-                <label class="bakery-label mb-1">Số bánh cung cấp từ</label>
-                <input type="number" min="0" class="bakery-input w-full text-xs" placeholder="Tất cả"
-                       @bind="minProductCount" @bind:after="ApplyAdvancedFilters" />
-            </div>
-            <div>
-                <label class="bakery-label mb-1">Số bánh cung cấp đến</label>
-                <input type="number" min="0" class="bakery-input w-full text-xs" placeholder="Không giới hạn"
-                       @bind="maxProductCount" @bind:after="ApplyAdvancedFilters" />
+                <label class="bakery-label mb-1">Số bánh cung cấp</label>
+                <select class="bakery-input w-full text-xs" @bind="productCountFilter">
+                    <option value="-1">Tất cả số lượng</option>
+                    @foreach (var count in AvailableProductCounts)
+                    {
+                        <option value="@count">@count bánh</option>
+                    }
+                </select>
             </div>
             <div>
                 <label class="bakery-label mb-1">Lịch sử nhập hàng</label>
@@ -331,9 +331,10 @@
                                     @product.ProductName
                                     @if (selectedProductIds.Contains(product.ProductID))
                                     {
-                                        <input class="bakery-input mt-2 w-full text-sm" type="number" min="0" step="1000"
+                                        <input class="bakery-input mt-2 w-full text-sm" type="text" inputmode="numeric"
                                                placeholder="Giá nhập / bánh"
-                                               @bind="supplierProductPrices[product.ProductID]" />
+                                               value="@FormatPrice(supplierProductPrices[product.ProductID])"
+                                               @onchange="args => UpdateSupplierProductPrice(product.ProductID, args)" />
                                     }
                                     @if (assignedToOtherSupplier)
                                     {
@@ -442,6 +443,7 @@
 </div>
 
 @code {
+    private static readonly System.Globalization.CultureInfo PriceCulture = System.Globalization.CultureInfo.GetCultureInfo("en-US");
     private List<Supplier> suppliers = [];
     private Supplier form = new();
     private Supplier? selectedSupplier;
@@ -458,15 +460,30 @@
     private string searchTerm = string.Empty;
     private string statusFilter = "all";
     private bool showAdvancedSearch;
-    private int? minProductCount;
-    private int? maxProductCount;
+    private int productCountFilter = -1;
     private string receiptFilter = "all";
     private bool isImportModalOpen;
     private string? importMessage;
     private bool importSucceeded;
 
+    private static string FormatPrice(decimal value) => value.ToString("#,##0.##", PriceCulture);
+
+    private void UpdateSupplierProductPrice(int productId, ChangeEventArgs args)
+    {
+        var value = args.Value?.ToString()?.Replace(",", string.Empty);
+        supplierProductPrices[productId] = decimal.TryParse(value,
+            System.Globalization.NumberStyles.Number,
+            System.Globalization.CultureInfo.InvariantCulture,
+            out var price) && price >= 0 ? price : 0;
+    }
+
     private bool HasActiveAdvancedFilters =>
-        minProductCount.HasValue || maxProductCount.HasValue || receiptFilter != "all";
+        productCountFilter >= 0 || receiptFilter != "all";
+
+    private IEnumerable<int> AvailableProductCounts => suppliers
+        .Select(s => s.SupplierProducts.Count)
+        .Distinct()
+        .OrderBy(count => count);
 
     private IEnumerable<Supplier> FilteredSuppliers => suppliers.Where(s =>
         (statusFilter == "all" ||
@@ -475,8 +492,7 @@
         (receiptFilter == "all" ||
          (receiptFilter == "with-receipts" && s.ImportReceipts.Count > 0) ||
          (receiptFilter == "without-receipts" && s.ImportReceipts.Count == 0)) &&
-        (!minProductCount.HasValue || s.SupplierProducts.Count >= minProductCount.Value) &&
-        (!maxProductCount.HasValue || s.SupplierProducts.Count <= maxProductCount.Value) &&
+        (productCountFilter < 0 || s.SupplierProducts.Count == productCountFilter) &&
         (string.IsNullOrWhiteSpace(searchTerm) ||
          $"{s.SupplierCode} {s.SupplierName} {s.Phone} {s.Address}"
              .Contains(searchTerm.Trim(), StringComparison.OrdinalIgnoreCase)));
@@ -485,18 +501,9 @@
     {
         searchTerm = string.Empty;
         statusFilter = "all";
-        minProductCount = null;
-        maxProductCount = null;
+        productCountFilter = -1;
         receiptFilter = "all";
         showAdvancedSearch = false;
-    }
-
-    private void ApplyAdvancedFilters()
-    {
-        if (minProductCount is < 0)
-            minProductCount = 0;
-        if (maxProductCount is < 0)
-            maxProductCount = 0;
     }
 
     protected override async Task OnInitializedAsync() => await Load();
@@ -634,12 +641,10 @@
             return;
         try
         {
-            await Inventory.SaveSupplierProductsAsync(supplierProductsTarget.SupplierID, selectedProductIds);
-            foreach (var productId in selectedProductIds)
-            {
-                supplierProductPrices.TryGetValue(productId, out var purchasePrice);
-                await Inventory.SaveSupplierProductPriceAsync(supplierProductsTarget.SupplierID, productId, purchasePrice);
-            }
+            await Inventory.SaveSupplierProductsAsync(
+                supplierProductsTarget.SupplierID,
+                selectedProductIds,
+                supplierProductPrices);
             message = $"Đã cập nhật danh sách sản phẩm của {supplierProductsTarget.SupplierName}.";
             operationSucceeded = true;
             supplierProductsTarget = null;

@@ -97,8 +97,8 @@ public sealed class InventoryService(IBakeryDbContext db)
 
     public async Task SaveSupplierProductPriceAsync(int supplierId, int productId, decimal purchasePrice, CancellationToken ct = default)
     {
-        if (purchasePrice < 0)
-            throw new InvalidOperationException("Giá nhập không được âm.");
+        if (purchasePrice <= 0)
+            throw new InvalidOperationException("Giá vốn phải lớn hơn 0.");
 
         var link = await db.SupplierProducts.FirstOrDefaultAsync(
             x => x.SupplierID == supplierId && x.ProductID == productId, ct)
@@ -116,7 +116,11 @@ public sealed class InventoryService(IBakeryDbContext db)
             .Where(x => x.SupplierID == supplierId && x.Supplier.IsActive && x.Product.IsActive)
             .Select(x => x.Product).OrderBy(x => x.ProductName).ToListAsync(ct);
 
-    public async Task SaveSupplierProductsAsync(int supplierId, IReadOnlyCollection<int> productIds, CancellationToken ct = default)
+    public async Task SaveSupplierProductsAsync(
+        int supplierId,
+        IReadOnlyCollection<int> productIds,
+        IReadOnlyDictionary<int, decimal> purchasePrices,
+        CancellationToken ct = default)
     {
         if (!await db.Suppliers.AnyAsync(x => x.SupplierID == supplierId, ct))
             throw new InvalidOperationException("Không tìm thấy nhà cung cấp.");
@@ -135,13 +139,34 @@ public sealed class InventoryService(IBakeryDbContext db)
                 $"Sản phẩm {conflictingProduct.ProductName} đã thuộc nhà cung cấp {conflictingProduct.SupplierName}. Hãy bỏ gán ở nhà cung cấp đó trước.");
 
         var current = await db.SupplierProducts.Where(x => x.SupplierID == supplierId).ToListAsync(ct);
+        var currentByProductId = current.ToDictionary(x => x.ProductID);
+        var selectedPrices = new Dictionary<int, decimal>();
+        foreach (var productId in selectedIds)
+        {
+            var price = purchasePrices.TryGetValue(productId, out var enteredPrice)
+                ? enteredPrice
+                : currentByProductId.GetValueOrDefault(productId)?.PurchasePrice ?? 0;
+            if (price <= 0)
+                throw new InvalidOperationException("Vui lòng cập nhật giá vốn lớn hơn 0 cho tất cả bánh được chọn trước khi lưu.");
+            selectedPrices[productId] = price;
+        }
+
         var remove = current.Where(x => !selectedIds.Contains(x.ProductID)).ToList();
         if (remove.Count > 0)
             db.SupplierProducts.RemoveRange(remove);
 
-        var currentIds = current.Select(x => x.ProductID).ToHashSet();
-        foreach (var productId in selectedIds.Where(id => !currentIds.Contains(id)))
-            db.SupplierProducts.Add(new SupplierProduct { SupplierID = supplierId, ProductID = productId });
+        foreach (var productId in selectedIds)
+        {
+            if (currentByProductId.TryGetValue(productId, out var link))
+                link.PurchasePrice = selectedPrices[productId];
+            else
+                db.SupplierProducts.Add(new SupplierProduct
+                {
+                    SupplierID = supplierId,
+                    ProductID = productId,
+                    PurchasePrice = selectedPrices[productId]
+                });
+        }
 
         await db.SaveChangesAsync(ct);
     }
@@ -159,8 +184,8 @@ public sealed class InventoryService(IBakeryDbContext db)
             throw new InvalidOperationException("Vui lòng chọn nhân viên lập phiếu.");
         if (enteredLines.Count == 0)
             throw new InvalidOperationException("Vui lòng thêm ít nhất một sản phẩm vào phiếu nhập.");
-        if (enteredLines.Any(x => x.ProductID <= 0 || x.Quantity <= 0 || x.UnitPrice < 0))
-            throw new InvalidOperationException("Kiểm tra sản phẩm, số lượng phải lớn hơn 0 và đơn giá không được âm.");
+        if (enteredLines.Any(x => x.ProductID <= 0 || x.Quantity <= 0 || x.UnitPrice <= 0))
+            throw new InvalidOperationException("Kiểm tra sản phẩm, số lượng và đơn giá vốn: tất cả phải lớn hơn 0.");
 
         var duplicateProduct = enteredLines
             .GroupBy(x => x.ProductID)
@@ -194,10 +219,15 @@ public sealed class InventoryService(IBakeryDbContext db)
         if (products.Count != lines.Count)
             throw new InvalidOperationException("Một số sản phẩm không tồn tại hoặc đã ngừng kinh doanh.");
 
-        var mappedProductCount = await db.SupplierProducts.CountAsync(
-            x => x.SupplierID == input.SupplierID && productIds.Contains(x.ProductID), ct);
-        if (mappedProductCount != lines.Count)
+        var supplierProductLinks = await db.SupplierProducts
+            .Where(x => x.SupplierID == input.SupplierID && productIds.Contains(x.ProductID))
+            .ToListAsync(ct);
+        if (supplierProductLinks.Count != lines.Count)
             throw new InvalidOperationException("Chỉ được nhập các sản phẩm đã được gán cho nhà cung cấp đang chọn. Hãy kiểm tra danh sách sản phẩm của nhà cung cấp.");
+
+        var linePrices = lines.ToDictionary(x => x.ProductID, x => x.UnitPrice);
+        foreach (var link in supplierProductLinks)
+            link.PurchasePrice = linePrices[link.ProductID];
 
         var receipt = new ImportReceipt { SupplierID = input.SupplierID, EmployeeID = employee.EmployeeID, ReceiptDate = DateTime.Now, Note = input.Note?.Trim(), TotalAmount = lines.Sum(x => x.Quantity * x.UnitPrice) };
         foreach (var line in lines) { products[line.ProductID].Quantity = checked(products[line.ProductID].Quantity + line.Quantity); receipt.ImportReceiptDetails.Add(new ImportReceiptDetail { ProductID = line.ProductID, Quantity = line.Quantity, UnitPrice = line.UnitPrice, SubTotal = line.Quantity * line.UnitPrice }); }
