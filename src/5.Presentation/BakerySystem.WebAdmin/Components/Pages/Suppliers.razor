@@ -90,14 +90,14 @@
     {
         <div class="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 bg-slate-50/60 dark:bg-slate-800/40 p-3 rounded-xl">
             <div>
-                <label class="bakery-label mb-1">Số bánh cung cấp từ</label>
-                <input type="number" min="0" class="bakery-input w-full text-xs" placeholder="Tất cả"
-                       @bind="minProductCount" @bind:after="ApplyAdvancedFilters" />
-            </div>
-            <div>
-                <label class="bakery-label mb-1">Số bánh cung cấp đến</label>
-                <input type="number" min="0" class="bakery-input w-full text-xs" placeholder="Không giới hạn"
-                       @bind="maxProductCount" @bind:after="ApplyAdvancedFilters" />
+                <label class="bakery-label mb-1">Số bánh cung cấp</label>
+                <select class="bakery-input w-full text-xs" @bind="productCountFilter">
+                    <option value="-1">Tất cả số lượng</option>
+                    @foreach (var count in AvailableProductCounts)
+                    {
+                        <option value="@count">@count bánh</option>
+                    }
+                </select>
             </div>
             <div>
                 <label class="bakery-label mb-1">Lịch sử nhập hàng</label>
@@ -458,15 +458,19 @@
     private string searchTerm = string.Empty;
     private string statusFilter = "all";
     private bool showAdvancedSearch;
-    private int? minProductCount;
-    private int? maxProductCount;
+    private int productCountFilter = -1;
     private string receiptFilter = "all";
     private bool isImportModalOpen;
     private string? importMessage;
     private bool importSucceeded;
 
     private bool HasActiveAdvancedFilters =>
-        minProductCount.HasValue || maxProductCount.HasValue || receiptFilter != "all";
+        productCountFilter >= 0 || receiptFilter != "all";
+
+    private IEnumerable<int> AvailableProductCounts => suppliers
+        .Select(s => s.SupplierProducts.Count)
+        .Distinct()
+        .OrderBy(count => count);
 
     private IEnumerable<Supplier> FilteredSuppliers => suppliers.Where(s =>
         (statusFilter == "all" ||
@@ -475,8 +479,7 @@
         (receiptFilter == "all" ||
          (receiptFilter == "with-receipts" && s.ImportReceipts.Count > 0) ||
          (receiptFilter == "without-receipts" && s.ImportReceipts.Count == 0)) &&
-        (!minProductCount.HasValue || s.SupplierProducts.Count >= minProductCount.Value) &&
-        (!maxProductCount.HasValue || s.SupplierProducts.Count <= maxProductCount.Value) &&
+        (productCountFilter < 0 || s.SupplierProducts.Count == productCountFilter) &&
         (string.IsNullOrWhiteSpace(searchTerm) ||
          $"{s.SupplierCode} {s.SupplierName} {s.Phone} {s.Address}"
              .Contains(searchTerm.Trim(), StringComparison.OrdinalIgnoreCase)));
@@ -485,18 +488,9 @@
     {
         searchTerm = string.Empty;
         statusFilter = "all";
-        minProductCount = null;
-        maxProductCount = null;
+        productCountFilter = -1;
         receiptFilter = "all";
         showAdvancedSearch = false;
-    }
-
-    private void ApplyAdvancedFilters()
-    {
-        if (minProductCount is < 0)
-            minProductCount = 0;
-        if (maxProductCount is < 0)
-            maxProductCount = 0;
     }
 
     protected override async Task OnInitializedAsync() => await Load();
