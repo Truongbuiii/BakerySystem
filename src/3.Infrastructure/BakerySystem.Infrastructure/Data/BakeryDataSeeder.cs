@@ -879,23 +879,44 @@ public static class BakeryDataSeeder
         }
 
         // 8. Seed Suppliers and ImportReceipts if empty
+        var supplierNamesChanged = false;
+        var supplierNameUpdates = new Dictionary<string, string>
+        {
+            ["Công ty TNHH Tân Nhất Hương (Bột mì & Bơ)"] = "Công ty TNHH Tân Nhất Hương",
+            ["Công ty Cổ phần Sữa Puratos Grand-Place"] = "Công ty TNHH Puratos Grand-Place Việt Nam",
+            ["Công ty TNHH Fonterra Brands (Sữa New Zealand)"] = "Công ty TNHH Fonterra Brands (Việt Nam)"
+        };
+
+        var existingSuppliers = await context.Suppliers.ToListAsync();
+        foreach (var supplier in existingSuppliers)
+        {
+            if (supplierNameUpdates.TryGetValue(supplier.SupplierName, out var updatedName))
+            {
+                supplier.SupplierName = updatedName;
+                supplierNamesChanged = true;
+            }
+        }
+
+        if (supplierNamesChanged)
+            await context.SaveChangesAsync();
+
         if (!await context.Suppliers.AnyAsync())
         {
             var sup1 = new Supplier
             {
-                SupplierName = "Công ty TNHH Tân Nhất Hương (Bột mì & Bơ)",
+                SupplierName = "Công ty TNHH Tân Nhất Hương",
                 Phone = "02838123456",
                 Address = "KCN Tân Bình, Tây Thạnh, Tân Phú, TP.HCM"
             };
             var sup2 = new Supplier
             {
-                SupplierName = "Công ty Cổ phần Sữa Puratos Grand-Place",
+                SupplierName = "Công ty TNHH Puratos Grand-Place Việt Nam",
                 Phone = "02743789123",
                 Address = "KCN VSIP 1, Thuận An, Bình Dương"
             };
             var sup3 = new Supplier
             {
-                SupplierName = "Công ty TNHH Fonterra Brands (Sữa New Zealand)",
+                SupplierName = "Công ty TNHH Fonterra Brands (Việt Nam)",
                 Phone = "02839456789",
                 Address = "39 Lê Duẩn, Quận 1, TP.HCM"
             };
