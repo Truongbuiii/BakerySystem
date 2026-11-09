@@ -1,0 +1,790 @@
+@page "/customers"
+@rendermode InteractiveServer
+@attribute [Authorize(Roles = "Admin,Employee")]
+@using BakerySystem.Application.Features.Customers
+@inject CustomerService CustomerManager
+@inject IJSRuntime JS
+@inject NavigationManager Navigation
+
+<PageTitle>Quản lý khách hàng | BakeryAdmin</PageTitle>
+
+<div>
+    <!-- 1. Page Header & Actions -->
+    <div class="bakery-page-header">
+        <div style="max-width: 650px;">
+            <div class="flex items-center gap-2 text-xs font-medium text-slate-500 mb-1">
+                <a href="/" class="hover:text-primary transition-colors flex items-center gap-1">
+                    <iconify-icon icon="solar:home-2-linear" class="text-sm"></iconify-icon>
+                    Tổng quan
+                </a>
+                <span>/</span>
+                <span class="text-slate-800 dark:text-slate-200 font-semibold">Khách hàng</span>
+            </div>
+            <h2 class="text-xl sm:text-2xl font-bold text-dark dark:text-white mb-1">Quản Lý Tài Khoản Khách Hàng</h2>
+            <p class="text-xs sm:text-sm text-bodytext mb-0">Theo dõi thông tin khách hàng, tài khoản Mobile App, phân loại thành viên và lịch sử đơn hàng tích lũy.</p>
+        </div>
+
+        <div class="bakery-page-actions">
+            <button class="bakery-btn bakery-btn-secondary bakery-btn-sm" @onclick="LoadCustomersAsync">
+                <iconify-icon icon="solar:restart-linear" class="text-base"></iconify-icon>
+                <span>Làm mới</span>
+            </button>
+            <button class="bakery-btn bakery-btn-outline bakery-btn-sm" @onclick="ExportToExcel" title="Xuất danh sách khách hàng ra Excel">
+                <iconify-icon icon="solar:file-download-linear" class="text-base text-emerald-600"></iconify-icon>
+                <span>Xuất Excel</span>
+            </button>
+            <button class="bakery-btn bakery-btn-secondary bakery-btn-sm" @onclick="PrintToPdf" title="In báo cáo danh sách khách hàng">
+                <iconify-icon icon="solar:printer-linear" class="text-base"></iconify-icon>
+                <span>In / Xuất PDF</span>
+            </button>
+            <button class="bakery-btn bakery-btn-primary bakery-btn-sm shadow-sm" @onclick="OpenCreateForm">
+                <iconify-icon icon="solar:user-plus-bold" class="text-base"></iconify-icon>
+                <span>Thêm khách hàng</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- 2. KPI Metrics Cards (4 thẻ tóm tắt) -->
+    <div class="bakery-kpi-grid">
+        <div class="bakery-kpi-card">
+            <div class="bakery-kpi-content">
+                <span class="bakery-kpi-label">Tổng khách hàng</span>
+                <div class="bakery-kpi-val">@(customers?.Count ?? 0) Khách</div>
+                <div class="bakery-kpi-subtext">Đã ghi nhận trong hệ thống</div>
+            </div>
+            <div class="bakery-kpi-iconbox bakery-kpi-blue">
+                <iconify-icon icon="solar:users-group-two-rounded-bold"></iconify-icon>
+            </div>
+        </div>
+
+        <div class="bakery-kpi-card">
+            <div class="bakery-kpi-content">
+                <span class="bakery-kpi-label">Tài khoản Mobile App</span>
+                <div class="bakery-kpi-val text-blue-600 dark:text-blue-400">@(customers?.Count(c => c.HasAppAccount) ?? 0) Khách</div>
+                <div class="bakery-kpi-subtext">
+                    <span class="bakery-badge bakery-badge-success text-[10px] py-0 px-1.5">@(customers?.Count(c => c.HasAppAccount && c.AccountStatus == "Active") ?? 0) Hoạt động</span>
+                    <span>Khóa: @(customers?.Count(c => c.HasAppAccount && c.AccountStatus == "Inactive") ?? 0)</span>
+                </div>
+            </div>
+            <div class="bakery-kpi-iconbox bakery-kpi-green">
+                <iconify-icon icon="solar:smartphone-bold"></iconify-icon>
+            </div>
+        </div>
+
+        <div class="bakery-kpi-card">
+            <div class="bakery-kpi-content">
+                <span class="bakery-kpi-label">Khách từng mua tại POS</span>
+                <div class="bakery-kpi-val text-amber-500">@(customers?.Count(c => c.HasPosOrders || !c.HasAppAccount) ?? 0) Khách</div>
+                <div class="bakery-kpi-subtext">Có giao dịch tại quầy POS</div>
+            </div>
+            <div class="bakery-kpi-iconbox bakery-kpi-amber">
+                <iconify-icon icon="solar:shop-2-bold"></iconify-icon>
+            </div>
+        </div>
+
+        <div class="bakery-kpi-card">
+            <div class="bakery-kpi-content">
+                <span class="bakery-kpi-label">Tổng chi tiêu tích lũy</span>
+                <div class="bakery-kpi-val text-emerald-600 dark:text-emerald-400">@((customers?.Sum(c => c.TotalSpent) ?? 0).ToString("N0")) đ</div>
+                <div class="bakery-kpi-subtext">Từ @(customers?.Sum(c => c.TotalOrders) ?? 0) đơn hàng hợp lệ</div>
+            </div>
+            <div class="bakery-kpi-iconbox bakery-kpi-rose">
+                <iconify-icon icon="solar:wallet-money-bold"></iconify-icon>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Toolbar bộ lọc tìm kiếm -->
+    <div class="bakery-filter-card">
+        <div class="bakery-filter-toolbar">
+            <div class="bakery-filter-search-box">
+                <iconify-icon icon="solar:magnifer-linear"></iconify-icon>
+                <input class="w-full" 
+                       placeholder="Tìm theo tên khách, số điện thoại, tài khoản App hoặc mã #KH..." 
+                       @bind="searchKeyword" 
+                       @bind:event="oninput" />
+                @if (!string.IsNullOrEmpty(searchKeyword))
+                {
+                    <button type="button" class="text-slate-400 hover:text-slate-600 text-xs px-2" @onclick='() => searchKeyword = ""'>✕</button>
+                }
+            </div>
+
+            <select class="bakery-input" @bind="selectedSourceFilter">
+                <option value="all">Tất cả nguồn khách hàng</option>
+                <option value="app">Khách có tài khoản App</option>
+                <option value="pos">Khách từng mua tại quầy POS</option>
+                <option value="guest">Khách chưa có tài khoản App</option>
+            </select>
+
+            <select class="bakery-input" @bind="selectedStatusFilter">
+                <option value="all">Tất cả trạng thái</option>
+                <option value="active">Đang hoạt động</option>
+                <option value="inactive">Đã khóa tài khoản</option>
+            </select>
+
+            <button class="bakery-btn bakery-btn-outline" @onclick="ResetFilters">
+                <iconify-icon icon="solar:restart-linear"></iconify-icon>
+                <span>Đặt lại</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- 4. Master-Detail Layout 2 Cột (Trực quan & Thu gọn chuẩn chỉ) -->
+    <div class="bakery-split-container">
+        
+        <!-- CỘT TRÁI (1fr): DANH SÁCH KHÁCH HÀNG -->
+        <div class="bakery-split-list bakery-filter-card !p-0 overflow-hidden">
+            <div class="p-3.5 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between gap-2">
+                <div>
+                    <h4 class="text-sm font-bold text-slate-800 dark:text-slate-100 m-0">Danh sách khách hàng</h4>
+                    <p class="text-xs text-slate-500 m-0">Bấm vào khách hàng để xem chi tiết và lịch sử đơn hàng ở bên phải.</p>
+                </div>
+                <span class="bakery-badge bakery-badge-secondary">@FilteredCustomers.Count() khách hàng</span>
+            </div>
+
+            @if (!FilteredCustomers.Any())
+            {
+                <div class="p-10 text-center text-slate-400 text-xs">
+                    <iconify-icon icon="solar:user-cross-linear" class="text-4xl text-slate-300 dark:text-slate-600 mb-2 block mx-auto"></iconify-icon>
+                    <span>Không tìm thấy khách hàng nào phù hợp với điều kiện tìm kiếm.</span>
+                </div>
+            }
+            else
+            {
+                <div class="overflow-x-auto">
+                    <table id="customers-table" class="bakery-table w-full text-xs">
+                        <thead>
+                            <tr>
+                                <th style="width: 95px;">Mã KH</th>
+                                <th style="min-width: 170px;">Khách hàng</th>
+                                <th style="width: 130px;">Tài khoản</th>
+                                <th style="width: 140px;" class="text-right">Đơn & Chi tiêu</th>
+                                <th style="width: 110px;" class="text-center">Trạng thái</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var c in FilteredCustomers)
+                            {
+                                var isSelected = selectedCustomer?.CustomerId == c.CustomerId;
+                                <tr class="bakery-row-clickable @(isSelected ? "bakery-row-selected" : "")"
+                                    @onclick="() => SelectCustomerAsync(c.CustomerId)">
+                                    <td class="font-bold text-primary">@c.CustomerCode</td>
+                                    <td>
+                                        <div class="font-bold text-slate-800 dark:text-slate-100 text-xs">@c.FullName</div>
+                                        <div class="text-[11px] text-slate-500 mt-0.5">@(string.IsNullOrWhiteSpace(c.Phone) ? "Chưa có SĐT" : c.Phone)</div>
+                                    </td>
+                                    <td>
+                                        @if (c.HasAppAccount)
+                                        {
+                                            <span class="bakery-badge bakery-badge-primary text-[10.5px] font-semibold">
+                                                @c.Username
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="bakery-badge bakery-badge-secondary text-[10.5px]">
+                                                Chưa liên kết App
+                                            </span>
+                                        }
+                                    </td>
+                                    <td class="text-right">
+                                        <div class="font-bold text-slate-900 dark:text-white">@c.TotalSpent.ToString("N0") đ</div>
+                                        <div class="text-[10.5px] text-slate-400">@c.TotalOrders đơn hàng</div>
+                                    </td>
+                                    <td class="text-center">
+                                        @if (c.HasAppAccount)
+                                        {
+                                            <span class="bakery-badge @(c.AccountStatus == "Active" ? "bakery-badge-success" : "bakery-badge-error") text-[10px]">
+                                                @(c.AccountStatus == "Active" ? "Hoạt động" : "Đã khóa")
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="bakery-badge bakery-badge-success text-[10px]">
+                                                Hợp lệ
+                                            </span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+
+        <!-- CỘT PHẢI (420px): CHI TIẾT HOẶC FORM CẬP NHẬT NGAY TẠI CHỖ -->
+        <div class="bakery-split-detail">
+            
+            <!-- TRƯỜNG HỢP 1: ĐANG Ở CHẾ ĐỘ FORM THÊM / SỬA (HIỂN THỊ TRỰC TIẾP, KHÔNG POPUP) -->
+            @if (isFormOpen)
+            {
+                <div class="bakery-detail-header-card mb-4 pb-3 border-b border-slate-100 dark:border-slate-800">
+                    <div>
+                        <div class="text-[11px] font-bold uppercase tracking-wider text-primary">
+                            @(inputForm.CustomerId == 0 ? "THÊM KHÁCH HÀNG MỚI" : "CHỈNH SỬA THÔNG TIN")
+                        </div>
+                        <h4 class="text-base font-bold text-dark dark:text-white mb-0">
+                            @(inputForm.CustomerId == 0 ? "Nhập thông tin khách" : inputForm.FullName)
+                        </h4>
+                    </div>
+                    <button type="button" class="text-slate-400 hover:text-slate-600 text-lg" title="Đóng form" @onclick="CloseForm">✕</button>
+                </div>
+
+                <div class="grid gap-3 text-xs">
+                    <label>
+                        <span class="font-bold text-slate-700 dark:text-slate-300">Họ và tên khách hàng <strong class="text-rose-500">*</strong></span>
+                        <input class="bakery-input w-full font-semibold" 
+                               placeholder="Ví dụ: Nguyễn Văn An" 
+                               @bind="inputForm.FullName" />
+                    </label>
+
+                    <label>
+                        <span class="font-bold text-slate-700 dark:text-slate-300">Số điện thoại <strong class="text-rose-500">*</strong></span>
+                        <input class="bakery-input w-full font-semibold" 
+                               type="tel" 
+                               placeholder="Ví dụ: 0912345678" 
+                               @bind="inputForm.Phone" />
+                        <small class="text-[10.5px] text-slate-400">Dùng để tra cứu đơn hàng và đăng nhập trên Mobile App.</small>
+                    </label>
+
+                    <label>
+                        <span class="font-bold text-slate-700 dark:text-slate-300">Địa chỉ giao bánh mặc định</span>
+                        <textarea class="bakery-input w-full text-xs" 
+                                  rows="2" 
+                                  placeholder="Ví dụ: 123 Đường Nguyễn Trãi, Quận 1, TP.HCM..." 
+                                  @bind="inputForm.Address"></textarea>
+                    </label>
+
+                    <!-- Khối thiết lập tài khoản Mobile App -->
+                    <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 mt-1">
+                        @if (inputForm.CustomerId == 0)
+                        {
+                            <div class="flex items-center gap-2 mb-2">
+                                <input type="checkbox" id="chkCreateAccount" class="rounded" @bind="inputForm.CreateAccount" />
+                                <label for="chkCreateAccount" class="text-xs font-bold text-slate-800 dark:text-slate-200 cursor-pointer m-0">
+                                    Cấp tài khoản đăng nhập Mobile App
+                                </label>
+                            </div>
+                        }
+
+                        @if (inputForm.CreateAccount || inputForm.CustomerId != 0)
+                        {
+                            <div class="grid gap-2.5 pt-1">
+                                @if (inputForm.CustomerId == 0)
+                                {
+                                    <label>
+                                        <span class="font-semibold text-slate-700 dark:text-slate-300">Tên đăng nhập (Username)</span>
+                                        <input class="bakery-input w-full" 
+                                               placeholder="Ví dụ: annguyen2026" 
+                                               @bind="inputForm.Username" />
+                                    </label>
+                                }
+
+                                <label>
+                                    <span class="font-semibold text-slate-700 dark:text-slate-300">
+                                        @(inputForm.CustomerId == 0 ? "Mật khẩu (mặc định: 123456)" : "Mật khẩu mới (để trống nếu giữ nguyên)")
+                                    </span>
+                                    <input class="bakery-input w-full" 
+                                           type="password" 
+                                           placeholder="••••••••" 
+                                           @bind="inputForm.Password" />
+                                </label>
+
+                                <label>
+                                    <span class="font-semibold text-slate-700 dark:text-slate-300">Trạng thái tài khoản</span>
+                                    <select class="bakery-input w-full" @bind="inputForm.AccountStatus">
+                                        <option value="Active">Đang hoạt động</option>
+                                        <option value="Inactive">Đã khóa tài khoản</option>
+                                    </select>
+                                </label>
+                            </div>
+                        }
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(formMessage))
+                    {
+                        <div class="p-2.5 rounded-lg text-xs @(formSuccess ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-rose-50 text-rose-700 border border-rose-200") flex items-center gap-2">
+                            <iconify-icon icon="@(formSuccess ? "solar:check-circle-bold" : "solar:danger-triangle-bold")" class="text-base shrink-0"></iconify-icon>
+                            <span>@formMessage</span>
+                        </div>
+                    }
+
+                    <div class="flex justify-end gap-2 mt-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                        <button type="button" class="bakery-btn bakery-btn-secondary" @onclick="CloseForm" disabled="@saving">Hủy</button>
+                        <button type="button" class="bakery-btn bakery-btn-primary" @onclick="SaveCustomerAsync" disabled="@saving">
+                            <iconify-icon icon="solar:disk-bold"></iconify-icon>
+                            <span>@(saving ? "Đang lưu..." : "Lưu thông tin")</span>
+                        </button>
+                    </div>
+                </div>
+            }
+            else if (selectedCustomer != null)
+            {
+                <!-- 1. Header chi tiết khách hàng chuẩn BakeryAdmin -->
+                <div class="bakery-detail-header-card">
+                    <div>
+                        <div class="flex items-center flex-wrap gap-2 mb-1">
+                            <span class="bakery-code-badge">@selectedCustomer.CustomerCode</span>
+                            @if (selectedCustomer.HasAppAccount)
+                            {
+                                <span class="bakery-badge @(selectedCustomer.AccountStatus == "Active" ? "bakery-badge-success" : "bakery-badge-error") text-xs">
+                                    @(selectedCustomer.AccountStatus == "Active" ? "App: Hoạt động" : "App: Đã khóa")
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="bakery-badge bakery-badge-secondary text-xs">
+                                    Chưa liên kết App
+                                </span>
+                            }
+                        </div>
+                        <h4 class="text-base font-bold text-dark dark:text-white mb-0">@selectedCustomer.FullName</h4>
+                    </div>
+                    <button type="button" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200" title="Đóng bảng chi tiết" @onclick="() => selectedCustomer = null">
+                        <iconify-icon icon="solar:close-circle-linear" class="text-xl"></iconify-icon>
+                    </button>
+                </div>
+
+                <!-- 2. Khối thông tin trọng tâm thực tế từ DB (Font chữ đồng bộ 100%) -->
+                <div class="bakery-detail-kv-grid mb-3">
+                    <div class="bakery-detail-kv-item">
+                        <div class="bakery-detail-kv-label">Tổng chi tiêu</div>
+                        <div class="bakery-detail-kv-val text-emerald-600 dark:text-emerald-400">@selectedCustomer.TotalSpent.ToString("N0") đ</div>
+                    </div>
+                    <div class="bakery-detail-kv-item">
+                        <div class="bakery-detail-kv-label">Số đơn đã mua</div>
+                        <div class="bakery-detail-kv-val text-primary dark:text-blue-400">@selectedCustomer.TotalOrders đơn</div>
+                    </div>
+                    <div class="bakery-detail-kv-item">
+                        <div class="bakery-detail-kv-label">Số điện thoại</div>
+                        <div class="bakery-detail-kv-val text-slate-800 dark:text-slate-100">
+                            @(string.IsNullOrWhiteSpace(selectedCustomer.Phone) ? "Chưa cập nhật" : selectedCustomer.Phone)
+                        </div>
+                    </div>
+                    <div class="bakery-detail-kv-item">
+                        <div class="bakery-detail-kv-label">Tài khoản Mobile App</div>
+                        <div class="bakery-detail-kv-val">
+                            @if (selectedCustomer.HasAppAccount)
+                            {
+                                <span class="text-primary dark:text-blue-400">@selectedCustomer.Username</span>
+                            }
+                            else
+                            {
+                                <span class="text-slate-400 font-normal">Chưa liên kết</span>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. Địa chỉ giao bánh mặc định (Đồng bộ khung viền chuẩn hệ thống) -->
+                <div class="mb-3">
+                    <div class="bakery-detail-kv-item">
+                        <div class="bakery-detail-kv-label">Địa chỉ giao bánh mặc định</div>
+                        <div class="text-xs font-semibold text-slate-800 dark:text-slate-200 mt-1">
+                            @(string.IsNullOrWhiteSpace(selectedCustomer.Address) ? "Tại quầy tiệm bánh" : selectedCustomer.Address)
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4. Giao dịch gần nhất & Điều hướng thông minh sang trang Đơn Hàng -->
+                <div class="mb-4">
+                    <div class="bakery-detail-kv-item">
+                        <div class="flex items-center justify-between mb-2 pb-1.5 border-b border-slate-100 dark:border-slate-800">
+                            <div class="bakery-detail-kv-label !mb-0">Giao dịch gần nhất</div>
+                            @if (selectedCustomer.RecentOrders?.Any() == true)
+                            {
+                                <span class="text-[11px] text-slate-400 font-medium">@selectedCustomer.TotalOrders đơn tích lũy</span>
+                            }
+                        </div>
+
+                        @if (selectedCustomer.RecentOrders != null && selectedCustomer.RecentOrders.Any())
+                        {
+                            var latest = selectedCustomer.RecentOrders.First();
+                            <div class="space-y-1.5 py-1">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="font-bold text-primary text-xs">@latest.OrderCode</span>
+                                        <span class="text-[10px] px-1.5 py-0.5 rounded font-semibold @GetOrderStatusBadgeClass(latest.Status)">
+                                            @GetOrderStatusText(latest.Status)
+                                        </span>
+                                    </div>
+                                    <span class="font-bold text-slate-900 dark:text-white text-xs">@latest.FinalAmount.ToString("N0") đ</span>
+                                </div>
+                                <div class="flex items-center justify-between text-[11px] text-slate-500">
+                                    <span>@latest.OrderDate.ToString("dd/MM/yyyy HH:mm")</span>
+                                    <span>Thanh toán: @GetPaymentMethodText(latest.PaymentMethod)</span>
+                                </div>
+                            </div>
+
+                            <a href="/orders?customer=@selectedCustomer.CustomerId" 
+                               class="mt-2.5 flex items-center justify-center gap-1.5 w-full py-2 px-3 rounded-lg border border-primary/20 bg-primary/5 hover:bg-primary/10 text-xs font-semibold text-primary transition-colors">
+                                <span>Xem toàn bộ @selectedCustomer.TotalOrders đơn hàng tại trang Đơn hàng</span>
+                                <span>→</span>
+                            </a>
+                        }
+                        else
+                        {
+                            <div class="py-3 text-center text-xs text-slate-400">
+                                Khách hàng này chưa phát sinh đơn hàng nào.
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <!-- 5. Thanh công cụ thao tác chuẩn BakeryAdmin -->
+                <div class="pt-3 border-t border-slate-200 dark:border-slate-700 grid grid-cols-2 gap-2">
+                    <button type="button" class="bakery-btn bakery-btn-outline w-full text-xs font-semibold py-2" @onclick="() => OpenEditForm(selectedCustomer)">
+                        Chỉnh sửa thông tin
+                    </button>
+
+                    @if (selectedCustomer.HasAppAccount)
+                    {
+                        <button type="button" 
+                                class="bakery-btn @(selectedCustomer.AccountStatus == "Active" ? "bakery-btn-secondary" : "bakery-btn-primary") w-full text-xs font-semibold py-2" 
+                                @onclick="() => ToggleAccountStatus(selectedCustomer.CustomerId)">
+                            @(selectedCustomer.AccountStatus == "Active" ? "Khóa tài khoản" : "Mở khóa App")
+                        </button>
+                    }
+                    else
+                    {
+                        <button type="button" 
+                                class="bakery-btn bakery-btn-primary w-full text-xs font-semibold py-2" 
+                                @onclick="() => OpenCreateAccountForCustomer(selectedCustomer)">
+                            Cấp tài khoản App
+                        </button>
+                    }
+                </div>
+
+                @if (!string.IsNullOrEmpty(actionMessage))
+                {
+                    <div class="mt-2.5 p-2.5 rounded-lg text-xs bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        @actionMessage
+                    </div>
+                }
+            }
+            else
+            {
+                <div class="bakery-detail-placeholder">
+                    <div class="w-16 h-16 mx-auto mb-3 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400">
+                        <iconify-icon icon="solar:user-id-linear" class="text-3xl"></iconify-icon>
+                    </div>
+                    <h5 class="text-base font-bold text-dark dark:text-white mb-1">Chưa chọn khách hàng</h5>
+                    <p class="text-xs text-bodytext mb-0">Bấm vào bất kỳ khách hàng nào trong danh sách bên trái để xem đầy đủ hồ sơ và lịch sử đơn hàng.</p>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Bảng ẩn phục vụ Xuất File Excel -->
+<table id="customers-export-table" class="export-only-table">
+    <thead>
+        <tr>
+            <th>Mã khách hàng</th>
+            <th>Họ và tên</th>
+            <th>Số điện thoại</th>
+            <th>Địa chỉ</th>
+            <th>Tài khoản Mobile App</th>
+            <th>Số đơn hàng</th>
+            <th>Tổng chi tiêu (VNĐ)</th>
+            <th>Trạng thái tài khoản</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var c in FilteredCustomers)
+        {
+            <tr>
+                <td>@c.CustomerCode</td>
+                <td>@c.FullName</td>
+                <td>@c.Phone</td>
+                <td>@c.Address</td>
+                <td>@(c.HasAppAccount ? c.Username : "Khách quầy POS")</td>
+                <td>@c.TotalOrders</td>
+                <td>@c.TotalSpent.ToString("N0")</td>
+                <td>@(c.HasAppAccount ? (c.AccountStatus == "Active" ? "Đang hoạt động" : "Đã khóa") : "Hợp lệ")</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<!-- Khung Báo Cáo In / Xuất PDF -->
+<div class="admin-print-report" data-report="customers">
+    <div class="admin-print-header">
+        <div>
+            <div class="admin-print-eyebrow">BAKERYSYSTEM ENTERPRISE</div>
+            <h1>Báo Cáo Danh Sách Khách Hàng</h1>
+            <p>Dữ liệu theo bộ lọc hiện tại · Ngày in: @DateTime.Now.ToString("dd/MM/yyyy HH:mm")</p>
+        </div>
+        <div class="admin-print-summary">
+            <strong>@FilteredCustomers.Count()</strong>
+            <span>khách hàng</span>
+        </div>
+    </div>
+    <table>
+        <thead>
+            <tr>
+                <th>Mã KH</th>
+                <th>Họ và tên</th>
+                <th>Số điện thoại</th>
+                <th>Nguồn tài khoản</th>
+                <th class="text-right">Số đơn</th>
+                <th class="text-right">Tổng chi tiêu</th>
+                <th>Trạng thái</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var c in FilteredCustomers)
+            {
+                <tr>
+                    <td><strong>@c.CustomerCode</strong></td>
+                    <td>@c.FullName</td>
+                    <td>@c.Phone</td>
+                    <td>@(c.HasAppAccount ? $"App: {c.Username}" : "Quầy POS")</td>
+                    <td class="text-right">@c.TotalOrders</td>
+                    <td class="text-right">@c.TotalSpent.ToString("N0") đ</td>
+                    <td>@(c.HasAppAccount ? (c.AccountStatus == "Active" ? "Hoạt động" : "Đã khóa") : "Hợp lệ")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    <div class="admin-print-footer">
+        <span>Báo cáo nội bộ tiệm bánh BakerySystem.</span>
+        <span>Người lập: ____________________</span>
+    </div>
+</div>
+
+@code {
+    private List<CustomerListItemDto> customers = [];
+    private CustomerDetailDto? selectedCustomer;
+    private CustomerInputModel inputForm = new();
+    private bool isFormOpen;
+    private bool saving;
+    private string? formMessage;
+    private bool formSuccess;
+    private string? actionMessage;
+
+    private string searchKeyword = string.Empty;
+    private string selectedSourceFilter = "all";
+    private string selectedStatusFilter = "all";
+
+    private IEnumerable<CustomerListItemDto> FilteredCustomers => (customers ?? []).Where(c =>
+        (selectedSourceFilter == "all" ||
+            (selectedSourceFilter == "app" && c.HasAppAccount) ||
+            (selectedSourceFilter == "pos" && (c.HasPosOrders || !c.HasAppAccount)) ||
+            (selectedSourceFilter == "guest" && !c.HasAppAccount)) &&
+        (selectedStatusFilter == "all" ||
+            (selectedStatusFilter == "active" && (c.AccountStatus == "Active" || !c.HasAppAccount)) ||
+            (selectedStatusFilter == "inactive" && c.AccountStatus == "Inactive")) &&
+        (string.IsNullOrWhiteSpace(searchKeyword) ||
+            (!string.IsNullOrEmpty(c.FullName) && c.FullName.Contains(searchKeyword.Trim(), StringComparison.OrdinalIgnoreCase)) ||
+            (c.Phone != null && c.Phone.Contains(searchKeyword.Trim(), StringComparison.OrdinalIgnoreCase)) ||
+            (c.Username != null && c.Username.Contains(searchKeyword.Trim(), StringComparison.OrdinalIgnoreCase)) ||
+            (!string.IsNullOrEmpty(c.CustomerCode) && c.CustomerCode.Contains(searchKeyword.Trim(), StringComparison.OrdinalIgnoreCase))));
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadCustomersAsync();
+    }
+
+    private async Task LoadCustomersAsync()
+    {
+        customers = await CustomerManager.GetCustomersAsync() ?? [];
+        if (selectedCustomer != null)
+        {
+            var detail = await CustomerManager.GetCustomerDetailAsync(selectedCustomer.CustomerId);
+            selectedCustomer = detail ?? (customers.Count > 0 ? await CustomerManager.GetCustomerDetailAsync(customers[0].CustomerId) : null);
+        }
+        else if (customers.Count > 0)
+        {
+            // Tự động nạp khách hàng đầu tiên cho Master-Detail trực quan
+            await SelectCustomerAsync(customers[0].CustomerId);
+        }
+    }
+
+    private async Task SelectCustomerAsync(int customerId)
+    {
+        isFormOpen = false;
+        formMessage = null;
+        actionMessage = null;
+        selectedCustomer = await CustomerManager.GetCustomerDetailAsync(customerId);
+    }
+
+    private void OpenCreateForm()
+    {
+        inputForm = new CustomerInputModel
+        {
+            CustomerId = 0,
+            AccountStatus = "Active",
+            CreateAccount = false
+        };
+        formMessage = null;
+        actionMessage = null;
+        isFormOpen = true;
+    }
+
+    private void OpenEditForm(CustomerDetailDto customer)
+    {
+        inputForm = new CustomerInputModel
+        {
+            CustomerId = customer.CustomerId,
+            FullName = customer.FullName,
+            Phone = customer.Phone,
+            Address = customer.Address,
+            Username = customer.Username,
+            AccountStatus = customer.AccountStatus == "None" ? "Active" : customer.AccountStatus,
+            CreateAccount = customer.HasAppAccount
+        };
+        formMessage = null;
+        actionMessage = null;
+        isFormOpen = true;
+    }
+
+    private void OpenCreateAccountForCustomer(CustomerDetailDto customer)
+    {
+        inputForm = new CustomerInputModel
+        {
+            CustomerId = customer.CustomerId,
+            FullName = customer.FullName,
+            Phone = customer.Phone,
+            Address = customer.Address,
+            Username = !string.IsNullOrWhiteSpace(customer.Phone) ? $"kh_{customer.Phone}" : $"kh_{customer.CustomerId}",
+            AccountStatus = "Active",
+            CreateAccount = true
+        };
+        formMessage = null;
+        actionMessage = null;
+        isFormOpen = true;
+    }
+
+    private void CloseForm()
+    {
+        isFormOpen = false;
+        formMessage = null;
+    }
+
+    private async Task SaveCustomerAsync()
+    {
+        saving = true;
+        formMessage = null;
+        try
+        {
+            var savedId = await CustomerManager.SaveCustomerAsync(inputForm);
+            formSuccess = true;
+            formMessage = inputForm.CustomerId == 0 ? "Thêm khách hàng thành công!" : "Cập nhật thông tin thành công!";
+            await LoadCustomersAsync();
+            selectedCustomer = await CustomerManager.GetCustomerDetailAsync(savedId);
+            isFormOpen = false;
+            actionMessage = "Đã lưu thông tin khách hàng.";
+        }
+        catch (Exception ex)
+        {
+            formSuccess = false;
+            formMessage = ex.Message;
+        }
+        finally
+        {
+            saving = false;
+        }
+    }
+
+    private async Task ToggleAccountStatus(int customerId)
+    {
+        try
+        {
+            await CustomerManager.ToggleAccountStatusAsync(customerId);
+            actionMessage = "Đã cập nhật trạng thái tài khoản khách hàng thành công.";
+            await LoadCustomersAsync();
+        }
+        catch (Exception ex)
+        {
+            actionMessage = $"Lỗi: {ex.Message}";
+        }
+    }
+
+    private void ResetFilters()
+    {
+        searchKeyword = string.Empty;
+        selectedSourceFilter = "all";
+        selectedStatusFilter = "all";
+    }
+
+    private async Task ExportToExcel() =>
+        await JS.InvokeVoidAsync("bakeryExcel.exportToExcel", "customers-export-table", $"Danh_Sach_Khach_Hang_{DateTime.Now:yyyyMMdd_HHmmss}");
+
+    private async Task PrintToPdf() =>
+        await JS.InvokeVoidAsync("bakeryPdf.printReportToPdf", "Danh_Sach_Khach_Hang_BakerySystem", "print-customers");
+
+    private static string GetOrderStatusText(string status) => status switch
+    {
+        "Completed" => "Hoàn tất",
+        "Pending" => "Chờ xử lý",
+        "Confirmed" => "Đã nhận đơn",
+        "Baking" => "Đang nướng bánh",
+        "Shipping" => "Đang giao",
+        "Cancelled" => "Đã hủy",
+        _ => status
+    };
+
+    private static string GetOrderStatusBadgeClass(string? status) => status switch
+    {
+        "Completed" => "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/40",
+        "Cancelled" => "bg-rose-50 text-rose-700 dark:bg-rose-950/50 dark:text-rose-400 border border-rose-200 dark:border-rose-800/40",
+        "Pending" => "bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-400 border border-amber-200 dark:border-amber-800/40",
+        "Confirmed" or "Baking" or "Shipping" => "bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-400 border border-blue-200 dark:border-blue-800/40",
+        _ => "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300"
+    };
+
+    private static string GetPaymentMethodText(string? method) => method switch
+    {
+        "Cash" or "Tiền mặt" => "Tiền mặt",
+        "BankTransfer" or "Chuyển khoản" => "Chuyển khoản",
+        "Momo" => "Ví MoMo",
+        "VnPay" => "VNPAY",
+        "CreditCard" => "Thẻ",
+        _ => string.IsNullOrWhiteSpace(method) ? "Tiền mặt" : method
+    };
+
+    private static string GetPaymentIcon(string? method) => method switch
+    {
+        "BankTransfer" or "Chuyển khoản" => "solar:card-transfer-linear",
+        "Momo" => "solar:smartphone-linear",
+        "VnPay" => "solar:qr-code-linear",
+        "CreditCard" => "solar:card-2-linear",
+        _ => "solar:wallet-money-linear"
+    };
+
+    private static string GetLoyaltyTierName(decimal totalSpent) => CustomerLoyaltyTier.GetTierName(totalSpent);
+
+    private static string GetLoyaltyBadgeClass(decimal totalSpent) => CustomerLoyaltyTier.GetBadgeClass(totalSpent);
+
+    private static string GetLastOrderText(CustomerDetailDto customer)
+    {
+        var latest = customer.RecentOrders?.FirstOrDefault();
+        if (latest == null) return "Chưa có đơn";
+        var days = (DateTime.Now.Date - latest.OrderDate.Date).Days;
+        return days switch
+        {
+            0 => "Hôm nay",
+            1 => "Hôm qua",
+            < 30 => $"{days} ngày trước",
+            _ => latest.OrderDate.ToString("dd/MM/yyyy")
+        };
+    }
+
+    private static string GetShoppingChannelText(CustomerDetailDto customer)
+    {
+        if (customer.HasAppOrders && customer.HasPosOrders) return "App & Quầy POS";
+        if (customer.HasAppOrders) return "Mobile App";
+        if (customer.HasPosOrders || !customer.HasAppAccount) return "Quầy POS";
+        return "Chưa mua hàng";
+    }
+
+    private static string GetCustomerInitials(string fullName)
+    {
+        if (string.IsNullOrWhiteSpace(fullName)) return "KH";
+        var parts = fullName.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length == 1) return parts[0].Length >= 2 ? parts[0][..2].ToUpper() : parts[0].ToUpper();
+        return $"{parts[0][0]}{parts[^1][0]}".ToUpper();
+    }
+}

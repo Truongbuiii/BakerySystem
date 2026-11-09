@@ -223,17 +223,29 @@ public static class MobileApiEndpoints
                         && p.StartDate <= today
                         && p.EndDate >= today, ct);
 
+                var linkedPromotionOrderCount = promotion is null
+                    ? 0
+                    : await db.Orders.CountAsync(order => order.PromotionID == promotion.PromotionID, ct);
+
                 if (promotion is null
                     || promotion.PromotionInvoice is { UsageLimit: not null } invoice
-                        && invoice.UsedCount >= invoice.UsageLimit)
+                        && linkedPromotionOrderCount >= invoice.UsageLimit)
                     return Results.BadRequest("Promotion is inactive, expired, or no longer available.");
 
                 if (promotion.PromotionInvoice is { } invoiceCondition
                     && totalAmount >= invoiceCondition.MinOrderAmount)
                 {
-                    var invoiceDiscount = totalAmount * invoiceCondition.DiscountPercent / 100m;
-                    if (invoiceCondition.MaxDiscountAmount is > 0)
-                        invoiceDiscount = Math.Min(invoiceDiscount, invoiceCondition.MaxDiscountAmount.Value);
+                    decimal invoiceDiscount;
+                    if (invoiceCondition.DiscountAmount is > 0)
+                    {
+                        invoiceDiscount = invoiceCondition.DiscountAmount.Value;
+                    }
+                    else
+                    {
+                        invoiceDiscount = totalAmount * invoiceCondition.DiscountPercent / 100m;
+                        if (invoiceCondition.MaxDiscountAmount is > 0)
+                            invoiceDiscount = Math.Min(invoiceDiscount, invoiceCondition.MaxDiscountAmount.Value);
+                    }
                     discountAmount += invoiceDiscount;
                 }
 
@@ -278,7 +290,10 @@ public static class MobileApiEndpoints
                 order.OrderDetails.Add(orderLine);
 
             if (promotion?.PromotionInvoice is { } usedInvoice)
-                usedInvoice.UsedCount++;
+            {
+                var linkedPromotionOrderCount = await db.Orders.CountAsync(order => order.PromotionID == promotion.PromotionID, ct);
+                usedInvoice.UsedCount = linkedPromotionOrderCount + 1;
+            }
 
             db.Orders.Add(order);
             await db.SaveChangesAsync(ct);
@@ -305,6 +320,26 @@ public static class MobileApiEndpoints
             return Results.Ok();
         })
         .WithSummary("Cancel a pending mobile order");
+
+        group.MapPost("/orders/{orderId:int}/confirm-received", async (
+            int orderId,
+            ConfirmReceivedMobileOrderRequest request,
+            IBakeryDbContext db,
+            CancellationToken ct) =>
+        {
+            var order = await db.Orders.FirstOrDefaultAsync(
+                o => o.OrderID == orderId, ct);
+            if (order is null
+                || (request.CustomerId.HasValue && request.CustomerId.Value > 0 && order.CustomerID != request.CustomerId.Value)
+                || (order.Status != OrderStatus.Delivered && order.Status != OrderStatus.Shipping))
+                return Results.BadRequest("Order cannot be confirmed at current status.");
+
+            order.Status = OrderStatus.Completed;
+            order.PaymentStatus = PaymentStatus.Paid;
+            await db.SaveChangesAsync(ct);
+            return Results.Ok();
+        })
+        .WithSummary("Confirm that customer received the order");
 
         return endpoints;
     }

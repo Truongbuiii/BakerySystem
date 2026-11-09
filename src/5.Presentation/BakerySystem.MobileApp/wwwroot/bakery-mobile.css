@@ -735,6 +735,7 @@ body, html {
 .status-preparing { background: #FFEDD5; color: #C2410C; }
 .status-cancelled { background: #FEE2E2; color: #B91C1C; }
 .status-shipping { background: #E0F2FE; color: #0284C7; }
+.status-delivered { background: #FEF9C3; color: #A16207; font-weight: 700; }
 .status-completed { background: #DCFCE7; color: #16A34A; }
 
 /* ==========================================================================

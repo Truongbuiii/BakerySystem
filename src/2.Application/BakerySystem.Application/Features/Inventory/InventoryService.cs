@@ -213,7 +213,8 @@ public sealed class InventoryService(IBakeryDbContext db)
         .OrderByDescending(x => x.ReceiptDate)
         .ThenByDescending(x => x.ReceiptID)
         .ToListAsync(ct);
-    public Task<List<Product>> GetProductsAsync(CancellationToken ct = default) => db.Products.AsNoTracking().Where(p => p.IsActive).OrderBy(p => p.ProductName).ToListAsync(ct);
+    public Task<List<Product>> GetProductsAsync(CancellationToken ct = default) => db.Products.AsNoTracking().Include(p => p.Category).Where(p => p.IsActive).OrderBy(p => p.ProductName).ToListAsync(ct);
+    public Task<List<Category>> GetCategoriesAsync(CancellationToken ct = default) => db.Categories.AsNoTracking().Where(c => c.IsActive).OrderBy(c => c.CategoryName).ToListAsync(ct);
 }
 
 public sealed class PromotionService(IBakeryDbContext db)
@@ -248,14 +249,24 @@ public sealed class PromotionService(IBakeryDbContext db)
         IReadOnlyCollection<int> productIds,
         decimal productPercent,
         decimal? productCap,
+        int? usageLimit = null,
+        decimal? invoiceDiscountAmount = null,
         CancellationToken ct = default)
     {
         campaign.PromotionCode = campaign.PromotionCode.Trim().ToUpperInvariant();
-        if (campaign.PromotionCode.Length == 0 || campaign.StartDate.Date > campaign.EndDate.Date ||
-            (!useInvoiceCondition && !useProductCondition) ||
-            (useInvoiceCondition && (invoicePercent <= 0 || invoicePercent > 100 || minimum < 0 || invoiceCap is null || invoiceCap <= 0)) ||
-            (useProductCondition && (productIds.Count == 0 || productPercent <= 0 || productPercent > 100 || productCap is null || productCap <= 0)))
-            throw new InvalidOperationException("Chọn ít nhất một điều kiện; phần trăm, đơn tối thiểu và mức giảm tối đa phải hợp lệ. Mức giảm tối đa phải lớn hơn 0.");
+        if (campaign.PromotionCode.Length == 0 || campaign.StartDate.Date > campaign.EndDate.Date)
+            throw new InvalidOperationException("Vui lòng nhập mã khuyến mãi hợp lệ và ngày bắt đầu không lớn hơn ngày kết thúc.");
+
+        var hasValidInvoice = useInvoiceCondition && (
+            (invoiceDiscountAmount is > 0 && minimum >= 0) ||
+            (invoicePercent > 0 && invoicePercent <= 100 && minimum >= 0 && invoiceCap is > 0)
+        );
+        var hasValidProduct = useProductCondition && (
+            productIds.Count > 0 && productPercent > 0 && productPercent <= 100 && productCap is > 0
+        );
+
+        if (!hasValidInvoice && !hasValidProduct)
+            throw new InvalidOperationException("Vui lòng chọn điều kiện áp dụng hợp lệ: tỷ lệ phần trăm (1-100%), số tiền giảm hoặc mức giảm tối đa phải lớn hơn 0.");
 
         if (useProductCondition)
         {
@@ -272,16 +283,18 @@ public sealed class PromotionService(IBakeryDbContext db)
             (true, false) => "Invoice",
             _ => "Product"
         };
-        campaign.Status = PromotionStatus.Draft;
+        campaign.Status = PromotionStatus.Active;
         db.Promotions.Add(campaign);
         if (useInvoiceCondition)
             campaign.PromotionInvoice = new PromotionInvoice
             {
                 Promotion = campaign,
                 VoucherCode = campaign.PromotionCode,
-                DiscountPercent = invoicePercent,
+                DiscountPercent = invoiceDiscountAmount is > 0 ? 0 : invoicePercent,
+                DiscountAmount = invoiceDiscountAmount is > 0 ? invoiceDiscountAmount : null,
                 MinOrderAmount = minimum,
-                MaxDiscountAmount = invoiceCap
+                MaxDiscountAmount = invoiceDiscountAmount is > 0 ? null : invoiceCap,
+                UsageLimit = usageLimit
             };
         if (useProductCondition)
             foreach (var productId in productIds.Distinct())
@@ -293,6 +306,16 @@ public sealed class PromotionService(IBakeryDbContext db)
                     MaxDiscountAmount = productCap
                 });
         await db.SaveChangesAsync(ct);
+    }
+
+    public async Task SyncUsedCountAsync(int promotionId, int count, CancellationToken ct = default)
+    {
+        var invoice = await db.PromotionInvoices.FirstOrDefaultAsync(pi => pi.PromotionID == promotionId, ct);
+        if (invoice != null && invoice.UsedCount != count)
+        {
+            invoice.UsedCount = count;
+            await db.SaveChangesAsync(ct);
+        }
     }
 
     public Task<bool> HasBeenUsedAsync(int promotionId, CancellationToken ct = default) =>
@@ -320,14 +343,16 @@ public sealed class PromotionService(IBakeryDbContext db)
 
     public async Task SetStatusAsync(int promotionId, string status, CancellationToken ct = default)
     {
-        var promotion = await db.Promotions.FindAsync([promotionId], ct)
-            ?? throw new InvalidOperationException("Không tìm thấy chương trình khuyến mãi.");
-        if (status is not (PromotionStatus.Active or PromotionStatus.Hidden or PromotionStatus.Draft))
+        if (status is not (PromotionStatus.Active or PromotionStatus.Inactive or PromotionStatus.Draft))
             throw new InvalidOperationException("Trạng thái chương trình không hợp lệ.");
         if (status == PromotionStatus.Draft && await HasBeenUsedAsync(promotionId, ct))
             throw new InvalidOperationException("Khuyến mãi đã được dùng trong đơn hàng, không thể chuyển về nháp.");
-        promotion.Status = status;
-        await db.SaveChangesAsync(ct);
+
+        var updated = await db.Promotions
+            .Where(p => p.PromotionID == promotionId)
+            .ExecuteUpdateAsync(setters => setters.SetProperty(p => p.Status, status), ct);
+        if (updated == 0)
+            throw new InvalidOperationException("Không tìm thấy chương trình khuyến mãi.");
     }
 
     public async Task UpdateAsync(
@@ -341,6 +366,8 @@ public sealed class PromotionService(IBakeryDbContext db)
         decimal productPercent,
         decimal? productCap,
         bool hasBeenUsed,
+        int? usageLimit = null,
+        decimal? invoiceDiscountAmount = null,
         CancellationToken ct = default)
     {
         var current = await db.Promotions
@@ -363,10 +390,16 @@ public sealed class PromotionService(IBakeryDbContext db)
 
         if (!hasBeenUsed)
         {
-            if (!useInvoiceCondition && !useProductCondition ||
-                useInvoiceCondition && (invoicePercent <= 0 || invoicePercent > 100 || minimum < 0 || invoiceCap is null || invoiceCap <= 0) ||
-                useProductCondition && (productIds.Count == 0 || productPercent <= 0 || productPercent > 100 || productCap is null || productCap <= 0))
-                throw new InvalidOperationException("Chọn ít nhất một điều kiện; phần trăm, đơn tối thiểu và mức giảm tối đa phải hợp lệ. Mức giảm tối đa phải lớn hơn 0.");
+            var hasValidInvoice = useInvoiceCondition && (
+                (invoiceDiscountAmount is > 0 && minimum >= 0) ||
+                (invoicePercent > 0 && invoicePercent <= 100 && minimum >= 0 && invoiceCap is > 0)
+            );
+            var hasValidProduct = useProductCondition && (
+                productIds.Count > 0 && productPercent > 0 && productPercent <= 100 && productCap is > 0
+            );
+
+            if (!hasValidInvoice && !hasValidProduct)
+                throw new InvalidOperationException("Vui lòng chọn điều kiện áp dụng hợp lệ: tỷ lệ phần trăm (1-100%), số tiền giảm hoặc mức giảm tối đa phải lớn hơn 0.");
 
             if (useProductCondition)
             {
@@ -393,9 +426,11 @@ public sealed class PromotionService(IBakeryDbContext db)
                 {
                     Promotion = current,
                     VoucherCode = campaign.PromotionCode,
-                    DiscountPercent = invoicePercent,
+                    DiscountPercent = invoiceDiscountAmount is > 0 ? 0 : invoicePercent,
+                    DiscountAmount = invoiceDiscountAmount is > 0 ? invoiceDiscountAmount : null,
                     MinOrderAmount = minimum,
-                    MaxDiscountAmount = invoiceCap
+                    MaxDiscountAmount = invoiceDiscountAmount is > 0 ? null : invoiceCap,
+                    UsageLimit = usageLimit
                 };
             if (useProductCondition)
                 foreach (var productId in productIds.Distinct())
@@ -407,9 +442,13 @@ public sealed class PromotionService(IBakeryDbContext db)
                         MaxDiscountAmount = productCap
                     });
         }
-        else if (originalCode != campaign.PromotionCode)
+        else
         {
-            throw new InvalidOperationException("Không thể đổi mã hoặc điều kiện của chương trình đã có đơn hàng sử dụng.");
+            if (current.PromotionInvoice is not null)
+                current.PromotionInvoice.UsageLimit = usageLimit;
+
+            if (originalCode != campaign.PromotionCode)
+                throw new InvalidOperationException("Không thể đổi mã hoặc điều kiện của chương trình đã có đơn hàng sử dụng.");
         }
 
         await db.SaveChangesAsync(ct);

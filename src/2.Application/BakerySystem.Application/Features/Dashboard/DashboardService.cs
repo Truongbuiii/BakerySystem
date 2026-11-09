@@ -144,7 +144,7 @@ public class DashboardService : IDashboardService
                 OrderStatus.Completed => $"Hoàn tất giao đơn #{order.OrderID}",
                 OrderStatus.Shipping => $"Đang giao đơn #{order.OrderID} cho khách",
                 OrderStatus.Confirmed => $"Đã duyệt đơn #{order.OrderID}",
-                OrderStatus.InProgress => $"Thợ bánh đang làm đơn #{order.OrderID}",
+                OrderStatus.InProgress => $"Nhân viên đang chuẩn bị đơn #{order.OrderID}",
                 _ => $"Đơn đặt bánh mới #{order.OrderID}"
             };
 

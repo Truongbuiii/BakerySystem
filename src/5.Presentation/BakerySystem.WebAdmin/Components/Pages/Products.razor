@@ -1,5 +1,6 @@
 @page "/products"
 @rendermode InteractiveServer
+@attribute [Authorize(Roles = "Admin,Employee")]
 @using Microsoft.AspNetCore.Hosting
 @using System.IO
 @inject IProductService ProductService

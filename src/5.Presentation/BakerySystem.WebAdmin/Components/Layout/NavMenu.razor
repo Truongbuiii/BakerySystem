@@ -35,6 +35,11 @@
                         <iconify-icon icon="solar:bill-list-linear" class="text-xl shrink-0"></iconify-icon>
                         <span class="flex-1">Đơn đặt hàng</span>
                     </NavLink>
+
+                    <NavLink class="bakery-nav-link" href="customers" aria-label="Khách hàng" title="Quản lý khách hàng">
+                        <iconify-icon icon="solar:users-group-two-rounded-linear" class="text-xl shrink-0"></iconify-icon>
+                        <span class="flex-1">Khách hàng</span>
+                    </NavLink>
                 </nav>
             </div>
 
@@ -138,6 +143,11 @@
                         <span class="flex-1">Quản lý Đơn hàng</span>
                     </NavLink>
 
+                    <NavLink class="bakery-nav-link" href="customers" aria-label="Khách hàng" title="Tra cứu khách hàng">
+                        <iconify-icon icon="solar:users-group-two-rounded-linear" class="text-xl shrink-0"></iconify-icon>
+                        <span class="flex-1">Khách hàng</span>
+                    </NavLink>
+
                     <NavLink class="bakery-nav-link" href="import-receipt-management" aria-label="Quản lý phiếu nhập kho" title="Quản lý phiếu nhập kho">
                         <iconify-icon icon="solar:box-minimalistic-linear" class="text-xl shrink-0"></iconify-icon>
                         <span class="flex-1">Quản lý phiếu nhập</span>
@@ -156,6 +166,28 @@
                     <NavLink class="bakery-nav-link" href="products" aria-label="Tra cứu Menu & Bảng giá" title="Tra cứu Menu & Bảng giá">
                         <iconify-icon icon="solar:bag-5-linear" class="text-xl shrink-0"></iconify-icon>
                         <span>Tra cứu Menu & Bảng giá</span>
+                    </NavLink>
+                </nav>
+            </div>
+        </Authorized>
+    </AuthorizeView>
+
+    <AuthorizeView Roles="Shipper">
+        <Authorized>
+            <div class="pt-1">
+                <div class="bakery-sidebar-caption">
+                    Giao hàng
+                </div>
+                <nav class="space-y-1">
+                    <NavLink class="bakery-nav-link" href="orders" aria-label="Quản lý đơn giao hàng" title="Quản lý đơn giao hàng">
+                        <iconify-icon icon="solar:delivery-bold" class="text-xl shrink-0 text-primary"></iconify-icon>
+                        <span class="flex-1 font-semibold">Quản lý đơn giao hàng</span>
+                        <span class="bakery-badge bakery-badge-success text-[10px]">Shipper</span>
+                    </NavLink>
+
+                    <NavLink class="bakery-nav-link" href="profile" aria-label="Hồ sơ & bảo mật" title="Hồ sơ & bảo mật">
+                        <iconify-icon icon="solar:settings-linear" class="text-xl shrink-0"></iconify-icon>
+                        <span class="flex-1">Hồ sơ & bảo mật</span>
                     </NavLink>
                 </nav>
             </div>

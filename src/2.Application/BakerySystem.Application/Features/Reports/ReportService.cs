@@ -20,7 +20,9 @@ public sealed class ReportService(IBakeryDbContext db)
         DateTime? endDate,
         CancellationToken ct = default)
     {
-        var ordersQuery = db.Orders.AsQueryable();
+        var ordersQuery = db.Orders
+            .Include(o => o.Customer)
+            .AsQueryable();
         var importsQuery = db.ImportReceipts.AsQueryable();
 
         if (startDate.HasValue && endDate.HasValue)

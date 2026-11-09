@@ -15,7 +15,7 @@ CREATE TABLE Account (
     Status VARCHAR(20) NOT NULL DEFAULT 'Active',
 
     CONSTRAINT UQ_Account_Username UNIQUE (Username),
-    CONSTRAINT CK_Account_Role CHECK (Role IN ('Admin', 'Employee', 'Customer')),
+    CONSTRAINT CK_Account_Role CHECK (Role IN ('Admin', 'Employee', 'Shipper', 'Customer')),
     CONSTRAINT CK_Account_Status CHECK (Status IN ('Active', 'Inactive'))
 );
 GO
@@ -124,7 +124,7 @@ CREATE TABLE Promotion (
     CONSTRAINT UQ_Promotion_PromotionCode UNIQUE (PromotionCode),
     CONSTRAINT CK_Promotion_Type CHECK (PromotionType IN ('Product', 'OrderTier', 'Invoice')),
     CONSTRAINT CK_Promotion_Date CHECK (EndDate >= StartDate),
-    CONSTRAINT CK_Promotion_Status CHECK (Status IN ('Active', 'Inactive'))
+    CONSTRAINT CK_Promotion_Status CHECK (Status IN ('Active', 'Inactive', 'Draft'))
 );
 GO
 
@@ -254,7 +254,7 @@ CREATE TABLE Orders (
     CONSTRAINT CK_Orders_FinalAmount CHECK (FinalAmount >= 0),
     CONSTRAINT CK_Orders_Discount_Not_Exceed_Total CHECK (DiscountAmount <= TotalAmount),
     CONSTRAINT CK_Orders_PaymentStatus CHECK (PaymentStatus IN ('Unpaid', 'Paid', 'Refunded')),
-    CONSTRAINT CK_Orders_Status CHECK (Status IN ('Pending', 'Confirmed', 'InProgress', 'Shipping', 'Completed', 'Cancelled'))
+    CONSTRAINT CK_Orders_Status CHECK (Status IN ('Pending', 'Confirmed', 'InProgress', 'Shipping', 'Delivered', 'Completed', 'Cancelled'))
 );
 GO
 

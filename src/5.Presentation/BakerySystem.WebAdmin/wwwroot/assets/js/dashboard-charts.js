@@ -198,7 +198,7 @@ window.initBakeryReportsCharts = function (categories, revenueSeries, costSeries
             ],
             chart: {
                 type: 'bar',
-                height: 250,
+                height: 180,
                 fontFamily: "inherit",
                 toolbar: { show: false }
             },
@@ -429,7 +429,7 @@ window.initBakeryReportsCharts = function (labels, revSeries, costSeries, donutS
             ],
             chart: {
                 type: 'bar',
-                height: 250,
+                height: 180,
                 toolbar: { show: false },
                 fontFamily: 'inherit'
             },
@@ -483,7 +483,7 @@ window.initBakeryReportsCharts = function (labels, revSeries, costSeries, donutS
             labels: donutLabels,
             chart: {
                 type: 'donut',
-                height: 200,
+                height: 150,
                 fontFamily: 'inherit'
             },
             colors: ['#2563eb', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4'],

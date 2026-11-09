@@ -26,6 +26,9 @@ public sealed record CreateMobileOrderLine(
 /// <summary>Payload used to cancel a pending mobile order.</summary>
 public sealed record CancelMobileOrderRequest(int? CustomerId);
 
+/// <summary>Payload used to confirm receiving a mobile order.</summary>
+public sealed record ConfirmReceivedMobileOrderRequest(int? CustomerId);
+
 /// <summary>Payload used to update a mobile customer profile.</summary>
 public sealed record MobileProfileRequest(
     int CustomerId,

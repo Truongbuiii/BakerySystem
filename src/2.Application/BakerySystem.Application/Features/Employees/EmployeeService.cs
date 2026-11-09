@@ -26,7 +26,7 @@ public sealed class EmployeeService(IBakeryDbContext db)
         input.Username = input.Username.Trim();
         if (input.FullName.Length == 0 || input.Username.Length == 0) throw new InvalidOperationException("Vui lòng nhập họ tên và tên đăng nhập.");
         if (input.Username.Length > 50) throw new InvalidOperationException("Tên đăng nhập không được vượt quá 50 ký tự.");
-        if (input.Position is not ("Bếp bánh" or "Thu ngân" or "Quản lý")) throw new InvalidOperationException("Vị trí nhân viên không hợp lệ.");
+        if (input.Position is not ("Bếp bánh" or "Thu ngân" or "Quản lý" or "Giao hàng")) throw new InvalidOperationException("Vị trí nhân viên không hợp lệ.");
         input.Phone = input.Phone?.Trim();
         if (!string.IsNullOrWhiteSpace(input.Phone) &&
             (input.Phone.Length > 20 ||
@@ -38,7 +38,7 @@ public sealed class EmployeeService(IBakeryDbContext db)
         if (input.EmployeeID == 0)
         {
             if (input.Password.Length < 6) throw new InvalidOperationException("Mật khẩu ban đầu cần ít nhất 6 ký tự.");
-            var account = new Account { Username = input.Username, Password = BCrypt.Net.BCrypt.HashPassword(input.Password), Role = input.Position == "Quản lý" ? AccountRole.Admin : AccountRole.Employee, Status = AccountStatus.Active };
+            var account = new Account { Username = input.Username, Password = BCrypt.Net.BCrypt.HashPassword(input.Password), Role = ResolveRole(input.Position), Status = AccountStatus.Active };
             db.Accounts.Add(account);
             db.Employees.Add(new Employee { Account = account, FullName = input.FullName, Phone = input.Phone?.Trim(), Position = input.Position });
         }
@@ -62,7 +62,7 @@ public sealed class EmployeeService(IBakeryDbContext db)
             employee.Phone = input.Phone?.Trim();
             employee.Position = input.Position;
             employee.Account.Username = input.Username;
-            employee.Account.Role = input.Position == "Quản lý" ? AccountRole.Admin : AccountRole.Employee;
+            employee.Account.Role = ResolveRole(input.Position);
             employee.Account.Status = input.Status == AccountStatus.Inactive ? AccountStatus.Inactive : AccountStatus.Active;
             if (!string.IsNullOrWhiteSpace(input.Password))
             {
@@ -72,6 +72,13 @@ public sealed class EmployeeService(IBakeryDbContext db)
         }
         await db.SaveChangesAsync(ct);
     }
+
+    private static string ResolveRole(string position) => position switch
+    {
+        "Quản lý" => AccountRole.Admin,
+        "Giao hàng" => AccountRole.Shipper,
+        _ => AccountRole.Employee
+    };
 
     public async Task<(Employee Employee, string Username)?> GetProfileAsync(int accountId, CancellationToken ct = default)
     {

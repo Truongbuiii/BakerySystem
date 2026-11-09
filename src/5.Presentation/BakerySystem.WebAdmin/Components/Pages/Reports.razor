@@ -7,7 +7,7 @@
 
 <PageTitle>Báo Cáo Doanh Thu & Thống Kê | BakeryAdmin</PageTitle>
 
-<div class="space-y-5">
+<div class="reports-page">
     <!-- 1. Header Trang & Tiêu đề -->
     <div class="bakery-page-header pb-2 border-b border-border dark:border-darkborder flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <div>
@@ -59,66 +59,54 @@
     </div>
 
     <!-- 2. BỘ LỌC THỐNG KÊ TOÀN DIỆN (Từ ngày - đến ngày & Theo tháng / quý / năm) -->
-    <div class="bakery-card p-4">
-        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+    <div class="bakery-card report-timeline-panel report-filter p-4">
+        <div class="report-filter-toolbar">
             <!-- Mode Switcher: Nhanh / Tùy chọn ngày / Theo tháng / Theo quý / Theo năm -->
-            <div class="flex flex-wrap items-center gap-2">
-                <div class="inline-flex rounded-xl p-1 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
-                    <button type="button"
-                            class="px-3 py-1.5 text-xs font-semibold rounded-lg transition-all @(filterType == "quick" ? "bg-white dark:bg-slate-700 text-primary shadow-sm" : "text-slate-600 dark:text-slate-400 hover:text-slate-900")"
-                            @onclick='() => SetFilterType("quick")'>
-                        Chu kỳ nhanh
-                    </button>
-                    <button type="button"
-                            class="px-3 py-1.5 text-xs font-semibold rounded-lg transition-all @(filterType == "custom" ? "bg-white dark:bg-slate-700 text-primary shadow-sm" : "text-slate-600 dark:text-slate-400 hover:text-slate-900")"
-                            @onclick='() => SetFilterType("custom")'>
-                        Từ ngày A &rarr; B
-                    </button>
-                    <button type="button"
-                            class="px-3 py-1.5 text-xs font-semibold rounded-lg transition-all @(filterType == "month" ? "bg-white dark:bg-slate-700 text-primary shadow-sm" : "text-slate-600 dark:text-slate-400 hover:text-slate-900")"
-                            @onclick='() => SetFilterType("month")'>
-                        Theo tháng
-                    </button>
-                    <button type="button"
-                            class="px-3 py-1.5 text-xs font-semibold rounded-lg transition-all @(filterType == "quarter" ? "bg-white dark:bg-slate-700 text-primary shadow-sm" : "text-slate-600 dark:text-slate-400 hover:text-slate-900")"
-                            @onclick='() => SetFilterType("quarter")'>
-                        Theo quý
-                    </button>
-                    <button type="button"
-                            class="px-3 py-1.5 text-xs font-semibold rounded-lg transition-all @(filterType == "year" ? "bg-white dark:bg-slate-700 text-primary shadow-sm" : "text-slate-600 dark:text-slate-400 hover:text-slate-900")"
-                            @onclick='() => SetFilterType("year")'>
-                        Theo năm
-                    </button>
-                </div>
+            <div class="report-filter-modes" role="tablist" aria-label="Kiểu lọc chu kỳ">
+                <button type="button" role="tab" aria-selected="@(filterType == "quick")"
+                        class="report-filter-mode @(filterType == "quick" ? "is-active" : "")"
+                        @onclick='() => SetFilterType("quick")'>Chu kỳ nhanh</button>
+                <button type="button" role="tab" aria-selected="@(filterType == "custom")"
+                        class="report-filter-mode @(filterType == "custom" ? "is-active" : "")"
+                        @onclick='() => SetFilterType("custom")'>Từ ngày A &rarr; B</button>
+                <button type="button" role="tab" aria-selected="@(filterType == "month")"
+                        class="report-filter-mode @(filterType == "month" ? "is-active" : "")"
+                        @onclick='() => SetFilterType("month")'>Theo tháng</button>
+                <button type="button" role="tab" aria-selected="@(filterType == "quarter")"
+                        class="report-filter-mode @(filterType == "quarter" ? "is-active" : "")"
+                        @onclick='() => SetFilterType("quarter")'>Theo quý</button>
+                <button type="button" role="tab" aria-selected="@(filterType == "year")"
+                        class="report-filter-mode @(filterType == "year" ? "is-active" : "")"
+                        @onclick='() => SetFilterType("year")'>Theo năm</button>
             </div>
 
             <!-- Detailed controls based on chosen filterType -->
-            <div class="flex flex-wrap items-center gap-3">
+            <div class="report-filter-controls">
                 @if (filterType == "quick")
                 {
-                    <div class="flex items-center gap-1.5">
-                        <button type="button" class="px-2.5 py-1 text-xs rounded-md border transition-colors @(quickPeriod == "today" ? "bg-blue-50 border-blue-300 text-blue-700 font-bold" : "border-slate-200 text-slate-600 hover:bg-slate-50")"
+                    <div class="report-filter-periods">
+                        <button type="button" class="report-filter-pill @(quickPeriod == "today" ? "is-active" : "")"
                                 @onclick='() => ChangeQuickPeriod("today")'>Hôm nay</button>
-                        <button type="button" class="px-2.5 py-1 text-xs rounded-md border transition-colors @(quickPeriod == "week" ? "bg-blue-50 border-blue-300 text-blue-700 font-bold" : "border-slate-200 text-slate-600 hover:bg-slate-50")"
+                        <button type="button" class="report-filter-pill @(quickPeriod == "week" ? "is-active" : "")"
                                 @onclick='() => ChangeQuickPeriod("week")'>7 ngày qua</button>
-                        <button type="button" class="px-2.5 py-1 text-xs rounded-md border transition-colors @(quickPeriod == "month" ? "bg-blue-50 border-blue-300 text-blue-700 font-bold" : "border-slate-200 text-slate-600 hover:bg-slate-50")"
+                        <button type="button" class="report-filter-pill @(quickPeriod == "month" ? "is-active" : "")"
                                 @onclick='() => ChangeQuickPeriod("month")'>Tháng này</button>
-                        <button type="button" class="px-2.5 py-1 text-xs rounded-md border transition-colors @(quickPeriod == "all" ? "bg-blue-50 border-blue-300 text-blue-700 font-bold" : "border-slate-200 text-slate-600 hover:bg-slate-50")"
+                        <button type="button" class="report-filter-pill @(quickPeriod == "all" ? "is-active" : "")"
                                 @onclick='() => ChangeQuickPeriod("all")'>Toàn thời gian</button>
                     </div>
                 }
                 else if (filterType == "custom")
                 {
-                    <div class="flex items-center gap-2">
-                        <div class="flex items-center gap-1.5">
-                            <span class="text-xs text-slate-500 font-medium">Từ ngày:</span>
-                            <input type="date" class="bakery-input py-1 px-2.5 text-xs" style="height: 34px; width: auto;" @bind="customStartDate" />
-                        </div>
-                        <span class="text-slate-400">&rarr;</span>
-                        <div class="flex items-center gap-1.5">
-                            <span class="text-xs text-slate-500 font-medium">Đến ngày:</span>
-                            <input type="date" class="bakery-input py-1 px-2.5 text-xs" style="height: 34px; width: auto;" @bind="customEndDate" />
-                        </div>
+                    <div class="report-filter-fields">
+                        <label class="report-filter-field">
+                            <span>Từ ngày</span>
+                            <input type="date" class="bakery-input report-filter-input" @bind="customStartDate" />
+                        </label>
+                        <span class="report-filter-arrow">&rarr;</span>
+                        <label class="report-filter-field">
+                            <span>Đến ngày</span>
+                            <input type="date" class="bakery-input report-filter-input" @bind="customEndDate" />
+                        </label>
                         <button type="button" class="bakery-btn bakery-btn-primary bakery-btn-sm" @onclick="LoadReportDataAsync">
                             Xem thống kê
                         </button>
@@ -126,21 +114,25 @@
                 }
                 else if (filterType == "month")
                 {
-                    <div class="flex items-center gap-2">
-                        <span class="text-xs text-slate-500 font-medium">Chọn tháng:</span>
-                        <select class="bakery-input py-1 px-2.5 text-xs" style="height: 34px; width: auto;" @bind="selectedMonth">
-                            @for (int m = 1; m <= 12; m++)
-                            {
-                                <option value="@m">Tháng @m</option>
-                            }
-                        </select>
-                        <span class="text-xs text-slate-500 font-medium">Năm:</span>
-                        <select class="bakery-input py-1 px-2.5 text-xs" style="height: 34px; width: auto;" @bind="selectedYear">
-                            @for (int y = DateTime.Now.Year - 3; y <= DateTime.Now.Year + 1; y++)
-                            {
-                                <option value="@y">Năm @y</option>
-                            }
-                        </select>
+                    <div class="report-filter-fields">
+                        <label class="report-filter-field">
+                            <span>Chọn tháng</span>
+                            <select class="bakery-input report-filter-input" @bind="selectedMonth">
+                                @for (int m = 1; m <= 12; m++)
+                                {
+                                    <option value="@m">Tháng @m</option>
+                                }
+                            </select>
+                        </label>
+                        <label class="report-filter-field">
+                            <span>Năm</span>
+                            <select class="bakery-input report-filter-input" @bind="selectedYear">
+                                @for (int y = DateTime.Now.Year - 3; y <= DateTime.Now.Year + 1; y++)
+                                {
+                                    <option value="@y">Năm @y</option>
+                                }
+                            </select>
+                        </label>
                         <button type="button" class="bakery-btn bakery-btn-primary bakery-btn-sm" @onclick="LoadReportDataAsync">
                             Xem tháng
                         </button>
@@ -148,21 +140,25 @@
                 }
                 else if (filterType == "quarter")
                 {
-                    <div class="flex items-center gap-2">
-                        <span class="text-xs text-slate-500 font-medium">Chọn quý:</span>
-                        <select class="bakery-input py-1 px-2.5 text-xs" style="height: 34px; width: auto;" @bind="selectedQuarter">
-                            <option value="1">Quý 1 (Tháng 1 - 3)</option>
-                            <option value="2">Quý 2 (Tháng 4 - 6)</option>
-                            <option value="3">Quý 3 (Tháng 7 - 9)</option>
-                            <option value="4">Quý 4 (Tháng 10 - 12)</option>
-                        </select>
-                        <span class="text-xs text-slate-500 font-medium">Năm:</span>
-                        <select class="bakery-input py-1 px-2.5 text-xs" style="height: 34px; width: auto;" @bind="selectedYear">
-                            @for (int y = DateTime.Now.Year - 3; y <= DateTime.Now.Year + 1; y++)
-                            {
-                                <option value="@y">Năm @y</option>
-                            }
-                        </select>
+                    <div class="report-filter-fields">
+                        <label class="report-filter-field">
+                            <span>Chọn quý</span>
+                            <select class="bakery-input report-filter-input" @bind="selectedQuarter">
+                                <option value="1">Quý 1 (Tháng 1 - 3)</option>
+                                <option value="2">Quý 2 (Tháng 4 - 6)</option>
+                                <option value="3">Quý 3 (Tháng 7 - 9)</option>
+                                <option value="4">Quý 4 (Tháng 10 - 12)</option>
+                            </select>
+                        </label>
+                        <label class="report-filter-field">
+                            <span>Năm</span>
+                            <select class="bakery-input report-filter-input" @bind="selectedYear">
+                                @for (int y = DateTime.Now.Year - 3; y <= DateTime.Now.Year + 1; y++)
+                                {
+                                    <option value="@y">Năm @y</option>
+                                }
+                            </select>
+                        </label>
                         <button type="button" class="bakery-btn bakery-btn-primary bakery-btn-sm" @onclick="LoadReportDataAsync">
                             Xem quý
                         </button>
@@ -170,14 +166,16 @@
                 }
                 else if (filterType == "year")
                 {
-                    <div class="flex items-center gap-2">
-                        <span class="text-xs text-slate-500 font-medium">Chọn năm:</span>
-                        <select class="bakery-input py-1 px-2.5 text-xs" style="height: 34px; width: auto;" @bind="selectedYear">
-                            @for (int y = DateTime.Now.Year - 3; y <= DateTime.Now.Year + 1; y++)
-                            {
-                                <option value="@y">Năm @y</option>
-                            }
-                        </select>
+                    <div class="report-filter-fields">
+                        <label class="report-filter-field">
+                            <span>Chọn năm</span>
+                            <select class="bakery-input report-filter-input" @bind="selectedYear">
+                                @for (int y = DateTime.Now.Year - 3; y <= DateTime.Now.Year + 1; y++)
+                                {
+                                    <option value="@y">Năm @y</option>
+                                }
+                            </select>
+                        </label>
                         <button type="button" class="bakery-btn bakery-btn-primary bakery-btn-sm" @onclick="LoadReportDataAsync">
                             Xem cả năm
                         </button>
@@ -186,13 +184,13 @@
             </div>
         </div>
 
-        <div class="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 text-xs text-slate-500 flex items-center justify-between">
+        <div class="report-filter-summary">
             <div>
-                Đang hiển thị thống kê cho chu kỳ: <strong class="text-primary dark:text-blue-400">@GetPeriodDisplayName()</strong>
+                Đang hiển thị thống kê cho chu kỳ: <strong>@GetPeriodDisplayName()</strong>
             </div>
             @if (activeStartDate.HasValue && activeEndDate.HasValue)
             {
-                <div class="font-mono text-[11px] text-slate-400">
+                <div class="report-filter-range">
                     [@activeStartDate.Value.ToString("dd/MM/yyyy HH:mm")] &rarr; [@activeEndDate.Value.ToString("dd/MM/yyyy HH:mm")]
                 </div>
             }
@@ -270,6 +268,37 @@
                 <iconify-icon icon="solar:bill-check-bold"></iconify-icon>
             </div>
         </div>
+    </div>
+
+    <div class="reports-stock-alert">
+        <div>
+            <div class="reports-stock-title">
+                <iconify-icon icon="solar:danger-triangle-bold"></iconify-icon>
+                Cảnh báo tồn kho
+                <span class="bakery-badge bakery-badge-danger text-[10px]">@lowStockProducts.Count món</span>
+            </div>
+            <p>Các sản phẩm có tồn kho không quá 10 cái.</p>
+        </div>
+        @if (lowStockProducts.Any())
+        {
+            <div class="reports-stock-preview">
+                @foreach (var product in lowStockProducts.Take(3))
+                {
+                    <span>@product.ProductName <strong>(@product.Quantity)</strong></span>
+                }
+                @if (lowStockProducts.Count > 3)
+                {
+                    <span class="reports-stock-more">+@(lowStockProducts.Count - 3) sản phẩm khác</span>
+                }
+            </div>
+            <button type="button" class="bakery-btn bakery-btn-outline bakery-btn-sm" @onclick="() => showLowStockModal = true">
+                Xem danh sách
+            </button>
+        }
+        else
+        {
+            <span class="reports-stock-safe">Tồn kho an toàn</span>
+        }
     </div>
 
     @if (hasError)
@@ -365,38 +394,39 @@
         </div>
     </div>
 
-    <!-- 5. BIỂU ĐỒ SO SÁNH DOANH THU & VỐN -->
-    <div class="bakery-card p-3 mb-4">
-        <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 mb-3 pb-2 border-b border-slate-100 dark:border-slate-800">
-            <div>
-                <h3 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1.5 mb-0.5">
-                    Biểu Đồ So Sánh Doanh Thu Thực Thu vs Chi Phí Vốn Nhập Hàng
-                </h3>
-                <p class="text-[10px] text-slate-500 mb-0">Theo chu kỳ @GetPeriodDisplayName()</p>
-            </div>
-            <div class="flex flex-wrap items-center gap-2 text-[10px] font-semibold">
-                <span class="inline-flex items-center gap-1.5 text-slate-600 dark:text-slate-300">
-                    <span class="w-2.5 h-2.5 rounded-full bg-blue-600"></span>Doanh thu
-                </span>
-                <span class="inline-flex items-center gap-1.5 text-slate-600 dark:text-slate-300">
-                    <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>Chi phí vốn
-                </span>
-            </div>
-        </div>
-
-        <div id="reports-financial-chart" style="min-height: 250px;">
-            @if (isLoading)
-            {
-                <div class="flex items-center justify-center h-56">
-                    <span class="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin"></span>
+    <!-- 5. KHU VỰC PHÂN TÍCH: 2 HÀNG x 2 CỘT -->
+    <div class="reports-insights">
+        <!-- Biểu đồ so sánh doanh thu thực thu vs chi phí vốn nhập hàng -->
+        <div class="bakery-card report-chart-panel p-3 flex flex-col min-h-0">
+            <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 mb-3 pb-2 border-b border-slate-100 dark:border-slate-800">
+                <div>
+                    <h3 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1.5 mb-0.5">
+                        Biểu Đồ So Sánh Doanh Thu Thực Thu vs Chi Phí Vốn Nhập Hàng
+                    </h3>
+                    <p class="text-[10px] text-slate-500 mb-0">Theo chu kỳ @GetPeriodDisplayName()</p>
                 </div>
-            }
-        </div>
-    </div>
+                <div class="flex flex-wrap items-center gap-2 text-[10px] font-semibold">
+                    <span class="inline-flex items-center gap-1.5 text-slate-600 dark:text-slate-300">
+                        <span class="w-2.5 h-2.5 rounded-full bg-blue-600"></span>Doanh thu
+                    </span>
+                    <span class="inline-flex items-center gap-1.5 text-slate-600 dark:text-slate-300">
+                        <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>Chi phí vốn
+                    </span>
+                </div>
+            </div>
 
-    <!-- 6. HAI BẢNG: CƠ CẤU DOANH THU LOẠI BÁNH & PHƯƠNG THỨC THANH TOÁN -->
-    <div class="bakery-report-two-col">
-        <div class="bakery-card p-3 h-full flex flex-col min-h-0">
+            <div id="reports-financial-chart" class="flex-1">
+                @if (isLoading)
+                {
+                    <div class="flex items-center justify-center h-56">
+                        <span class="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin"></span>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Cơ cấu doanh thu theo loại bánh -->
+        <div class="bakery-card report-category-panel p-3 flex flex-col min-h-0">
             <div class="mb-2 pb-2 border-b border-slate-100 dark:border-slate-800 flex-shrink-0">
                 <h3 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1.5 mb-0.5">
                     Cơ Cấu Doanh Thu Theo Loại Bánh
@@ -404,8 +434,8 @@
                 <p class="text-[10px] text-slate-500 mb-0">Tỷ lệ đóng góp doanh thu của các phân loại bánh</p>
             </div>
 
-            <div class="flex-1 flex items-center justify-center min-h-0" style="max-height: 200px;">
-                <div id="reports-category-donut" style="width: 100%; height: 200px;"></div>
+            <div class="flex-1 flex items-center justify-center min-h-0">
+                <div id="reports-category-donut" style="width: 100%; height: 150px;"></div>
             </div>
 
             <div class="mt-2 space-y-1 text-[10px] flex-shrink-0 max-h-24 overflow-y-auto pr-1">
@@ -422,12 +452,14 @@
             </div>
         </div>
 
-        <div class="bakery-card p-3 h-full flex flex-col min-h-0">
+        <!-- Thống kê theo phương thức thanh toán -->
+        <div class="bakery-card report-payment-panel p-3 flex flex-col min-h-0">
             <div class="flex items-center justify-between mb-2 pb-2 border-b border-slate-100 dark:border-slate-800">
                 <div>
                     <h3 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1.5 mb-0.5">
                         Thống Kê Theo Phương Thức Thanh Toán
                     </h3>
+                    <p class="text-[10px] text-slate-500 mb-0">Bấm vào dòng để xem chi tiết đơn hàng</p>
                 </div>
                 <span class="bakery-badge bakery-badge-primary text-[10px] font-bold">@($"{paymentStats.Sum(x => x.Amount):N0}đ")</span>
             </div>
@@ -440,12 +472,15 @@
                             <th class="text-center py-1.5 px-2">Số đơn</th>
                             <th class="text-right py-1.5 px-2">Số tiền</th>
                             <th class="text-right py-1.5 px-2">Tỷ lệ</th>
+                            <th class="w-8 py-1.5 px-2"></th>
                         </tr>
                     </thead>
                     <tbody>
                         @foreach (var pay in paymentStats)
                         {
-                            <tr class="border-b border-slate-100 dark:border-slate-800 last:border-0">
+                            <tr class="report-top-row border-b border-slate-100 dark:border-slate-800 last:border-0"
+                                title="Xem chi tiết các đơn theo phương thức này"
+                                @onclick="() => OpenPaymentMethodDetail(pay)">
                                 <td class="py-1.5 px-2">
                                     <div class="flex items-center gap-2">
                                         <span class="w-7 h-7 rounded-lg @pay.IconClass flex items-center justify-center shrink-0">
@@ -457,23 +492,24 @@
                                 <td class="py-1.5 px-2 text-center font-semibold text-slate-700 dark:text-slate-300">@pay.OrderCount</td>
                                 <td class="py-1.5 px-2 text-right font-mono font-bold text-slate-900 dark:text-white">@($"{pay.Amount:N0}đ")</td>
                                 <td class="py-1.5 px-2 text-right font-mono text-slate-500">@($"{pay.Percentage:F1}%")</td>
+                                <td class="text-center py-1.5 px-2 text-slate-300 dark:text-slate-600">
+                                    <iconify-icon icon="solar:alt-arrow-right-linear" class="text-sm"></iconify-icon>
+                                </td>
                             </tr>
                         }
                     </tbody>
                 </table>
             </div>
         </div>
-    </div>
 
-    <!-- 7. TOP BÁN CHẠY VÀ CẢNH BÁO TỒN KHO -->
-    <div class="grid grid-cols-1 xl:grid-cols-2 gap-4 mb-5">
-        <div class="bakery-card p-3 h-full flex flex-col min-h-0">
+        <!-- Top 5 bán chạy nhất trong kỳ -->
+        <div class="bakery-card report-top-panel p-3 flex flex-col min-h-0">
             <div class="flex items-center justify-between mb-2 pb-2 border-b border-slate-100 dark:border-slate-800 flex-shrink-0">
                 <div>
                     <h3 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1.5 mb-0.5">
                         Top 5 Bán Chạy Nhất Trong Kỳ
                     </h3>
-                    <p class="text-[10px] text-slate-500 mb-0">Số lượng bán từ đơn hoàn tất</p>
+                    <p class="text-[10px] text-slate-500 mb-0">Số lượng bán từ đơn hoàn tất · Bấm vào dòng để xem chi tiết</p>
                 </div>
                 <a href="/products" class="text-[10px] font-semibold text-primary hover:underline flex items-center gap-1">
                     Xem menu <iconify-icon icon="solar:arrow-right-linear" class="text-xs"></iconify-icon>
@@ -488,13 +524,14 @@
                             <th class="py-1 px-1.5">Món bánh</th>
                             <th class="text-center py-1 px-1.5 w-20">SL</th>
                             <th class="text-right py-1 px-1.5 w-28">Doanh thu</th>
+                            <th class="w-8 py-1 px-1.5"></th>
                         </tr>
                     </thead>
                     <tbody>
                         @if (!topSellingProducts.Any())
                         {
                             <tr>
-                                <td colspan="4" class="text-center py-4 text-[10px] text-slate-400">Chưa có đơn hàng trong kỳ này.</td>
+                                <td colspan="5" class="text-center py-4 text-[10px] text-slate-400">Chưa có đơn hàng trong kỳ này.</td>
                             </tr>
                         }
                         else
@@ -503,7 +540,9 @@
                             {
                                 var item = topSellingProducts[i];
                                 var rank = i + 1;
-                                <tr class="border-t border-slate-100 dark:border-slate-800 hover:bg-slate-50/50 dark:hover:bg-slate-800/50">
+                                <tr class="report-top-row border-t border-slate-100 dark:border-slate-800 hover:bg-slate-50/50 dark:hover:bg-slate-800/50"
+                                    title="Xem chi tiết các đơn đã mua món này"
+                                    @onclick="() => OpenTopSellerDetail(item)">
                                     <td class="text-center py-1.5 px-1.5">
                                         <span class="inline-flex items-center justify-center w-5 h-5 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-[10px]">#@rank</span>
                                     </td>
@@ -515,6 +554,9 @@
                                         @item.SoldQuantity <span class="text-[9px] font-normal text-slate-400">cái</span>
                                     </td>
                                     <td class="text-right py-1.5 px-1.5 font-bold text-xs text-blue-600 dark:text-blue-400 font-mono whitespace-nowrap">@($"{item.TotalRevenue:N0}đ")</td>
+                                    <td class="text-center py-1.5 px-1.5 text-slate-300 dark:text-slate-600">
+                                        <iconify-icon icon="solar:alt-arrow-right-linear" class="text-sm"></iconify-icon>
+                                    </td>
                                 </tr>
                             }
                         }
@@ -522,66 +564,262 @@
                 </table>
             </div>
         </div>
+    </div>
+</div>
 
-        <div class="bakery-card p-3 h-full flex flex-col min-h-0">
-            <div class="flex items-center justify-between mb-2 pb-2 border-b border-slate-100 dark:border-slate-800 flex-shrink-0">
+@if (showLowStockModal)
+{
+    <div class="reports-modal-backdrop" role="presentation" @onclick="() => showLowStockModal = false">
+        <section class="reports-stock-modal" role="dialog" aria-modal="true" aria-labelledby="low-stock-modal-title" @onclick:stopPropagation>
+            <div class="reports-stock-modal-header">
                 <div>
-                    <h3 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1.5 mb-0.5">
-                        Cảnh Báo Tồn Kho Bánh (Ngưỡng &le; 10 cái)
-                    </h3>
-                    <p class="text-[10px] text-slate-500 mb-0">Các món hết hàng hoặc cần nhập thêm nguyên liệu</p>
+                    <h2 id="low-stock-modal-title">Danh sách cảnh báo tồn kho</h2>
+                    <p>@lowStockProducts.Count sản phẩm cần kiểm tra</p>
                 </div>
-                <span class="bakery-badge bakery-badge-danger text-[10px] font-bold">@lowStockProducts.Count món</span>
+                <button type="button" class="reports-modal-close" aria-label="Đóng" @onclick="() => showLowStockModal = false">&times;</button>
+            </div>
+            <div class="reports-stock-modal-list">
+                @foreach (var product in lowStockProducts)
+                {
+                    <div class="reports-stock-modal-item">
+                        <div>
+                            <strong>@product.ProductName</strong>
+                            <span>@product.Category?.CategoryName · @($"{product.Price:N0}đ")</span>
+                        </div>
+                        <b class="@(product.Quantity <= 0 ? "stock-out" : "stock-low")">
+                            @(product.Quantity <= 0 ? "Hết hàng" : $"{product.Quantity} cái")
+                        </b>
+                    </div>
+                }
+            </div>
+        </section>
+    </div>
+}
+
+@if (showTopSellerModal && selectedTopSeller != null)
+{
+    <div class="reports-modal-backdrop" role="presentation" @onclick="CloseTopSellerModal">
+        <section class="reports-stock-modal reports-detail-modal" role="dialog" aria-modal="true" aria-labelledby="top-seller-modal-title" @onclick:stopPropagation>
+            <div class="reports-stock-modal-header">
+                <div>
+                    <h2 id="top-seller-modal-title">Chi tiết đơn hàng đã mua</h2>
+                    <p>@selectedTopSeller.ProductName · @selectedTopSeller.CategoryName</p>
+                </div>
+                <button type="button" class="reports-modal-close" aria-label="Đóng" @onclick="CloseTopSellerModal">&times;</button>
             </div>
 
-            @if (!lowStockProducts.Any())
-            {
-                <div class="p-4 text-center bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800/40 rounded-xl mt-2">
-                    <iconify-icon icon="solar:check-circle-bold" class="text-emerald-500 text-2xl mb-1"></iconify-icon>
-                    <p class="text-xs font-bold text-emerald-800 dark:text-emerald-300 mb-0.5">Tồn kho đang ở mức an toàn!</p>
-                    <p class="text-[11px] text-emerald-600 dark:text-emerald-400 mb-0">Tất cả món bánh đều trên 10 cái.</p>
-                </div>
-            }
-            else
-            {
-                <div class="space-y-2 max-h-[330px] overflow-y-auto scrollbar-thin pr-1">
-                    @foreach (var prod in lowStockProducts)
-                    {
-                        var isOutOfStock = prod.Quantity <= 0;
-                        <div class="p-2.5 rounded-xl border flex items-center justify-between gap-3 @(isOutOfStock ? "bg-rose-50/70 border-rose-200 dark:bg-rose-950/30 dark:border-rose-900/50" : "bg-amber-50/70 border-amber-200 dark:bg-amber-950/30 dark:border-amber-900/50")">
-                            <div class="min-w-0 flex-1">
-                                <div class="text-xs font-bold text-slate-900 dark:text-white truncate" title="@prod.ProductName">@prod.ProductName</div>
-                                <div class="text-[10px] text-slate-500 dark:text-slate-400 truncate">Loại: @prod.Category?.CategoryName · @($"{prod.Price:N0}đ")</div>
-                            </div>
+            <div class="reports-detail-summary">
+                <div><span>Số đơn</span><strong>@selectedTopSellerOrders.Count</strong></div>
+                <div><span>Tổng số lượng</span><strong>@selectedTopSellerOrders.Sum(o => o.Quantity) cái</strong></div>
+                <div><span>Tổng doanh thu</span><strong>@($"{selectedTopSellerOrders.Sum(o => o.SubTotal):N0} đ")</strong></div>
+            </div>
 
-                            @if (isOutOfStock)
+            <div class="reports-detail-table-wrap">
+                <table class="reports-detail-table">
+                    <thead>
+                        <tr>
+                            <th>Mã đơn</th>
+                            <th>Ngày đặt</th>
+                            <th>Khách hàng</th>
+                            <th class="text-center">SL</th>
+                            <th class="text-right">Thành tiền</th>
+                            <th>Thanh toán</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (!selectedTopSellerOrders.Any())
+                        {
+                            <tr>
+                                <td colspan="6" class="reports-detail-empty">Không có đơn hàng nào trong chu kỳ này.</td>
+                            </tr>
+                        }
+                        else
+                        {
+                            @foreach (var item in selectedTopSellerOrders)
                             {
-                                <span class="shrink-0 inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-extrabold uppercase bg-rose-600 text-white">
-                                    <iconify-icon icon="solar:close-circle-bold"></iconify-icon> Hết
-                                </span>
+                                <tr>
+                                    <td>
+                                        <strong>#@item.OrderID</strong>
+                                        <span class="reports-detail-status @item.StatusClass">@item.StatusLabel</span>
+                                    </td>
+                                    <td class="whitespace-nowrap">@item.OrderDate.ToString("dd/MM/yyyy HH:mm")</td>
+                                    <td>
+                                        <strong>@item.CustomerName</strong>
+                                        @if (!string.IsNullOrWhiteSpace(item.CustomerPhone))
+                                        {
+                                            <span>@item.CustomerPhone</span>
+                                        }
+                                    </td>
+                                    <td class="text-center font-semibold">@item.Quantity</td>
+                                    <td class="text-right font-semibold whitespace-nowrap">@($"{item.SubTotal:N0} đ")</td>
+                                    <td class="whitespace-nowrap">@item.PaymentMethodLabel</td>
+                                </tr>
                             }
-                            else
-                            {
-                                <span class="shrink-0 inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold bg-amber-500 text-white">
-                                    <iconify-icon icon="solar:danger-triangle-bold"></iconify-icon> @prod.Quantity cái
-                                </span>
-                            }
-                        </div>
-                    }
-                </div>
-            }
-        </div>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </section>
     </div>
+}
+
+@if (showPaymentModal && selectedPaymentStat != null)
+{
+    <div class="reports-modal-backdrop" role="presentation" @onclick="ClosePaymentModal">
+        <section class="reports-stock-modal reports-detail-modal" role="dialog" aria-modal="true" aria-labelledby="payment-modal-title" @onclick:stopPropagation>
+            <div class="reports-stock-modal-header">
+                <div>
+                    <h2 id="payment-modal-title">Chi tiết đơn theo phương thức thanh toán</h2>
+                    <p>@selectedPaymentStat.DisplayName · @GetPeriodDisplayName()</p>
+                </div>
+                <button type="button" class="reports-modal-close" aria-label="Đóng" @onclick="ClosePaymentModal">&times;</button>
+            </div>
+
+            <div class="reports-detail-summary">
+                <div><span>Số đơn</span><strong>@selectedPaymentOrders.Count</strong></div>
+                <div><span>Tổng tiền</span><strong>@($"{selectedPaymentOrders.Sum(o => o.Amount):N0} đ")</strong></div>
+                <div><span>Tỷ lệ trong kỳ</span><strong>@selectedPaymentStat.Percentage.ToString("F1")%</strong></div>
+            </div>
+
+            <div class="reports-detail-table-wrap">
+                <table class="reports-detail-table">
+                    <thead>
+                        <tr>
+                            <th>Mã đơn</th>
+                            <th>Ngày đặt</th>
+                            <th>Khách hàng</th>
+                            <th>Thanh toán</th>
+                            <th class="text-right">Số tiền</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (!selectedPaymentOrders.Any())
+                        {
+                            <tr>
+                                <td colspan="5" class="reports-detail-empty">Không có đơn hàng nào trong chu kỳ này.</td>
+                            </tr>
+                        }
+                        else
+                        {
+                            @foreach (var item in selectedPaymentOrders)
+                            {
+                                <tr>
+                                    <td>
+                                        <strong>#@item.OrderID</strong>
+                                        <span class="reports-detail-status @item.StatusClass">@item.StatusLabel</span>
+                                    </td>
+                                    <td class="whitespace-nowrap">@item.OrderDate.ToString("dd/MM/yyyy HH:mm")</td>
+                                    <td>
+                                        <strong>@item.CustomerName</strong>
+                                        @if (!string.IsNullOrWhiteSpace(item.CustomerPhone))
+                                        {
+                                            <span>@item.CustomerPhone</span>
+                                        }
+                                    </td>
+                                    <td class="whitespace-nowrap">@item.PaymentMethodLabel</td>
+                                    <td class="text-right font-semibold whitespace-nowrap">@($"{item.Amount:N0} đ")</td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+}
+
+<div id="report-export-data" class="report-export-data">
+    <h2>Báo cáo doanh thu, tồn kho và lợi nhuận</h2>
+    <p>Chu kỳ: @GetPeriodDisplayName()</p>
+    <table>
+        <caption>Tổng quan</caption>
+        <tbody>
+            <tr><th>Doanh thu thực thu</th><td>@($"{totalRevenue:N0} đ")</td><th>Chi phí vốn</th><td>@($"{totalImportCost:N0} đ")</td></tr>
+            <tr><th>Lợi nhuận gộp</th><td>@($"{grossProfit:N0} đ")</td><th>Tỷ suất lợi nhuận</th><td>@($"{profitMargin:F1}%")</td></tr>
+            <tr><th>Đơn hoàn tất / tổng đơn</th><td>@completedOrdersCount / @totalOrdersCount</td><th>Đơn hủy</th><td>@cancelledOrdersCount</td></tr>
+        </tbody>
+    </table>
+    <table>
+        <caption>Chi tiết theo mốc thời gian</caption>
+        <thead><tr><th>Mốc thời gian</th><th>Số đơn</th><th>Doanh thu</th><th>Chi phí vốn</th><th>Lợi nhuận gộp</th><th>Tỷ suất lãi</th></tr></thead>
+        <tbody>
+            @foreach (var row in timelineBreakdown)
+            {
+                <tr><td>@row.TimeLabel</td><td>@row.OrderCount</td><td>@($"{row.Revenue:N0} đ")</td><td>@($"{row.Cost:N0} đ")</td><td>@($"{row.GrossProfit:N0} đ")</td><td>@($"{row.Margin:F1}%")</td></tr>
+            }
+        </tbody>
+    </table>
+    <table>
+        <caption>Phương thức thanh toán</caption>
+        <thead><tr><th>Phương thức</th><th>Số đơn</th><th>Số tiền</th><th>Tỷ lệ</th></tr></thead>
+        <tbody>
+            @foreach (var pay in paymentStats)
+            {
+                <tr><td>@pay.DisplayName</td><td>@pay.OrderCount</td><td>@($"{pay.Amount:N0} đ")</td><td>@($"{pay.Percentage:F1}%")</td></tr>
+            }
+        </tbody>
+    </table>
+    <table>
+        <caption>Top 5 bán chạy</caption>
+        <thead><tr><th>Hạng</th><th>Món bánh</th><th>Loại</th><th>Số lượng</th><th>Doanh thu</th></tr></thead>
+        <tbody>
+            @for (var index = 0; index < topSellingProducts.Count; index++)
+            {
+                var item = topSellingProducts[index];
+                <tr><td>@(index + 1)</td><td>@item.ProductName</td><td>@item.CategoryName</td><td>@item.SoldQuantity</td><td>@($"{item.TotalRevenue:N0} đ")</td></tr>
+            }
+        </tbody>
+    </table>
+    <table>
+        <caption>Cảnh báo tồn kho</caption>
+        <thead><tr><th>Sản phẩm</th><th>Loại</th><th>Tồn kho</th><th>Đơn giá</th></tr></thead>
+        <tbody>
+            @foreach (var product in lowStockProducts)
+            {
+                <tr><td>@product.ProductName</td><td>@product.Category?.CategoryName</td><td>@product.Quantity</td><td>@($"{product.Price:N0} đ")</td></tr>
+            }
+        </tbody>
+    </table>
 </div>
 
 <div class="admin-print-report" data-report="reports">
     <div class="admin-print-header"><div><div class="admin-print-eyebrow">BAKERYSYSTEM</div><h1>Báo cáo kinh doanh</h1><p>@GetPeriodDisplayName() · Ngày in: @DateTime.Now.ToString("dd/MM/yyyy HH:mm")</p></div><div class="admin-print-summary"><strong>@timelineBreakdown.Count</strong><span>mốc thời gian</span></div></div>
+    <div class="admin-print-kpis">
+        <div><strong>@($"{totalRevenue:N0} đ")</strong><span>Doanh thu</span></div>
+        <div><strong>@($"{totalImportCost:N0} đ")</strong><span>Chi phí vốn</span></div>
+        <div><strong>@($"{grossProfit:N0} đ")</strong><span>Lợi nhuận gộp</span></div>
+        <div><strong>@($"{profitMargin:F1}%")</strong><span>Tỷ suất lãi</span></div>
+    </div>
+    <h2>Chi tiết theo mốc thời gian</h2>
     <table><thead><tr><th>Mốc thời gian</th><th class="print-number">Số đơn</th><th class="print-number">Doanh thu</th><th class="print-number">Chi phí vốn</th><th class="print-number">Lợi nhuận gộp</th><th class="print-number">Tỷ suất lãi</th></tr></thead><tbody>
     @foreach (var row in timelineBreakdown)
     {
         <tr><td><strong>@row.TimeLabel</strong></td><td class="print-number">@row.OrderCount</td><td class="print-number">@row.Revenue.ToString("N0") đ</td><td class="print-number">@row.Cost.ToString("N0") đ</td><td class="print-number">@row.GrossProfit.ToString("N0") đ</td><td class="print-number">@row.Margin.ToString("F1")%</td></tr>
     }
-    </tbody></table><div class="admin-print-footer"><span>Báo cáo tổng hợp theo chu kỳ đã chọn.</span><span>Người lập: ____________________</span></div>
+    </tbody></table>
+    <div class="admin-print-columns">
+        <div><h2>Phương thức thanh toán</h2><table><thead><tr><th>Phương thức</th><th>Số đơn</th><th>Số tiền</th><th>Tỷ lệ</th></tr></thead><tbody>
+        @foreach (var pay in paymentStats)
+        {
+            <tr><td>@pay.DisplayName</td><td class="print-number">@pay.OrderCount</td><td class="print-number">@pay.Amount.ToString("N0") đ</td><td class="print-number">@pay.Percentage.ToString("F1")%</td></tr>
+        }
+        </tbody></table></div>
+        <div><h2>Top 5 bán chạy</h2><table><thead><tr><th>Hạng</th><th>Món bánh</th><th>Số lượng</th><th>Doanh thu</th></tr></thead><tbody>
+        @for (var index = 0; index < topSellingProducts.Count; index++)
+        {
+            var item = topSellingProducts[index];
+            <tr><td>@(index + 1)</td><td>@item.ProductName</td><td class="print-number">@item.SoldQuantity</td><td class="print-number">@item.TotalRevenue.ToString("N0") đ</td></tr>
+        }
+        </tbody></table></div>
+    </div>
+    <h2>Cảnh báo tồn kho</h2>
+    <table><thead><tr><th>Sản phẩm</th><th>Loại</th><th class="print-number">Tồn kho</th><th class="print-number">Đơn giá</th></tr></thead><tbody>
+    @foreach (var product in lowStockProducts)
+    {
+        <tr><td>@product.ProductName</td><td>@product.Category?.CategoryName</td><td class="print-number">@product.Quantity</td><td class="print-number">@product.Price.ToString("N0") đ</td></tr>
+    }
+    </tbody></table>
+    <div class="admin-print-footer"><span>Báo cáo tổng hợp theo chu kỳ đã chọn.</span><span>Người lập: ____________________</span></div>
 </div>
 
 @code {
@@ -636,6 +874,22 @@
     private List<string> chartLabels = new();
     private List<decimal> chartRevenueSeries = new();
     private List<decimal> chartCostSeries = new();
+    private bool chartsNeedRender;
+    private bool isInteractive;
+    private bool showLowStockModal;
+    private bool stockAlertShown;
+
+    // Drill-down chi tiết đơn hàng của Top 5 bán chạy
+    private List<Order> reportOrders = new();
+    private List<OrderDetail> reportOrderDetails = new();
+    private bool showTopSellerModal;
+    private TopSellerItem? selectedTopSeller;
+    private List<TopSellerOrderItem> selectedTopSellerOrders = new();
+
+    // Drill-down chi tiết đơn hàng theo phương thức thanh toán
+    private bool showPaymentModal;
+    private PaymentStatItem? selectedPaymentStat;
+    private List<PaymentOrderItem> selectedPaymentOrders = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -653,6 +907,126 @@
         quickPeriod = period;
         _ = LoadReportDataAsync();
     }
+
+    private void OpenTopSellerDetail(TopSellerItem item)
+    {
+        selectedTopSeller = item;
+
+        var detailsByOrder = reportOrderDetails
+            .Where(d => d.ProductID == item.ProductID)
+            .GroupBy(d => d.OrderID)
+            .ToDictionary(
+                g => g.Key,
+                g => new { Quantity = g.Sum(x => x.Quantity), SubTotal = g.Sum(x => x.SubTotal) });
+
+        selectedTopSellerOrders = reportOrders
+            .Where(o => detailsByOrder.ContainsKey(o.OrderID))
+            .Select(o =>
+            {
+                var detail = detailsByOrder[o.OrderID];
+                var customerName = o.Customer != null && !string.IsNullOrWhiteSpace(o.Customer.FullName)
+                    ? o.Customer.FullName
+                    : !string.IsNullOrWhiteSpace(o.ReceiverName) ? o.ReceiverName : "Khách lẻ";
+                var customerPhone = o.Customer?.Phone ?? o.ReceiverPhone;
+
+                return new TopSellerOrderItem
+                {
+                    OrderID = o.OrderID,
+                    OrderDate = o.OrderDate,
+                    CustomerName = customerName,
+                    CustomerPhone = customerPhone,
+                    Quantity = detail.Quantity,
+                    SubTotal = detail.SubTotal,
+                    PaymentMethodLabel = GetPaymentMethodLabel(o.PaymentMethod),
+                    StatusLabel = GetOrderStatusLabel(o.Status),
+                    StatusClass = GetOrderStatusClass(o.Status)
+                };
+            })
+            .OrderByDescending(x => x.OrderDate)
+            .ToList();
+
+        showTopSellerModal = true;
+    }
+
+    private void CloseTopSellerModal()
+    {
+        showTopSellerModal = false;
+        selectedTopSeller = null;
+        selectedTopSellerOrders = new();
+    }
+
+    private void OpenPaymentMethodDetail(PaymentStatItem stat)
+    {
+        selectedPaymentStat = stat;
+
+        selectedPaymentOrders = reportOrders
+            .Where(o => o.Status != OrderStatus.Cancelled)
+            .Where(o => stat.GroupKey == "cash" ? IsCashPayment(o.PaymentMethod) : IsTransferPayment(o.PaymentMethod))
+            .Select(o =>
+            {
+                var customerName = o.Customer != null && !string.IsNullOrWhiteSpace(o.Customer.FullName)
+                    ? o.Customer.FullName
+                    : !string.IsNullOrWhiteSpace(o.ReceiverName) ? o.ReceiverName : "Khách lẻ";
+
+                return new PaymentOrderItem
+                {
+                    OrderID = o.OrderID,
+                    OrderDate = o.OrderDate,
+                    CustomerName = customerName,
+                    CustomerPhone = o.Customer?.Phone ?? o.ReceiverPhone,
+                    Amount = o.FinalAmount,
+                    PaymentMethodLabel = GetPaymentMethodLabel(o.PaymentMethod),
+                    StatusLabel = GetOrderStatusLabel(o.Status),
+                    StatusClass = GetOrderStatusClass(o.Status)
+                };
+            })
+            .OrderByDescending(x => x.OrderDate)
+            .ToList();
+
+        showPaymentModal = true;
+    }
+
+    private void ClosePaymentModal()
+    {
+        showPaymentModal = false;
+        selectedPaymentStat = null;
+        selectedPaymentOrders = new();
+    }
+
+    private static bool IsCashPayment(string? method) =>
+        string.Equals(method, "Cash", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(method, PaymentMethod.COD, StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsTransferPayment(string? method) =>
+        string.Equals(method, PaymentMethod.BankTransfer, StringComparison.OrdinalIgnoreCase);
+
+    private static string GetPaymentMethodLabel(string? method) => method switch
+    {
+        PaymentMethod.COD or "Cash" => "Tiền mặt / COD",
+        PaymentMethod.BankTransfer => "Chuyển khoản / QR",
+        PaymentMethod.VNPAY => "VNPAY",
+        PaymentMethod.MoMo => "MoMo",
+        _ => string.IsNullOrWhiteSpace(method) ? "Khác" : method
+    };
+
+    private static string GetOrderStatusLabel(string? status) => status switch
+    {
+        OrderStatus.Pending => "Chờ duyệt",
+        OrderStatus.Confirmed => "Đã duyệt",
+        OrderStatus.InProgress => "Đang chuẩn bị",
+        OrderStatus.Shipping => "Đang giao",
+        OrderStatus.Completed => "Hoàn tất",
+        OrderStatus.Cancelled => "Đã hủy",
+        _ => status ?? ""
+    };
+
+    private static string GetOrderStatusClass(string? status) => status switch
+    {
+        OrderStatus.Completed => "is-success",
+        OrderStatus.Cancelled => "is-danger",
+        OrderStatus.Confirmed or OrderStatus.InProgress or OrderStatus.Shipping => "is-info",
+        _ => "is-warning"
+    };
 
     private string GetPeriodDisplayName() => filterType switch
     {
@@ -730,6 +1104,8 @@
             var reportData = await ReportService.GetReportDataAsync(startDate, endDate);
             var orders = reportData.Orders;
             var imports = reportData.Imports;
+            reportOrders = orders;
+            reportOrderDetails = reportData.OrderDetails;
             totalOrdersCount = orders.Count;
             completedOrdersCount = orders.Count(o => o.Status == OrderStatus.Completed);
             cancelledOrdersCount = orders.Count(o => o.Status == OrderStatus.Cancelled);
@@ -768,6 +1144,11 @@
             topSellingProducts = groupedDetails;
 
             lowStockProducts = reportData.LowStockProducts;
+            if (!stockAlertShown && lowStockProducts.Count > 3)
+            {
+                showLowStockModal = true;
+                stockAlertShown = true;
+            }
 
             var categoryData = reportData.OrderDetails
                 .GroupBy(d => d.Product.Category != null
@@ -802,10 +1183,9 @@
         finally
         {
             isLoading = false;
+            chartsNeedRender = true;
             StateHasChanged();
         }
-
-        await TriggerChartsRenderAsync();
     }
 
     private void BuildTimelineBreakdown(List<Order> validOrders, List<ImportReceipt> imports, DateTime? start, DateTime? end)
@@ -971,29 +1351,29 @@
         var total = validOrders.Sum(o => o.FinalAmount);
 
         var cashOrders = validOrders
-            .Where(o => string.Equals(o.PaymentMethod, "Cash", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(o.PaymentMethod, PaymentMethod.COD, StringComparison.OrdinalIgnoreCase))
+            .Where(o => IsCashPayment(o.PaymentMethod))
             .ToList();
 
         var transferOrders = validOrders
-            .Where(o => string.Equals(o.PaymentMethod, PaymentMethod.BankTransfer, StringComparison.OrdinalIgnoreCase))
+            .Where(o => IsTransferPayment(o.PaymentMethod))
             .ToList();
 
         var result = new List<PaymentStatItem>
         {
-            CreatePaymentStat("Tiền mặt / COD", cashOrders, total, "solar:wallet-money-bold", "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300"),
-            CreatePaymentStat("Chuyển khoản / Quét QR", transferOrders, total, "solar:card-transfer-bold", "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300")
+            CreatePaymentStat("Tiền mặt / COD", "cash", cashOrders, total, "solar:wallet-money-bold", "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300"),
+            CreatePaymentStat("Chuyển khoản / Quét QR", "transfer", transferOrders, total, "solar:card-transfer-bold", "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300")
         };
 
         return result;
     }
 
-    private static PaymentStatItem CreatePaymentStat(string displayName, List<Order> orders, decimal total, string icon, string iconClass)
+    private static PaymentStatItem CreatePaymentStat(string displayName, string groupKey, List<Order> orders, decimal total, string icon, string iconClass)
     {
         var amount = orders.Sum(o => o.FinalAmount);
         return new PaymentStatItem
         {
             DisplayName = displayName,
+            GroupKey = groupKey,
             OrderCount = orders.Count,
             Amount = amount,
             Percentage = total > 0 ? amount / total * 100m : 0m,
@@ -1032,8 +1412,10 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender)
+        isInteractive = true;
+        if (isInteractive && chartsNeedRender)
         {
+            chartsNeedRender = false;
             await TriggerChartsRenderAsync();
         }
     }
@@ -1043,7 +1425,7 @@
         try
         {
             var fileName = $"Bao_Cao_Thong_Ke_{filterType}_{DateTime.Now:yyyyMMdd_HHmmss}";
-            await JS.InvokeVoidAsync("bakeryExcel.exportToExcel", "report-timeline-table", fileName);
+            await JS.InvokeVoidAsync("bakeryExcel.exportToExcel", "report-export-data", fileName);
         }
         catch (Exception ex)
         {
@@ -1084,6 +1466,31 @@
         public decimal TotalRevenue { get; set; }
     }
 
+    public class TopSellerOrderItem
+    {
+        public int OrderID { get; set; }
+        public DateTime OrderDate { get; set; }
+        public string CustomerName { get; set; } = "";
+        public string? CustomerPhone { get; set; }
+        public int Quantity { get; set; }
+        public decimal SubTotal { get; set; }
+        public string PaymentMethodLabel { get; set; } = "";
+        public string StatusLabel { get; set; } = "";
+        public string StatusClass { get; set; } = "";
+    }
+
+    public class PaymentOrderItem
+    {
+        public int OrderID { get; set; }
+        public DateTime OrderDate { get; set; }
+        public string CustomerName { get; set; } = "";
+        public string? CustomerPhone { get; set; }
+        public decimal Amount { get; set; }
+        public string PaymentMethodLabel { get; set; } = "";
+        public string StatusLabel { get; set; } = "";
+        public string StatusClass { get; set; } = "";
+    }
+
     public class CategoryShareItem
     {
         public string CategoryName { get; set; } = "";
@@ -1095,6 +1502,7 @@
     public class PaymentStatItem
     {
         public string DisplayName { get; set; } = "";
+        public string GroupKey { get; set; } = "";
         public int OrderCount { get; set; }
         public decimal Amount { get; set; }
         public decimal Percentage { get; set; }

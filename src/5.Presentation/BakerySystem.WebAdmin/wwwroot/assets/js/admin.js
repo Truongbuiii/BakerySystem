@@ -3,15 +3,15 @@
  * Controls theme switching (Dark/Light mode), Mobile Sidebar, and Dropdowns
  */
 
+
 (function () {
-    // 1. Initialize Theme from LocalStorage or System Preference
+    // 1. Initialize Theme (Enforce Light Theme)
     function initTheme() {
-        const savedTheme = localStorage.getItem('bakery-admin-theme');
-        if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-            document.documentElement.classList.add('dark');
-        } else {
-            document.documentElement.classList.remove('dark');
-        }
+        document.documentElement.classList.remove('dark');
+        document.documentElement.classList.add('light');
+        try {
+            localStorage.removeItem('bakery-admin-theme');
+        } catch (e) { }
     }
 
     // Run theme init immediately to prevent flash of wrong theme
@@ -168,6 +168,8 @@
                     if (!returnUrl || returnUrl === '/' || returnUrl === 'login') {
                         if (data.role === 'Employee') {
                             target = '/pos';
+                        } else if (data.role === 'Shipper') {
+                            target = '/orders';
                         } else {
                             target = '/';
                         }
@@ -228,28 +230,32 @@ window.bakeryExcel = {
         html += '<x:Name>DuLieu</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--></head>';
         html += '<body>';
         
-        // Clone table để loại bỏ cột Thao Tác (nếu có)
-        const clone = table.cloneNode(true);
-        const headers = clone.querySelectorAll('th');
-        let actionColIdx = -1;
-        headers.forEach((th, idx) => {
-            if (th.innerText.includes('Thao Tác') || th.innerText.includes('Thao tác')) {
-                actionColIdx = idx;
-                th.remove();
-            }
-        });
+        // Hỗ trợ cả một bảng đơn và một vùng chứa nhiều bảng báo cáo.
+        const clones = table.tagName === 'TABLE'
+            ? [table.cloneNode(true)]
+            : Array.from(table.querySelectorAll('table')).map(item => item.cloneNode(true));
 
-        if (actionColIdx !== -1) {
-            const rows = clone.querySelectorAll('tbody tr');
-            rows.forEach(tr => {
-                const cells = tr.querySelectorAll('td');
-                if (cells[actionColIdx]) {
-                    cells[actionColIdx].remove();
+        clones.forEach(clone => {
+            const headers = clone.querySelectorAll('thead th');
+            const actionColumns = [];
+            headers.forEach((th, idx) => {
+                if (th.innerText.includes('Thao Tác') || th.innerText.includes('Thao tác')) {
+                    actionColumns.push(idx);
+                    th.remove();
                 }
             });
-        }
 
-        html += clone.outerHTML;
+            if (actionColumns.length > 0) {
+                clone.querySelectorAll('tbody tr').forEach(row => {
+                    const cells = Array.from(row.querySelectorAll('td'));
+                    actionColumns.reverse().forEach(index => {
+                        if (cells[index]) cells[index].remove();
+                    });
+                });
+            }
+
+            html += clone.outerHTML;
+        });
         html += '</body></html>';
 
         const blob = new Blob([html], { type: 'application/vnd.ms-excel;charset=utf-8' });
