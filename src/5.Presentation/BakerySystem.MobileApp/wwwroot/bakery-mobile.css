@@ -1356,3 +1356,151 @@ body, html {
     line-height: 1.5;
     max-width: 320px;
 }
+
+/* ==========================================================================
+   DELIVERY CONFIRMATION ALERT BANNER (MOBILE HOME NOTICE)
+   ========================================================================== */
+.delivery-notice-container {
+    padding: 12px 16px 4px;
+    animation: slideDownNotice 0.3s ease-out;
+}
+
+@keyframes slideDownNotice {
+    from {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.delivery-notice-card {
+    background: linear-gradient(135deg, #F0FDF4 0%, #DCFCE7 100%);
+    border: 2px solid #22C55E;
+    border-radius: 16px;
+    padding: 14px 16px;
+    box-shadow: 0 10px 20px -5px rgba(34, 197, 94, 0.2), 0 4px 6px -2px rgba(34, 197, 94, 0.1);
+    margin-bottom: 12px;
+}
+
+.delivery-notice-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.delivery-notice-icon-box {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    background: #16A34A;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+    box-shadow: 0 4px 8px rgba(22, 163, 74, 0.25);
+}
+
+.delivery-notice-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.delivery-notice-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    font-weight: 800;
+    color: #15803D;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+}
+
+.delivery-pulse-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: #16A34A;
+    display: inline-block;
+    animation: deliveryPulse 1.5s infinite;
+}
+
+@keyframes deliveryPulse {
+    0% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.7); }
+    70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(22, 163, 74, 0); }
+    100% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(22, 163, 74, 0); }
+}
+
+.delivery-notice-code {
+    font-size: 13px;
+    font-weight: 800;
+    color: #0F172A;
+    font-family: monospace;
+}
+
+.delivery-notice-amount {
+    font-size: 14px;
+    font-weight: 800;
+    color: #16A34A;
+    font-family: monospace;
+    flex-shrink: 0;
+}
+
+.delivery-notice-body {
+    font-size: 12px;
+    color: #166534;
+    font-weight: 600;
+    line-height: 1.45;
+    margin-bottom: 10px;
+}
+
+.delivery-notice-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-delivery-confirm-now {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px 14px;
+    border-radius: 12px;
+    background: #16A34A;
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: 800;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(22, 163, 74, 0.3);
+    transition: all 0.15s ease;
+}
+
+.btn-delivery-confirm-now:hover, .btn-delivery-confirm-now:active {
+    background: #15803D;
+    transform: translateY(-1px);
+}
+
+.btn-delivery-view-detail {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 14px;
+    border-radius: 12px;
+    background: #FFFFFF;
+    color: #166534;
+    border: 1px solid #86EFAC;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    flex-shrink: 0;
+}

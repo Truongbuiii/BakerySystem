@@ -28,6 +28,27 @@ public sealed class OrderService(IBakeryDbContext db)
             .ToListAsync(ct);
     }
 
+    public Task<List<Order>> GetShipperOnlineOrdersAsync(CancellationToken ct = default)
+    {
+        var statuses = new[] { OrderStatus.Confirmed, OrderStatus.Shipping, OrderStatus.Delivered, OrderStatus.Completed };
+
+        return db.Orders
+            .Include(o => o.Customer)
+            .Include(o => o.Employee)
+            .Include(o => o.OrderDetails)
+                .ThenInclude(d => d.Product)
+                    .ThenInclude(p => p.Category)
+            .Where(o => statuses.Contains(o.Status))
+            // Chỉ lấy đơn mua online từ Mobile App giao tận nơi (loại bỏ hoàn toàn đơn bán trực tiếp tại quầy POS)
+            .Where(o => o.ShippingAddress != null 
+                     && o.ShippingAddress != ""
+                     && !o.ShippingAddress.Contains("tại quầy")
+                     && !o.ShippingAddress.Contains("Nhận tại quầy")
+                     && (o.EmployeeID == null || !o.ShippingAddress.Contains("BakerySystem")))
+            .OrderByDescending(o => o.OrderDate)
+            .ToListAsync(ct);
+    }
+
     public Task<List<Order>> GetRecentCompletedAsync(int count = 3, CancellationToken ct = default) =>
         db.Orders
             .AsNoTracking()
@@ -36,7 +57,7 @@ public sealed class OrderService(IBakeryDbContext db)
             .Take(count)
             .ToListAsync(ct);
 
-    public async Task<bool> ChangeStatusAsync(Order order, string newStatus, string? actorRole = null, CancellationToken ct = default)
+    public async Task<bool> ChangeStatusAsync(Order order, string newStatus, string? actorRole = null, int? actorEmployeeId = null, CancellationToken ct = default)
     {
         if (order.Status is OrderStatus.Cancelled or OrderStatus.Completed)
             return false;
@@ -51,6 +72,12 @@ public sealed class OrderService(IBakeryDbContext db)
 
             if (!shipperTransitionAllowed)
                 return false;
+
+            // Shipper là nhân viên giao hàng nội bộ của tiệm, ghi nhận nhân viên phụ trách vận chuyển đơn hàng
+            if (newStatus == OrderStatus.Shipping && actorEmployeeId.HasValue)
+            {
+                order.EmployeeID = actorEmployeeId.Value;
+            }
         }
 
         if (actorRole is AccountRole.Admin or AccountRole.Employee)
