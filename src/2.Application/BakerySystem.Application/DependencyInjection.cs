@@ -24,6 +24,7 @@ public static class DependencyInjection
         services.AddScoped<EmployeeService>();
         services.AddScoped<CustomerService>();
         services.AddScoped<OrderService>();
+        services.AddSingleton<OrderNotificationService>();
         services.AddScoped<PosService>();
         services.AddScoped<CustomerOrderService>();
         services.AddScoped<ReportService>();

@@ -1,0 +1,572 @@
+@implements IDisposable
+@inject AuthenticationStateProvider AuthStateProvider
+@inject IServiceScopeFactory ScopeFactory
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+@inject OrderNotificationService NotifService
+
+@if (isAuthorized)
+{
+    <!-- 1. POP-UP MODAL CẢNH BÁO ĐƠN HÀNG MỚI (COMPACT DIALOG & QUEUE CONTROLS) -->
+    @if (isModalOpen && currentAlertOrder != null)
+    {
+        var receiverName = !string.IsNullOrWhiteSpace(currentAlertOrder.ReceiverName)
+            ? currentAlertOrder.ReceiverName
+            : (currentAlertOrder.Customer?.FullName ?? "Khách hàng Mobile");
+        var receiverPhone = !string.IsNullOrWhiteSpace(currentAlertOrder.ReceiverPhone)
+            ? currentAlertOrder.ReceiverPhone
+            : (currentAlertOrder.Customer?.Phone ?? "Không có SĐT");
+        var shippingAddress = !string.IsNullOrWhiteSpace(currentAlertOrder.ShippingAddress)
+            ? currentAlertOrder.ShippingAddress
+            : "Nhận tại quầy BakerySystem";
+        var isPaid = currentAlertOrder.PaymentStatus == PaymentStatus.Paid;
+        var totalQty = currentAlertOrder.OrderDetails?.Sum(d => d.Quantity) ?? 0;
+        var waitMinutes = (int)Math.Max(0, (DateTime.Now - currentAlertOrder.OrderDate).TotalMinutes);
+
+        <div class="bakery-neworder-overlay" @onclick="DismissAllQueue">
+            <div class="bakery-neworder-modal" @onclick:stopPropagation="true">
+                <!-- Header: Icon chuông nhấp nháy, Tiêu đề & Nút đóng -->
+                <div class="bakery-neworder-header">
+                    <div class="flex items-center gap-2.5 min-w-0">
+                        <div class="bakery-bell-pulse-box">
+                            <span class="bakery-bell-pulse-wave"></span>
+                            <iconify-icon icon="solar:bell-bing-bold" class="text-xl text-amber-500"></iconify-icon>
+                        </div>
+                        <div class="min-w-0">
+                            <div class="flex items-center gap-1.5">
+                                <h3 class="bakery-neworder-title truncate">CÓ ĐƠN HÀNG MỚI CẦN DUYỆT!</h3>
+                                <span class="bakery-badge bakery-badge-warning text-[9px] font-bold py-0 px-1.5 shrink-0">
+                                    App Mobile
+                                </span>
+                            </div>
+                            <p class="bakery-neworder-subtitle truncate">
+                                Đặt lúc @currentAlertOrder.OrderDate.ToString("HH:mm") 
+                                (@(waitMinutes == 0 ? "Vừa xong" : $"{waitMinutes}p trước"))
+                            </p>
+                        </div>
+                    </div>
+                    <button type="button" class="bakery-neworder-close-btn" @onclick="DismissAllQueue" title="Đóng thông báo (Để sau)">
+                        <iconify-icon icon="solar:close-circle-linear" class="text-xl"></iconify-icon>
+                    </button>
+                </div>
+
+                <!-- Hàng đợi Đơn hàng (Queue Bar): Hiển thị khi có từ 2 đơn chờ duyệt trở lên -->
+                @if (pendingOrders.Count > 1)
+                {
+                    <div class="bakery-neworder-queue-bar">
+                        <div class="flex items-center gap-1.5 text-xs font-bold text-amber-900 dark:text-amber-300">
+                            <iconify-icon icon="solar:layers-minimalistic-bold" class="text-sm text-amber-600"></iconify-icon>
+                            <span>Hàng đợi: <strong>@(currentQueueIndex + 1)</strong> / @pendingOrders.Count đơn</span>
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <button type="button" 
+                                    class="bakery-queue-nav-btn" 
+                                    @onclick="PrevQueueOrder" 
+                                    disabled="@(currentQueueIndex <= 0)"
+                                    title="Xem đơn trước đó trong hàng đợi">
+                                <iconify-icon icon="solar:alt-arrow-left-linear"></iconify-icon>
+                            </button>
+
+                            <div class="bakery-queue-dots">
+                                @for (int i = 0; i < pendingOrders.Count; i++)
+                                {
+                                    var idx = i;
+                                    <span class="bakery-queue-dot @(idx == currentQueueIndex ? "active" : "")" 
+                                          @onclick="() => SelectQueueIndex(idx)"
+                                          title="Chuyển sang đơn #HD-@pendingOrders[idx].OrderID.ToString("D4")"></span>
+                                }
+                            </div>
+
+                            <button type="button" 
+                                    class="bakery-queue-nav-btn" 
+                                    @onclick="NextQueueOrder" 
+                                    disabled="@(currentQueueIndex >= pendingOrders.Count - 1)"
+                                    title="Xem đơn tiếp theo trong hàng đợi">
+                                <iconify-icon icon="solar:alt-arrow-right-linear"></iconify-icon>
+                            </button>
+                        </div>
+                    </div>
+                }
+
+                <!-- Thân Pop-up: Chi tiết đơn hàng nhỏ gọn -->
+                <div class="bakery-neworder-body">
+                    @if (!string.IsNullOrEmpty(errorMessage))
+                    {
+                        <div class="p-2.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
+                            <iconify-icon icon="solar:danger-triangle-bold" class="text-base shrink-0"></iconify-icon>
+                            <span>@errorMessage</span>
+                        </div>
+                    }
+
+                    <!-- 1. Thông tin mã đơn & Khách hàng (Compact Grid) -->
+                    <div class="bakery-neworder-info-grid">
+                        <div class="bakery-neworder-info-item">
+                            <span class="bakery-neworder-info-label">Mã đơn:</span>
+                            <span class="font-mono font-bold text-slate-900 dark:text-white text-xs">#HD-@currentAlertOrder.OrderID.ToString("D4")</span>
+                        </div>
+                        <div class="bakery-neworder-info-item">
+                            <span class="bakery-neworder-info-label">Người nhận:</span>
+                            <span class="font-bold text-slate-900 dark:text-white truncate">@receiverName</span>
+                        </div>
+                        <div class="bakery-neworder-info-item">
+                            <span class="bakery-neworder-info-label">Số điện thoại:</span>
+                            <span class="font-mono font-bold text-blue-600 dark:text-blue-400">@receiverPhone</span>
+                        </div>
+                        <div class="bakery-neworder-info-item">
+                            <span class="bakery-neworder-info-label">Thanh toán:</span>
+                            <span class="font-bold @(isPaid ? "text-emerald-600" : "text-amber-600")">
+                                @(isPaid ? "Đã trả Online" : "Thu tiền COD")
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- 2. Địa chỉ nhận bánh -->
+                    <div class="bakery-neworder-address-box">
+                        <iconify-icon icon="solar:map-point-wave-bold" class="text-rose-500 text-sm shrink-0 mt-0.5"></iconify-icon>
+                        <div class="min-w-0">
+                            <div class="text-[10px] font-semibold text-slate-400 uppercase">Giao bánh tận nơi:</div>
+                            <div class="font-medium text-xs text-slate-800 dark:text-slate-200 leading-snug truncate" title="@shippingAddress">
+                                @shippingAddress
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 3. Danh sách các món bánh (Hình ảnh thu nhỏ 38x38px chuẩn, không bị vỡ/to) -->
+                    <div class="bakery-neworder-items-box">
+                        <div class="flex items-center justify-between pb-1 mb-1.5 border-b border-slate-100 dark:border-slate-800 text-xs font-bold text-slate-700 dark:text-slate-300">
+                            <span class="flex items-center gap-1">
+                                <iconify-icon icon="solar:bag-5-bold" class="text-primary text-sm"></iconify-icon>
+                                <span>Món bánh (@totalQty cái)</span>
+                            </span>
+                            <span class="text-[10px] text-slate-400 font-normal">Thành tiền</span>
+                        </div>
+
+                        <div class="space-y-1.5 max-h-32 overflow-y-auto pr-1">
+                            @if (currentAlertOrder.OrderDetails != null && currentAlertOrder.OrderDetails.Any())
+                            {
+                                @foreach (var item in currentAlertOrder.OrderDetails)
+                                {
+                                    var img = string.IsNullOrWhiteSpace(item.Product?.ImageURL) 
+                                        ? "/assets/images/products/default-bakery.svg" 
+                                        : item.Product.ImageURL;
+                                    <div class="flex items-center justify-between gap-2 text-xs py-0.5">
+                                        <div class="flex items-center gap-2 min-w-0">
+                                            <img src="@img" 
+                                                 alt="@item.Product?.ProductName" 
+                                                 class="bakery-neworder-thumb"
+                                                 style="width: 38px; height: 38px; min-width: 38px; max-width: 38px; max-height: 38px; object-fit: cover; border-radius: 8px; flex-shrink: 0;"
+                                                 onerror="this.src='/assets/images/products/default-bakery.svg'" />
+                                            <div class="truncate">
+                                                <div class="font-bold text-slate-800 dark:text-white truncate">@item.Product?.ProductName</div>
+                                                <div class="text-[10px] text-slate-400">@($"{item.UnitPrice:N0} đ") &times; <strong class="text-slate-700 dark:text-slate-200">@item.Quantity</strong></div>
+                                            </div>
+                                        </div>
+                                        <div class="font-mono font-bold text-slate-900 dark:text-white text-xs shrink-0">
+                                            @($"{item.SubTotal:N0} đ")
+                                        </div>
+                                    </div>
+                                }
+                            }
+                        </div>
+                    </div>
+
+                    <!-- 4. Ghi chú dặn dò nếu có -->
+                    @if (!string.IsNullOrWhiteSpace(currentAlertOrder.Note))
+                    {
+                        <div class="p-2 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/40 text-xs flex items-start gap-1.5">
+                            <iconify-icon icon="solar:notes-bold" class="text-amber-600 text-xs shrink-0 mt-0.5"></iconify-icon>
+                            <div class="truncate">
+                                <span class="font-bold text-amber-900 dark:text-amber-300">Lời nhắn:</span>
+                                <span class="text-amber-800 dark:text-amber-200 ml-1">@currentAlertOrder.Note</span>
+                            </div>
+                        </div>
+                    }
+
+                    <!-- 5. Tổng tiền cần thu / đã thanh toán -->
+                    <div class="flex items-center justify-between p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+                        <div>
+                            <div class="text-[10px] text-slate-400 uppercase font-semibold">Tổng giá trị đơn:</div>
+                            <div class="text-[11px] text-slate-500 font-medium">@(isPaid ? "Đã trả online (Freeship)" : "Thu COD khi giao bánh")</div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-base font-black font-mono text-rose-600 dark:text-rose-400">
+                                @($"{currentAlertOrder.FinalAmount:N0} đ")
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer: Nút duyệt đơn & xem chi tiết -->
+                <div class="bakery-neworder-footer">
+                    <button type="button" 
+                            class="bakery-btn-neworder-approve" 
+                            @onclick="() => ApproveOrderAsync(currentAlertOrder)" 
+                            disabled="@isProcessing"
+                            title="Xác nhận duyệt đơn này và trừ tồn kho bánh">
+                        @if (isProcessing)
+                        {
+                            <iconify-icon icon="solar:restart-linear" class="text-base animate-spin"></iconify-icon>
+                            <span>Đang duyệt đơn...</span>
+                        }
+                        else
+                        {
+                            <iconify-icon icon="solar:check-circle-bold" class="text-lg"></iconify-icon>
+                            <span>@(pendingOrders.Count > 1 ? $"DUYỆT ĐƠN NÀY ({currentQueueIndex + 1}/{pendingOrders.Count})" : "DUYỆT ĐƠN HÀNG NGAY")</span>
+                        }
+                    </button>
+
+                    <button type="button" 
+                            class="bakery-btn-neworder-detail" 
+                            @onclick="() => ViewOrderDetail(currentAlertOrder.OrderID)" 
+                            title="Mở toàn bộ hóa đơn chi tiết">
+                        <iconify-icon icon="solar:eye-bold" class="text-sm"></iconify-icon>
+                        <span>Xem chi tiết bill</span>
+                    </button>
+
+                    <button type="button" 
+                            class="bakery-btn-neworder-dismiss" 
+                            @onclick="DismissAllQueue" 
+                            title="Tạm đóng thông báo để tiếp tục công việc">
+                        Để sau (Giữ trong hàng đợi)
+                    </button>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- 2. NÚT NỔI Ở GÓC DƯỚI (FLOATING QUEUE BADGE) -->
+    @if (!isModalOpen && pendingOrders.Any())
+    {
+        <div class="bakery-floating-order-alert" @onclick="ReopenModal" title="Bấm để mở hàng đợi và duyệt các đơn hàng">
+            <span class="bakery-floating-pulse"></span>
+            <div class="w-8 h-8 rounded-full bg-amber-500 text-white flex items-center justify-center text-base shadow-md shrink-0">
+                <iconify-icon icon="solar:bell-bing-bold"></iconify-icon>
+            </div>
+            <div class="text-left pr-1">
+                <div class="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                    <span>Có @pendingOrders.Count đơn chờ duyệt!</span>
+                    <span class="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
+                </div>
+                <div class="text-[10px] text-amber-700 dark:text-amber-400 font-medium">
+                    Bấm để mở hàng đợi duyệt
+                </div>
+            </div>
+        </div>
+    }
+}
+
+@code {
+    private bool isAuthorized;
+    private string currentRole = AccountRole.Employee;
+    private int? currentEmployeeId;
+    private List<Order> pendingOrders = new();
+    private Order? currentAlertOrder;
+    private int currentQueueIndex;
+    private bool isModalOpen;
+    private bool isProcessing;
+    private string? errorMessage;
+    private readonly HashSet<int> snoozedOrderIds = new();
+    private PeriodicTimer? periodicTimer;
+    private CancellationTokenSource? cts;
+    private bool isDisposed;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        if (user.Identity?.IsAuthenticated != true)
+        {
+            isAuthorized = false;
+            return;
+        }
+
+        currentRole = user.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? AccountRole.Employee;
+        if (currentRole == AccountRole.Shipper)
+        {
+            isAuthorized = false;
+            return;
+        }
+
+        isAuthorized = true;
+
+        var username = user.Identity?.Name;
+        if (!string.IsNullOrWhiteSpace(username))
+        {
+            using var scope = ScopeFactory.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<IBakeryDbContext>();
+            var emp = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.FirstOrDefaultAsync(
+                db.Employees.Include(e => e.Account),
+                e => e.Account.Username == username);
+            currentEmployeeId = emp?.EmployeeID;
+        }
+
+        NotifService.OnOrderChanged += HandleOrderNotification;
+
+        cts = new CancellationTokenSource();
+        _ = StartPeriodicCheckAsync(cts.Token);
+    }
+
+    private void HandleOrderNotification()
+    {
+        _ = InvokeAsync(async () =>
+        {
+            if (isDisposed) return;
+            await CheckPendingOrdersAsync();
+        });
+    }
+
+    private async Task StartPeriodicCheckAsync(CancellationToken token)
+    {
+        await CheckPendingOrdersAsync();
+
+        periodicTimer = new PeriodicTimer(TimeSpan.FromSeconds(4));
+        try
+        {
+            while (await periodicTimer.WaitForNextTickAsync(token))
+            {
+                if (isDisposed) break;
+                await CheckPendingOrdersAsync();
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Expected upon disposal
+        }
+    }
+
+    private async Task CheckPendingOrdersAsync()
+    {
+        if (isDisposed || !isAuthorized) return;
+
+        try
+        {
+            using var scope = ScopeFactory.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<IBakeryDbContext>();
+
+            var list = await db.Orders
+                .Include(o => o.Customer)
+                .Include(o => o.OrderDetails)
+                    .ThenInclude(d => d.Product)
+                        .ThenInclude(p => p.Category)
+                .Where(o => o.Status == OrderStatus.Pending)
+                .OrderBy(o => o.OrderDate) // Thứ tự FIFO: Đơn đặt sớm nhất ở đầu
+                .ToListAsync();
+
+            pendingOrders = list;
+
+            if (isModalOpen)
+            {
+                // Người dùng ĐANG MỞ MODAL XEM 1 ĐƠN CỤ THỂ:
+                // Tuyệt đối KHÔNG tự động chuyển sang đơn khác làm gián đoạn người dùng!
+                // Chỉ đồng bộ lại currentAlertOrder nếu đơn đó vẫn còn trong pendingOrders.
+                if (currentAlertOrder != null)
+                {
+                    var updated = pendingOrders.FirstOrDefault(o => o.OrderID == currentAlertOrder.OrderID);
+                    if (updated != null)
+                    {
+                        currentAlertOrder = updated;
+                        currentQueueIndex = pendingOrders.IndexOf(updated);
+                    }
+                    else if (pendingOrders.Any())
+                    {
+                        // Đơn hiện tại đã bị ai đó duyệt hoặc hủy ngoài giao diện: chuyển sang đơn đầu tiên
+                        currentQueueIndex = 0;
+                        currentAlertOrder = pendingOrders[0];
+                    }
+                    else
+                    {
+                        // Hết đơn pending
+                        isModalOpen = false;
+                        currentAlertOrder = null;
+                    }
+                }
+            }
+            else
+            {
+                // Khi modal đang đóng:
+                // Chỉ tự động bật pop-up nếu có ÍT NHẤT 1 ĐƠN HÀNG MỚI CHƯA TỪNG BỊ SNOOZE
+                var hasBrandNewOrder = pendingOrders.Any(o => !snoozedOrderIds.Contains(o.OrderID));
+
+                if (hasBrandNewOrder && pendingOrders.Any())
+                {
+                    // Tìm đơn đầu tiên chưa bị snooze (hoặc đơn đầu tiên)
+                    var target = pendingOrders.FirstOrDefault(o => !snoozedOrderIds.Contains(o.OrderID)) ?? pendingOrders.First();
+                    currentAlertOrder = target;
+                    currentQueueIndex = pendingOrders.IndexOf(target);
+                    isModalOpen = true;
+                    errorMessage = null;
+
+                    // Phát âm thanh chuông báo
+                    try
+                    {
+                        await JS.InvokeVoidAsync("window.bakeryAdmin.playNewOrderSound");
+                    }
+                    catch
+                    {
+                        // Ignore audio autoplay restrictions
+                    }
+                }
+            }
+
+            await InvokeAsync(StateHasChanged);
+        }
+        catch
+        {
+            // Ignore background polling exceptions
+        }
+    }
+
+    private void SelectQueueIndex(int index)
+    {
+        if (index >= 0 && index < pendingOrders.Count)
+        {
+            currentQueueIndex = index;
+            currentAlertOrder = pendingOrders[index];
+            errorMessage = null;
+        }
+    }
+
+    private void PrevQueueOrder()
+    {
+        if (currentQueueIndex > 0)
+        {
+            SelectQueueIndex(currentQueueIndex - 1);
+        }
+    }
+
+    private void NextQueueOrder()
+    {
+        if (currentQueueIndex < pendingOrders.Count - 1)
+        {
+            SelectQueueIndex(currentQueueIndex + 1);
+        }
+    }
+
+    private async Task ApproveOrderAsync(Order order)
+    {
+        if (isProcessing) return;
+        isProcessing = true;
+        errorMessage = null;
+
+        try
+        {
+            using var scope = ScopeFactory.CreateScope();
+            var orderService = scope.ServiceProvider.GetRequiredService<OrderService>();
+            var db = scope.ServiceProvider.GetRequiredService<IBakeryDbContext>();
+
+            var freshOrder = await db.Orders
+                .Include(o => o.OrderDetails)
+                    .ThenInclude(d => d.Product)
+                .FirstOrDefaultAsync(o => o.OrderID == order.OrderID);
+
+            if (freshOrder == null)
+            {
+                errorMessage = "Không tìm thấy đơn hàng trên hệ thống.";
+                isProcessing = false;
+                return;
+            }
+
+            if (freshOrder.Status != OrderStatus.Pending)
+            {
+                errorMessage = "Đơn hàng này đã được duyệt hoặc hủy trước đó.";
+                pendingOrders.RemoveAll(o => o.OrderID == order.OrderID);
+                AdvanceQueueAfterApproval();
+                isProcessing = false;
+                return;
+            }
+
+            bool ok = await orderService.ChangeStatusAsync(freshOrder, OrderStatus.Confirmed, currentRole, currentEmployeeId);
+            if (!ok)
+            {
+                errorMessage = $"Không đủ tồn kho để duyệt đơn #HD-{order.OrderID:D4}. Vui lòng kiểm tra lại nguyên liệu/kho bánh.";
+                isProcessing = false;
+                return;
+            }
+
+            // Duyệt thành công: xóa khỏi pendingOrders
+            pendingOrders.RemoveAll(o => o.OrderID == order.OrderID);
+            snoozedOrderIds.Add(order.OrderID);
+
+            // Báo toàn hệ thống cập nhật
+            NotifService.NotifyOrderChanged();
+
+            // Nếu trong queue vẫn còn đơn: chuyển sang đơn tiếp theo
+            AdvanceQueueAfterApproval();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Lỗi khi duyệt đơn: {ex.Message}";
+        }
+        finally
+        {
+            isProcessing = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private void AdvanceQueueAfterApproval()
+    {
+        if (pendingOrders.Any())
+        {
+            // Vẫn còn đơn trong queue: chuyển sang đơn kế tiếp
+            if (currentQueueIndex >= pendingOrders.Count)
+            {
+                currentQueueIndex = pendingOrders.Count - 1;
+            }
+            currentAlertOrder = pendingOrders[currentQueueIndex];
+            errorMessage = null;
+        }
+        else
+        {
+            // Đã duyệt hết sạch hàng đợi: đóng modal
+            isModalOpen = false;
+            currentAlertOrder = null;
+            currentQueueIndex = 0;
+        }
+    }
+
+    private void ViewOrderDetail(int orderId)
+    {
+        // Khi người dùng bấm xem chi tiết bill của 1 đơn:
+        // Snooze TẤT CẢ các đơn đang có trong queue để KHÔNG bị pop-up đè lên khi đang xem bill!
+        foreach (var o in pendingOrders)
+        {
+            snoozedOrderIds.Add(o.OrderID);
+        }
+
+        isModalOpen = false;
+        Navigation.NavigateTo($"/orders?order={orderId}");
+    }
+
+    private void DismissAllQueue()
+    {
+        // Khi người dùng bấm "Để sau" hoặc nút ✕:
+        // Snooze toàn bộ các đơn đang có trong hàng đợi hiện tại, để không quấy rầy người dùng
+        foreach (var o in pendingOrders)
+        {
+            snoozedOrderIds.Add(o.OrderID);
+        }
+
+        isModalOpen = false;
+    }
+
+    private void ReopenModal()
+    {
+        if (pendingOrders.Any())
+        {
+            currentQueueIndex = 0;
+            currentAlertOrder = pendingOrders[0];
+            isModalOpen = true;
+            errorMessage = null;
+        }
+    }
+
+    public void Dispose()
+    {
+        isDisposed = true;
+        NotifService.OnOrderChanged -= HandleOrderNotification;
+        cts?.Cancel();
+        cts?.Dispose();
+        periodicTimer?.Dispose();
+    }
+}

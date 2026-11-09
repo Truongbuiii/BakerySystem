@@ -111,29 +111,19 @@ public sealed class OrderService(IBakeryDbContext db)
         return true;
     }
 
-    public async Task CancelAsync(Order order, string reason, CancellationToken ct = default)
+    public async Task<bool> CancelAsync(Order order, string reason, CancellationToken ct = default)
     {
-        var shouldRestoreStock = order.Status is OrderStatus.Confirmed
-            or OrderStatus.InProgress
-            or OrderStatus.Shipping
-            or OrderStatus.Delivered
-            or OrderStatus.Completed;
+        // Khóa không cho phép hủy khi đơn đã được duyệt hoặc đang trong quá trình giao/hoàn tất.
+        // Chỉ cho phép hủy/từ chối khi đơn đang ở trạng thái Pending (Chờ duyệt).
+        if (order.Status != OrderStatus.Pending)
+            return false;
 
         order.Status = OrderStatus.Cancelled;
         order.Note = string.IsNullOrWhiteSpace(order.Note)
-            ? $"Lý do hủy: {reason}"
-            : $"{order.Note}\nLý do hủy: {reason}";
-
-        if (shouldRestoreStock)
-        {
-            foreach (var detail in order.OrderDetails)
-            {
-                var product = await db.Products.FindAsync([detail.ProductID], ct);
-                if (product != null)
-                    product.Quantity += detail.Quantity;
-            }
-        }
+            ? $"Lý do từ chối/hủy: {reason}"
+            : $"{order.Note}\nLý do từ chối/hủy: {reason}";
 
         await db.SaveChangesAsync(ct);
+        return true;
     }
 }

@@ -1,7 +1,9 @@
 @page "/orders"
 @rendermode InteractiveServer
 @attribute [Authorize(Roles = "Admin,Employee,Shipper")]
+@implements IDisposable
 @inject BakerySystem.Application.Features.Orders.OrderService OrderService
+@inject BakerySystem.Application.Features.Orders.OrderNotificationService NotifService
 @inject BakerySystem.Application.Common.Interfaces.IBakeryDbContext DbContext
 @inject IJSRuntime JS
 @inject NavigationManager Navigation
@@ -955,17 +957,7 @@
                                                 </button>
                                                 <button type="button" 
                                                         class="bakery-order-btn-action bakery-order-btn-cancel"
-                                                        title="Hủy đơn hàng này"
-                                                        @onclick="() => CancelOrder(order)">
-                                                    <iconify-icon icon="solar:close-circle-linear"></iconify-icon>
-                                                    <span>Hủy</span>
-                                                </button>
-                                            }
-                                            else if (order.Status == OrderStatus.Confirmed)
-                                            {
-                                                <button type="button" 
-                                                        class="bakery-order-btn-action bakery-order-btn-cancel"
-                                                        title="Hủy đơn hàng này trước khi shipper nhận"
+                                                        title="Hủy đơn hàng này khi chưa duyệt"
                                                         @onclick="() => CancelOrder(order)">
                                                     <iconify-icon icon="solar:close-circle-linear"></iconify-icon>
                                                     <span>Hủy</span>
@@ -1058,13 +1050,6 @@
                                         <iconify-icon icon="solar:check-circle-linear"></iconify-icon>
                                         <span>Duyệt</span>
                                     </button>
-                                    <button type="button" class="bakery-order-btn-action bakery-order-btn-cancel"
-                                            @onclick="() => CancelOrder(order)">
-                                        <span>Hủy</span>
-                                    </button>
-                                }
-                                else if (order.Status == OrderStatus.Confirmed)
-                                {
                                     <button type="button" class="bakery-order-btn-action bakery-order-btn-cancel"
                                             @onclick="() => CancelOrder(order)">
                                         <span>Hủy</span>
@@ -1498,6 +1483,9 @@
     private bool isShipper;
     private int? currentEmployeeId;
     private string shipperActiveTab = "Workspace";
+    private PeriodicTimer? periodicTimer;
+    private CancellationTokenSource? cts;
+    private bool isDisposed;
 
     private Order? deliveringOrder => isShipper 
         ? orders.FirstOrDefault(o => o.Status == OrderStatus.Shipping) 
@@ -1576,6 +1564,38 @@
         await LoadOrdersAsync();
         if (OrderIdFromQuery is int orderId)
             selectedOrder = orders.FirstOrDefault(o => o.OrderID == orderId);
+
+        NotifService.OnOrderChanged += HandleOrderNotification;
+        cts = new CancellationTokenSource();
+        _ = StartPeriodicRefreshAsync(cts.Token);
+    }
+
+    private void HandleOrderNotification()
+    {
+        _ = InvokeAsync(async () =>
+        {
+            if (isDisposed) return;
+            await LoadOrdersAsync();
+            StateHasChanged();
+        });
+    }
+
+    private async Task StartPeriodicRefreshAsync(CancellationToken token)
+    {
+        periodicTimer = new PeriodicTimer(TimeSpan.FromSeconds(5));
+        try
+        {
+            while (await periodicTimer.WaitForNextTickAsync(token))
+            {
+                if (isDisposed) break;
+                await LoadOrdersAsync();
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Expected upon disposal
+        }
     }
 
     private async Task LoadOrdersAsync()
@@ -1632,6 +1652,7 @@
         }
 
         await LoadOrdersAsync();
+        NotifService.NotifyOrderChanged();
     }
 
     private async Task ChangeSelectedOrderStatus(string newStatus)
@@ -1648,11 +1669,15 @@
     private async Task CancelOrder(Order order)
     {
         if (isShipper) return;
-        if (order.Status == OrderStatus.Cancelled) return;
-        bool confirmed = await JS.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn hủy đơn hàng #HD-{order.OrderID:D4}?");
+        if (order.Status != OrderStatus.Pending)
+        {
+            await JS.InvokeVoidAsync("alert", "Chỉ có thể hủy đơn hàng khi đang ở trạng thái 'Chờ duyệt'. Đơn đã duyệt không được phép hủy.");
+            return;
+        }
+        bool confirmed = await JS.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn từ chối/hủy đơn hàng #HD-{order.OrderID:D4}?");
         if (!confirmed) return;
 
-        var reason = await JS.InvokeAsync<string?>("prompt", "Nhập lý do hủy đơn hàng:");
+        var reason = await JS.InvokeAsync<string?>("prompt", "Nhập lý do từ chối/hủy đơn hàng:");
         if (reason == null) return;
         reason = reason.Trim();
         if (string.IsNullOrWhiteSpace(reason))
@@ -1661,8 +1686,15 @@
             return;
         }
 
-        await OrderService.CancelAsync(order, reason);
+        bool ok = await OrderService.CancelAsync(order, reason);
+        if (!ok)
+        {
+            await JS.InvokeVoidAsync("alert", "Không thể hủy đơn hàng ở trạng thái hiện tại.");
+            return;
+        }
+
         await LoadOrdersAsync();
+        NotifService.NotifyOrderChanged();
     }
 
     private void OpenDetailModal(Order order)
@@ -1707,4 +1739,13 @@
         OrderStatus.Cancelled => "bakery-badge-error",
         _ => "bakery-badge-secondary"
     };
+
+    public void Dispose()
+    {
+        isDisposed = true;
+        NotifService.OnOrderChanged -= HandleOrderNotification;
+        cts?.Cancel();
+        cts?.Dispose();
+        periodicTimer?.Dispose();
+    }
 }
