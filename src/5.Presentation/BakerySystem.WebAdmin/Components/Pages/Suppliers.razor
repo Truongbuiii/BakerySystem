@@ -1,6 +1,7 @@
 @page "/suppliers"
 @rendermode InteractiveServer
 @attribute [Authorize(Roles = "Admin")]
+@using BakerySystem.Domain.Enums
 @inject InventoryService Inventory
 @inject IJSRuntime JS
 
@@ -45,39 +46,49 @@
     <div class="bakery-kpi-card"><div class="bakery-kpi-content"><span class="bakery-kpi-label">Tổng nhà cung cấp</span><div class="bakery-kpi-val">@suppliers.Count</div></div></div>
     <div class="bakery-kpi-card"><div class="bakery-kpi-content"><span class="bakery-kpi-label">Đang hoạt động</span><div class="bakery-kpi-val text-emerald-600">@suppliers.Count(x => x.IsActive)</div></div></div>
     <div class="bakery-kpi-card"><div class="bakery-kpi-content"><span class="bakery-kpi-label">Đã ẩn</span><div class="bakery-kpi-val text-rose-500">@suppliers.Count(x => !x.IsActive)</div></div></div>
-    <div class="bakery-kpi-card"><div class="bakery-kpi-content"><span class="bakery-kpi-label">Bánh đã phân công</span><div class="bakery-kpi-val">@suppliers.Sum(x => x.SupplierProducts.Count)</div></div></div>
+    <div class="bakery-kpi-card"><div class="bakery-kpi-content"><span class="bakery-kpi-label">Bánh đã phân công</span><div class="bakery-kpi-val">@suppliers.SelectMany(x => x.SupplierProducts).Select(x => x.ProductID).Distinct().Count()</div></div></div>
 </div>
+
+@if (!string.IsNullOrEmpty(message) && !supplierFormOpen)
+{
+    <div class="mb-4 rounded-xl border @(operationSucceeded ? "border-emerald-300 bg-emerald-50 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300" : "border-rose-300 bg-rose-50 text-rose-800 dark:bg-rose-950/40 dark:text-rose-300") p-3.5 text-sm flex items-center justify-between gap-3">
+        <div class="flex items-center gap-2">
+            <iconify-icon icon="@(operationSucceeded ? "solar:check-circle-bold" : "solar:danger-triangle-bold")" class="text-lg shrink-0"></iconify-icon>
+            <span>@message</span>
+        </div>
+        <button type="button" class="text-slate-400 hover:text-slate-600 font-bold" @onclick="() => message = null">×</button>
+    </div>
+}
 
 <div class="bakery-filter-card">
     <div class="bakery-filter-toolbar">
-        <div class="bakery-filter-search" style="flex: 1 1 320px; max-width: 440px;">
+        <div class="bakery-filter-search" style="flex: 1 1 300px;">
             <input type="text"
                    class="bakery-input"
                    style="padding-left: 2.25rem;"
-                   placeholder="Tìm mã, tên, SĐT, địa chỉ..."
+                   placeholder="Tìm mã, tên NCC, SĐT, địa chỉ hoặc tên bánh..."
                    @bind="searchTerm"
                    @bind:event="oninput" />
             <div style="position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); pointer-events: none; color: #94a3b8; display: flex; align-items: center;">
                 <iconify-icon icon="solar:magnifer-linear" style="font-size: 1.05rem;"></iconify-icon>
             </div>
         </div>
-        <div class="bakery-filter-select" style="flex: 0 1 190px;">
-            <select class="bakery-input" @bind="statusFilter">
-            <option value="all">Tất cả trạng thái</option>
-            <option value="active">Đang hoạt động</option>
-            <option value="inactive">Đã ẩn</option>
+        <div class="bakery-filter-select" style="flex: 0 1 240px;">
+            <select class="bakery-input" @bind="productFilterId">
+                <option value="0">Tất cả sản phẩm cung cấp</option>
+                <option value="-1">Chưa phân công bánh nào</option>
+                @foreach (var prod in AssignedProductsList)
+                {
+                    <option value="@prod.ProductID">Cung cấp: @prod.ProductName</option>
+                }
             </select>
         </div>
-        <div class="bakery-filter-btn">
-            <button class="bakery-btn @(showAdvancedSearch ? "bakery-btn-primary" : "bakery-btn-outline") w-full flex items-center justify-center gap-1.5"
-                    @onclick="() => showAdvancedSearch = !showAdvancedSearch">
-                <iconify-icon icon="solar:tuning-square-2-linear" class="text-base"></iconify-icon>
-                <span>Bộ lọc nâng cao</span>
-                @if (HasActiveAdvancedFilters)
-                {
-                    <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
-                }
-            </button>
+        <div class="bakery-filter-select" style="flex: 0 1 185px;">
+            <select class="bakery-input" @bind="statusFilter">
+                <option value="all">Tất cả trạng thái</option>
+                <option value="active">Đang hoạt động</option>
+                <option value="inactive">Đã ẩn</option>
+            </select>
         </div>
         <div class="bakery-filter-btn">
             <button class="bakery-btn bakery-btn-outline w-full" @onclick="ResetSearch">
@@ -86,29 +97,6 @@
             </button>
         </div>
     </div>
-    @if (showAdvancedSearch)
-    {
-        <div class="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 bg-slate-50/60 dark:bg-slate-800/40 p-3 rounded-xl">
-            <div>
-                <label class="bakery-label mb-1">Số bánh cung cấp</label>
-                <select class="bakery-input w-full text-xs" @bind="productCountFilter">
-                    <option value="-1">Tất cả số lượng</option>
-                    @foreach (var count in AvailableProductCounts)
-                    {
-                        <option value="@count">@count bánh</option>
-                    }
-                </select>
-            </div>
-            <div>
-                <label class="bakery-label mb-1">Lịch sử nhập hàng</label>
-                <select class="bakery-input w-full text-xs" @bind="receiptFilter">
-                    <option value="all">Tất cả nhà cung cấp</option>
-                    <option value="with-receipts">Đã có phiếu nhập</option>
-                    <option value="without-receipts">Chưa có phiếu nhập</option>
-                </select>
-            </div>
-        </div>
-    }
 </div>
 
 <div class="bakery-split-container">
@@ -226,15 +214,59 @@
                 }
             </div>
 
-            <div class="mt-5 grid grid-cols-2 gap-2">
+            <!-- Phiếu nhập gần nhất & Điều hướng sang trang Quản lý phiếu nhập (lọc sẵn NCC) -->
+            <div class="mt-4">
+                <div class="flex items-center justify-between mb-1.5">
+                    <div class="bakery-detail-kv-label">Phiếu nhập gần nhất</div>
+                    @if (selectedSupplier.ImportReceipts.Count > 0)
+                    {
+                        <span class="text-xs text-slate-400">@selectedSupplier.ImportReceipts.Count phiếu tích lũy</span>
+                    }
+                </div>
+                @if (selectedSupplier.ImportReceipts.Count > 0)
+                {
+                    var latestReceipt = selectedSupplier.ImportReceipts
+                        .OrderByDescending(r => r.ReceiptDate)
+                        .ThenByDescending(r => r.ReceiptID)
+                        .First();
+
+                    <div class="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-800/40 p-3">
+                        <div class="flex items-center justify-between gap-2">
+                            <div class="flex items-center gap-2">
+                                <span class="font-mono font-bold text-xs text-slate-900 dark:text-white">PN-@latestReceipt.ReceiptID.ToString("D6")</span>
+                                <span class="bakery-badge @ImportReceiptStatus.GetBadgeClass(latestReceipt.Status) text-[11px] py-0.5 px-2">
+                                    @ImportReceiptStatus.GetLabel(latestReceipt.Status)
+                                </span>
+                            </div>
+                            <span class="font-bold text-xs text-slate-900 dark:text-white">@latestReceipt.TotalAmount.ToString("N0") đ</span>
+                        </div>
+                        <div class="flex items-center justify-between text-xs text-slate-500 mt-1.5">
+                            <span>@latestReceipt.ReceiptDate.ToString("dd/MM/yyyy HH:mm")</span>
+                            <span>@(string.IsNullOrWhiteSpace(latestReceipt.Note) ? "Phiếu nhập kho" : latestReceipt.Note)</span>
+                        </div>
+                    </div>
+
+                    <a class="mt-2.5 block text-center text-xs font-semibold text-primary hover:underline py-1"
+                       href="/import-receipt-management?supplier=@selectedSupplier.SupplierID">
+                        Xem toàn bộ @selectedSupplier.ImportReceipts.Count phiếu nhập tại Quản lý phiếu nhập →
+                    </a>
+                }
+                else
+                {
+                    <div class="rounded-xl border border-dashed border-slate-200 dark:border-slate-700 p-3 text-center text-xs text-slate-400">
+                        Nhà cung cấp này chưa phát sinh phiếu nhập kho nào.
+                    </div>
+                }
+            </div>
+
+            <div class="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 grid grid-cols-2 gap-2">
                 <button class="bakery-btn bakery-btn-primary" @onclick="() => ManageProducts(selectedSupplier)">Quản lý sản phẩm</button>
                 <button class="bakery-btn bakery-btn-outline" @onclick="() => Edit(selectedSupplier)">Chỉnh sửa</button>
-                <button class="bakery-btn bakery-btn-secondary" @onclick="() => ToggleStatus(selectedSupplier)">
+                <button class="bakery-btn bakery-btn-secondary" @onclick="() => RequestToggleStatus(selectedSupplier)">
                     @(selectedSupplier.IsActive ? "Ngừng hoạt động" : "Kích hoạt")
                 </button>
                 <button class="bakery-btn bakery-btn-danger" @onclick="() => RequestDelete(selectedSupplier)">Xóa</button>
             </div>
-            <a class="mt-3 block text-center text-sm text-primary hover:underline" href="/suppliers/@selectedSupplier.SupplierID">Xem lịch sử phiếu nhập →</a>
         }
     </div>
 </div>
@@ -306,7 +338,7 @@
             <div class="bakery-modal-header">
                 <div>
                     <h4 class="text-base font-bold text-slate-900 dark:text-white mb-0">Sản phẩm của nhà cung cấp</h4>
-                    <p class="text-xs text-slate-500 mb-0">@supplierProductsTarget.SupplierName · Mỗi bánh chỉ được gán cho một nhà cung cấp.</p>
+                    <p class="text-xs text-slate-500 mb-0">@supplierProductsTarget.SupplierName · Một sản phẩm có thể nhập từ nhiều nhà cung cấp với mức giá vốn riêng.</p>
                 </div>
                 <button type="button" class="text-slate-400 hover:text-slate-600 text-lg" @onclick="CloseProductsModal" aria-label="Đóng">×</button>
             </div>
@@ -320,15 +352,13 @@
                     <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 0.65rem;">
                         @foreach (var product in productCatalog)
                         {
-                            var assignedToOtherSupplier = productSupplierIds.TryGetValue(product.ProductID, out var ownerId)
-                                && ownerId != supplierProductsTarget.SupplierID;
+                            var hasOtherSuppliers = otherSuppliersByProduct.TryGetValue(product.ProductID, out var otherSuppliers) && otherSuppliers.Count > 0;
                             var isChecked = selectedProductIds.Contains(product.ProductID);
                             var prevPrice = supplierProductPrices.GetValueOrDefault(product.ProductID);
-                            <label class="flex items-start gap-2.5 rounded-lg border p-3 cursor-pointer transition-colors @(isChecked ? "border-primary bg-primary/5" : "border-slate-200") @(assignedToOtherSupplier ? "opacity-60 cursor-not-allowed" : "")">
+                            <label class="flex items-start gap-2.5 rounded-lg border p-3 cursor-pointer transition-colors @(isChecked ? "border-primary bg-primary/5" : "border-slate-200")">
                                 <input type="checkbox"
                                        class="mt-1"
                                        checked="@isChecked"
-                                       disabled="@assignedToOtherSupplier"
                                        @onchange="() => SelectSupplierProduct(product.ProductID)" />
                                 <span class="flex-1 min-w-0">
                                     <strong class="block text-sm text-slate-800 dark:text-slate-100">@product.ProductName</strong>
@@ -339,9 +369,9 @@
                                             <span> · Giá vốn cũ: <strong class="text-emerald-600">@prevPrice.ToString("N0") đ</strong></span>
                                         }
                                     </small>
-                                    @if (assignedToOtherSupplier)
+                                    @if (hasOtherSuppliers)
                                     {
-                                        <small class="block text-xs text-amber-600 mt-0.5">Đã thuộc nhà cung cấp khác</small>
+                                        <small class="block text-xs text-slate-400 mt-0.5">Cùng cung cấp bởi: @string.Join(", ", otherSuppliers!)</small>
                                     }
                                 </span>
                             </label>
@@ -362,6 +392,88 @@
             <div class="bakery-modal-footer">
                 <button type="button" class="bakery-btn bakery-btn-outline" @onclick="CloseProductsModal">Hủy</button>
                 <button type="button" class="bakery-btn bakery-btn-primary" @onclick="SaveSupplierProducts">Lưu danh sách</button>
+            </div>
+        </div>
+    </div>
+}
+
+@if (supplierStatusPrompt is not null)
+{
+    var isDeactivating = supplierStatusPrompt.IsActive;
+    var pendingReceiptsCount = supplierStatusPrompt.ImportReceipts.Count(r => r.Status == ImportReceiptStatus.Pending);
+    <div class="bakery-modal-backdrop" @onclick="CloseStatusPrompt">
+        <div class="bakery-modal-card max-w-md" @onclick:stopPropagation="true">
+            <div class="bakery-modal-header">
+                <div class="flex items-center gap-2.5">
+                    <div class="bakery-modal-icon-badge @(isDeactivating ? "warning" : "blue")">
+                        <iconify-icon icon="@(isDeactivating ? "solar:shield-warning-bold" : "solar:check-circle-bold")"></iconify-icon>
+                    </div>
+                    <div>
+                        <h4 class="text-base font-bold text-slate-900 dark:text-white mb-0">
+                            @(isDeactivating ? "Xác nhận ngừng hoạt động" : "Xác nhận kích hoạt lại")
+                        </h4>
+                        <p class="text-xs text-slate-500 mb-0">@supplierStatusPrompt.SupplierCode - @supplierStatusPrompt.SupplierName</p>
+                    </div>
+                </div>
+                <button type="button" class="text-slate-400 hover:text-slate-600 text-lg" @onclick="CloseStatusPrompt" aria-label="Đóng">
+                    <iconify-icon icon="solar:close-circle-linear"></iconify-icon>
+                </button>
+            </div>
+
+            <div class="bakery-modal-body space-y-3">
+                @if (isDeactivating && pendingReceiptsCount > 0)
+                {
+                    <div class="bakery-info-box bakery-info-box-danger text-sm">
+                        Không thể ngừng hoạt động lúc này! Nhà cung cấp đang có <strong>@pendingReceiptsCount phiếu nhập ở trạng thái "Chờ nhập kho"</strong> chưa được xử lý.
+                    </div>
+                    <p class="text-sm text-slate-600 dark:text-slate-300 mb-0">
+                        Để tránh sai lệch tồn kho, vui lòng <strong>Duyệt nhập kho</strong> hoặc <strong>Hủy</strong> các phiếu đang chờ của nhà cung cấp này trước khi ngừng hoạt động.
+                    </p>
+                }
+                else if (isDeactivating)
+                {
+                    <div class="bakery-info-box bakery-info-box-warning text-sm">
+                        Khi ngừng hoạt động, nhà cung cấp sẽ chuyển sang trạng thái <strong>Đã ẩn</strong> và không xuất hiện trong danh sách chọn khi lập phiếu nhập kho mới.
+                    </div>
+                    <p class="text-sm text-slate-600 dark:text-slate-300 mb-0">
+                        Bạn có chắc chắn muốn ngừng hoạt động <strong>@supplierStatusPrompt.SupplierName</strong> không?
+                        @(supplierStatusPrompt.ImportReceipts.Count > 0 || supplierStatusPrompt.SupplierProducts.Count > 0
+                            ? $"Dữ liệu {supplierStatusPrompt.ImportReceipts.Count} phiếu nhập và {supplierStatusPrompt.SupplierProducts.Count} bánh đã phân công vẫn được bảo toàn."
+                            : "")
+                    </p>
+                }
+                else
+                {
+                    <div class="p-3 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 text-sm border border-emerald-200 dark:border-emerald-800">
+                        Nhà cung cấp sẽ chuyển sang trạng thái <strong>Đang hoạt động</strong> và xuất hiện trở lại trong danh sách lập phiếu nhập kho.
+                    </div>
+                    <p class="text-sm text-slate-600 dark:text-slate-300 mb-0">
+                        Bạn có chắc chắn muốn kích hoạt lại <strong>@supplierStatusPrompt.SupplierName</strong> không?
+                    </p>
+                }
+
+                @if (!string.IsNullOrEmpty(statusPromptError))
+                {
+                    <p class="text-xs text-rose-600 mb-0">@statusPromptError</p>
+                }
+            </div>
+
+            <div class="bakery-modal-footer">
+                <button type="button" class="bakery-btn bakery-btn-outline" @onclick="CloseStatusPrompt">Hủy</button>
+                @if (isDeactivating && pendingReceiptsCount > 0)
+                {
+                    <a class="bakery-btn bakery-btn-primary" href="/import-receipt-management?supplier=@supplierStatusPrompt.SupplierID">
+                        Xử lý phiếu chờ nhập →
+                    </a>
+                }
+                else
+                {
+                    <button type="button"
+                            class="bakery-btn @(isDeactivating ? "bakery-btn-danger" : "bakery-btn-primary")"
+                            @onclick="ConfirmToggleStatus">
+                        @(isDeactivating ? "Xác nhận ngừng hoạt động" : "Xác nhận kích hoạt")
+                    </button>
+                }
             </div>
         </div>
     </div>
@@ -451,20 +563,20 @@
     private Supplier form = new();
     private Supplier? selectedSupplier;
     private bool supplierFormOpen;
+    private Supplier? supplierStatusPrompt;
+    private string? statusPromptError;
     private Supplier? supplierDeletePrompt;
     private Supplier? supplierProductsTarget;
     private List<Product> productCatalog = [];
     private HashSet<int> selectedProductIds = [];
-    private Dictionary<int, int> productSupplierIds = [];
+    private Dictionary<int, List<string>> otherSuppliersByProduct = [];
     private Dictionary<int, decimal> supplierProductPrices = [];
     private string? productMessage;
     private string? message;
     private bool operationSucceeded;
     private string searchTerm = string.Empty;
     private string statusFilter = "all";
-    private bool showAdvancedSearch;
-    private int productCountFilter = -1;
-    private string receiptFilter = "all";
+    private int productFilterId = 0;
     private bool isImportModalOpen;
     private string? importMessage;
     private bool importSucceeded;
@@ -480,33 +592,30 @@
             out var price) && price >= 0 ? price : 0;
     }
 
-    private bool HasActiveAdvancedFilters =>
-        productCountFilter >= 0 || receiptFilter != "all";
-
-    private IEnumerable<int> AvailableProductCounts => suppliers
-        .Select(s => s.SupplierProducts.Count)
-        .Distinct()
-        .OrderBy(count => count);
+    private List<Product> AssignedProductsList => suppliers
+        .SelectMany(s => s.SupplierProducts)
+        .Where(sp => sp.Product is not null)
+        .Select(sp => sp.Product!)
+        .DistinctBy(p => p.ProductID)
+        .OrderBy(p => p.ProductName)
+        .ToList();
 
     private IEnumerable<Supplier> FilteredSuppliers => suppliers.Where(s =>
         (statusFilter == "all" ||
          (statusFilter == "active" && s.IsActive) ||
          (statusFilter == "inactive" && !s.IsActive)) &&
-        (receiptFilter == "all" ||
-         (receiptFilter == "with-receipts" && s.ImportReceipts.Count > 0) ||
-         (receiptFilter == "without-receipts" && s.ImportReceipts.Count == 0)) &&
-        (productCountFilter < 0 || s.SupplierProducts.Count == productCountFilter) &&
+        (productFilterId == 0 ||
+         (productFilterId == -1 && s.SupplierProducts.Count == 0) ||
+         (productFilterId > 0 && s.SupplierProducts.Any(sp => sp.ProductID == productFilterId))) &&
         (string.IsNullOrWhiteSpace(searchTerm) ||
-         $"{s.SupplierCode} {s.SupplierName} {s.Phone} {s.Address}"
+         $"{s.SupplierCode} {s.SupplierName} {s.Phone} {s.Address} {string.Join(" ", s.SupplierProducts.Select(sp => sp.Product?.ProductName))}"
              .Contains(searchTerm.Trim(), StringComparison.OrdinalIgnoreCase)));
 
     private void ResetSearch()
     {
         searchTerm = string.Empty;
         statusFilter = "all";
-        productCountFilter = -1;
-        receiptFilter = "all";
-        showAdvancedSearch = false;
+        productFilterId = 0;
     }
 
     protected override async Task OnInitializedAsync() => await Load();
@@ -619,7 +728,7 @@
         productCatalog = await Inventory.GetProductsAsync();
         selectedProductIds = (await Inventory.GetSupplierProductIdsAsync(supplier.SupplierID)).ToHashSet();
         supplierProductPrices = await Inventory.GetSupplierProductPricesAsync(supplier.SupplierID);
-        productSupplierIds = await Inventory.GetProductSupplierIdsAsync();
+        otherSuppliersByProduct = await Inventory.GetOtherSuppliersByProductAsync(supplier.SupplierID);
     }
 
     private void SelectSupplierProduct(int productId)
@@ -706,21 +815,39 @@
         }
     }
 
-    private async Task ToggleStatus(Supplier supplier)
+    private void RequestToggleStatus(Supplier supplier)
     {
+        supplierStatusPrompt = supplier;
+        statusPromptError = null;
+    }
+
+    private void CloseStatusPrompt()
+    {
+        supplierStatusPrompt = null;
+        statusPromptError = null;
+    }
+
+    private async Task ConfirmToggleStatus()
+    {
+        if (supplierStatusPrompt is null)
+            return;
+
         try
         {
-            await Inventory.SetSupplierStatusAsync(supplier.SupplierID, !supplier.IsActive);
-            message = supplier.IsActive
-                ? "Đã ngừng hoạt động. Nhà cung cấp sẽ không xuất hiện khi lập phiếu nhập mới."
-                : "Đã kích hoạt lại nhà cung cấp.";
+            var wasActive = supplierStatusPrompt.IsActive;
+            var targetName = supplierStatusPrompt.SupplierName;
+            await Inventory.SetSupplierStatusAsync(supplierStatusPrompt.SupplierID, !wasActive);
+            supplierStatusPrompt = null;
+            statusPromptError = null;
+            message = wasActive
+                ? $"Đã ngừng hoạt động nhà cung cấp {targetName}. Nhà cung cấp sẽ được ẩn khi lập phiếu nhập mới."
+                : $"Đã kích hoạt lại nhà cung cấp {targetName}.";
             operationSucceeded = true;
             await Load();
         }
         catch (Exception ex)
         {
-            message = ex.Message;
-            operationSucceeded = false;
+            statusPromptError = ex.Message;
         }
     }
 
@@ -751,23 +878,13 @@
         }
     }
 
-    private async Task DeactivateFromPrompt()
+    private void DeactivateFromPrompt()
     {
         if (supplierDeletePrompt is null || supplierDeletePrompt.ImportReceipts.Count == 0)
             return;
 
-        try
-        {
-            await Inventory.SetSupplierStatusAsync(supplierDeletePrompt.SupplierID, false);
-            supplierDeletePrompt = null;
-            message = "Đã ngừng hoạt động. Nhà cung cấp sẽ không xuất hiện khi lập phiếu nhập mới.";
-            operationSucceeded = true;
-            await Load();
-        }
-        catch (Exception ex)
-        {
-            message = ex.Message;
-            operationSucceeded = false;
-        }
+        var target = supplierDeletePrompt;
+        supplierDeletePrompt = null;
+        RequestToggleStatus(target);
     }
 }

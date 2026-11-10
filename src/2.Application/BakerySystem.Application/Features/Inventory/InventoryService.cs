@@ -87,8 +87,20 @@ public sealed class InventoryService(IBakeryDbContext db)
 
     public async Task SetSupplierStatusAsync(int supplierId, bool isActive, CancellationToken ct = default)
     {
-        var supplier = await db.Suppliers.FindAsync([supplierId], ct)
+        var supplier = await db.Suppliers
+            .Include(x => x.ImportReceipts)
+            .FirstOrDefaultAsync(x => x.SupplierID == supplierId, ct)
             ?? throw new InvalidOperationException("Không tìm thấy nhà cung cấp.");
+
+        if (!isActive)
+        {
+            var pendingReceiptsCount = supplier.ImportReceipts.Count(r => r.Status == ImportReceiptStatus.Pending);
+            if (pendingReceiptsCount > 0)
+            {
+                throw new InvalidOperationException(
+                    $"Nhà cung cấp đang có {pendingReceiptsCount} phiếu nhập ở trạng thái 'Chờ nhập kho'. Vui lòng duyệt hoặc hủy các phiếu chờ trước khi ngừng hoạt động nhà cung cấp này.");
+            }
+        }
 
         supplier.IsActive = isActive;
         await db.SaveChangesAsync(ct);
@@ -108,7 +120,7 @@ public sealed class InventoryService(IBakeryDbContext db)
         if (missingIds.Length > 0)
         {
             var latestHistoryPrices = await db.ImportReceiptDetails.AsNoTracking()
-                .Where(d => missingIds.Contains(d.ProductID) && d.UnitPrice > 0)
+                .Where(d => d.ImportReceipt.SupplierID == supplierId && missingIds.Contains(d.ProductID) && d.UnitPrice > 0)
                 .OrderByDescending(d => d.ImportReceipt.ReceiptDate)
                 .ThenByDescending(d => d.ReceiptID)
                 .Select(d => new { d.ProductID, d.UnitPrice })
@@ -138,9 +150,19 @@ public sealed class InventoryService(IBakeryDbContext db)
         await db.SaveChangesAsync(ct);
     }
 
-    public async Task<Dictionary<int, int>> GetProductSupplierIdsAsync(CancellationToken ct = default) =>
-        await db.SupplierProducts.AsNoTracking()
-            .ToDictionaryAsync(x => x.ProductID, x => x.SupplierID, ct);
+    public async Task<Dictionary<int, List<string>>> GetOtherSuppliersByProductAsync(int excludeSupplierId, CancellationToken ct = default)
+    {
+        var items = await db.SupplierProducts.AsNoTracking()
+            .Where(x => x.SupplierID != excludeSupplierId && x.Supplier.IsActive)
+            .Select(x => new { x.ProductID, x.Supplier.SupplierName })
+            .ToListAsync(ct);
+
+        return items
+            .GroupBy(x => x.ProductID)
+            .ToDictionary(
+                g => g.Key,
+                g => g.Select(x => x.SupplierName).Distinct().OrderBy(n => n).ToList());
+    }
 
     public Task<List<Product>> GetProductsForSupplierAsync(int supplierId, CancellationToken ct = default) =>
         db.SupplierProducts.AsNoTracking()
@@ -161,19 +183,11 @@ public sealed class InventoryService(IBakeryDbContext db)
         if (activeProductCount != selectedIds.Length)
             throw new InvalidOperationException("Một số sản phẩm không tồn tại hoặc đã ngừng kinh doanh.");
 
-        var conflictingProduct = await db.SupplierProducts
-            .Where(x => selectedIds.Contains(x.ProductID) && x.SupplierID != supplierId)
-            .Select(x => new { x.Product.ProductName, x.Supplier.SupplierName })
-            .FirstOrDefaultAsync(ct);
-        if (conflictingProduct is not null)
-            throw new InvalidOperationException(
-                $"Sản phẩm {conflictingProduct.ProductName} đã thuộc nhà cung cấp {conflictingProduct.SupplierName}. Hãy bỏ gán ở nhà cung cấp đó trước.");
-
         var current = await db.SupplierProducts.Where(x => x.SupplierID == supplierId).ToListAsync(ct);
         var currentByProductId = current.ToDictionary(x => x.ProductID);
 
         var historyPrices = await db.ImportReceiptDetails.AsNoTracking()
-            .Where(d => selectedIds.Contains(d.ProductID) && d.UnitPrice > 0)
+            .Where(d => d.ImportReceipt.SupplierID == supplierId && selectedIds.Contains(d.ProductID) && d.UnitPrice > 0)
             .OrderByDescending(d => d.ImportReceipt.ReceiptDate)
             .ThenByDescending(d => d.ReceiptID)
             .Select(d => new { d.ProductID, d.UnitPrice })

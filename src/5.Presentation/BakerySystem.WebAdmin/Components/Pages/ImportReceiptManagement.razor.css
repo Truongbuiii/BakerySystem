@@ -1,0 +1,157 @@
+.receipt-filter-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.65rem;
+    width: 100%;
+}
+
+.receipt-search-wrap {
+    position: relative;
+    flex: 1.4 1 240px;
+    min-width: 220px;
+}
+
+.receipt-search-icon {
+    position: absolute;
+    left: 0.8rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #94a3b8;
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+    font-size: 1.05rem;
+}
+
+.receipt-search-input {
+    width: 100%;
+    height: 40px !important;
+    padding-left: 2.35rem !important;
+    padding-right: 0.75rem !important;
+    box-sizing: border-box;
+}
+
+.receipt-supplier-wrap {
+    flex: 1.1 1 210px;
+    min-width: 195px;
+}
+
+.receipt-supplier-select {
+    width: 100%;
+    height: 40px !important;
+    box-sizing: border-box;
+}
+
+.receipt-date-box {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    height: 40px;
+    padding: 0 0.7rem;
+    background: #f8fafc;
+    border: 1px solid #cbd5e1;
+    border-radius: 10px;
+    flex: 0 1 auto;
+    box-sizing: border-box;
+    transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.receipt-date-box:focus-within {
+    background: #ffffff;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+:global(html.dark) .receipt-date-box {
+    background: #0f172a;
+    border-color: #334155;
+}
+
+.receipt-date-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #64748b;
+    white-space: nowrap;
+    user-select: none;
+}
+
+:global(html.dark) .receipt-date-label {
+    color: #94a3b8;
+}
+
+.receipt-date-input {
+    border: none !important;
+    background: transparent !important;
+    outline: none !important;
+    box-shadow: none !important;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: #1e293b;
+    padding: 0 !important;
+    height: 36px;
+    width: 126px;
+}
+
+:global(html.dark) .receipt-date-input {
+    color: #f8fafc;
+}
+
+.receipt-actions-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex: 0 0 auto;
+}
+
+.receipt-toolbar-btn {
+    height: 40px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 0.35rem !important;
+    white-space: nowrap !important;
+    padding: 0 0.85rem !important;
+}
+
+/* Khung lọc nâng cao 3 cột gọn gàng */
+.receipt-adv-panel {
+    margin-top: 0.85rem;
+    padding-top: 0.85rem;
+    border-top: 1px dashed #e2e8f0;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.85rem;
+}
+
+:global(html.dark) .receipt-adv-panel {
+    border-top-color: #334155;
+}
+
+@media (min-width: 768px) {
+    .receipt-adv-panel {
+        grid-template-columns: 1fr 1.2fr 1fr;
+    }
+}
+
+.receipt-adv-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+.receipt-adv-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #475569;
+}
+
+:global(html.dark) .receipt-adv-label {
+    color: #cbd5e1;
+}
+
+.receipt-adv-range {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+}

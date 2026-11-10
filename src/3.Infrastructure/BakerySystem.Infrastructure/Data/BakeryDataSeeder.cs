@@ -49,23 +49,45 @@ public static class BakeryDataSeeder
                     ALTER TABLE [SupplierProduct] ADD [PurchasePrice] decimal(18,2) NOT NULL CONSTRAINT [DF_SupplierProduct_PurchasePrice] DEFAULT (0);
                 END
 
-                -- Giữ các sản phẩm từng nhập với nhà cung cấp trong lịch sử.
+                -- Gỡ bỏ Unique Index cũ trên ProductID (nếu có) để hỗ trợ quan hệ N-N: 1 bánh có thể nhập từ nhiều nhà cung cấp
+                IF OBJECT_ID(N'[SupplierProduct]', N'U') IS NOT NULL
+                BEGIN
+                    IF EXISTS (
+                        SELECT 1 FROM sys.indexes
+                        WHERE [name] = N'UX_SupplierProduct_ProductID'
+                          AND [object_id] = OBJECT_ID(N'[SupplierProduct]')
+                    )
+                    BEGIN
+                        DROP INDEX [UX_SupplierProduct_ProductID] ON [SupplierProduct];
+                    END;
+
+                    IF EXISTS (
+                        SELECT 1 FROM sys.indexes
+                        WHERE [name] = N'UQ_SupplierProduct_ProductID'
+                          AND [object_id] = OBJECT_ID(N'[SupplierProduct]')
+                    )
+                    BEGIN
+                        DROP INDEX [UQ_SupplierProduct_ProductID] ON [SupplierProduct];
+                    END;
+                END;
+
+                -- Đồng bộ các cặp (SupplierID, ProductID) từng nhập trong lịch sử phiếu nhập kho
                 IF OBJECT_ID(N'[ImportReceiptDetail]', N'U') IS NOT NULL
                 BEGIN
                     INSERT INTO [SupplierProduct] ([SupplierID], [ProductID])
-                    SELECT MIN(r.[SupplierID]), d.[ProductID]
+                    SELECT DISTINCT r.[SupplierID], d.[ProductID]
                     FROM [ImportReceipt] r
                     INNER JOIN [ImportReceiptDetail] d ON d.[ReceiptID] = r.[ReceiptID]
                     WHERE NOT EXISTS (
                         SELECT 1 FROM [SupplierProduct] sp
-                        WHERE sp.[ProductID] = d.[ProductID]
-                    )
-                    GROUP BY d.[ProductID];
+                        WHERE sp.[SupplierID] = r.[SupplierID]
+                          AND sp.[ProductID] = d.[ProductID]
+                    );
 
-                    -- Tự động đồng bộ PurchasePrice từ lần nhập gần nhất nếu PurchasePrice đang <= 0
-                    ;WITH LatestImportPrice AS (
-                        SELECT d.[ProductID], d.[UnitPrice],
-                               ROW_NUMBER() OVER (PARTITION BY d.[ProductID] ORDER BY r.[ReceiptDate] DESC, r.[ReceiptID] DESC) AS rn
+                    -- Tự động đồng bộ PurchasePrice theo từng cặp (SupplierID, ProductID) từ lần nhập gần nhất của nhà cung cấp đó
+                    ;WITH LatestSupplierImportPrice AS (
+                        SELECT r.[SupplierID], d.[ProductID], d.[UnitPrice],
+                               ROW_NUMBER() OVER (PARTITION BY r.[SupplierID], d.[ProductID] ORDER BY r.[ReceiptDate] DESC, r.[ReceiptID] DESC) AS rn
                         FROM [ImportReceiptDetail] d
                         INNER JOIN [ImportReceipt] r ON r.[ReceiptID] = d.[ReceiptID]
                         WHERE d.[UnitPrice] > 0
@@ -73,33 +95,11 @@ public static class BakeryDataSeeder
                     UPDATE sp
                     SET sp.[PurchasePrice] = lip.[UnitPrice]
                     FROM [SupplierProduct] sp
-                    INNER JOIN LatestImportPrice lip ON lip.[ProductID] = sp.[ProductID] AND lip.rn = 1
+                    INNER JOIN LatestSupplierImportPrice lip
+                        ON lip.[SupplierID] = sp.[SupplierID]
+                       AND lip.[ProductID] = sp.[ProductID]
+                       AND lip.rn = 1
                     WHERE sp.[PurchasePrice] <= 0;
-                END;
-
-                -- Mỗi sản phẩm chỉ thuộc một nhà cung cấp. Giữ lại liên kết có SupplierID nhỏ nhất nếu dữ liệu cũ bị trùng.
-                IF OBJECT_ID(N'[SupplierProduct]', N'U') IS NOT NULL
-                BEGIN
-                    ;WITH DuplicateProducts AS (
-                        SELECT [ProductID], MIN([SupplierID]) AS [KeepSupplierID]
-                        FROM [SupplierProduct]
-                        GROUP BY [ProductID]
-                        HAVING COUNT(*) > 1
-                    )
-                    DELETE sp
-                    FROM [SupplierProduct] sp
-                    INNER JOIN DuplicateProducts d ON d.[ProductID] = sp.[ProductID]
-                    WHERE sp.[SupplierID] <> d.[KeepSupplierID];
-
-                    IF NOT EXISTS (
-                        SELECT 1 FROM sys.indexes
-                        WHERE [name] IN (N'UX_SupplierProduct_ProductID', N'UQ_SupplierProduct_ProductID')
-                          AND [object_id] = OBJECT_ID(N'[SupplierProduct]')
-                    )
-                    BEGIN
-                        CREATE UNIQUE INDEX [UX_SupplierProduct_ProductID]
-                            ON [SupplierProduct] ([ProductID]);
-                    END;
                 END;
 
                 -- Bổ sung cột Status cho ImportReceipt nếu thiếu

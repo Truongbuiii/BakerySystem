@@ -32,98 +32,131 @@
     </div>
 }
 
-<div class="bakery-filter-card mb-5">
-    <div class="bakery-filter-toolbar">
-        <div class="bakery-filter-search-box">
-            <iconify-icon icon="solar:magnifer-linear"></iconify-icon>
-            <input class="w-full" placeholder="Tìm mã phiếu hoặc sản phẩm..."
-                   @bind="search" @bind:event="oninput" />
+<div class="bakery-filter-card mb-4">
+    <div class="receipt-filter-bar">
+        <div class="receipt-search-wrap">
+            <span class="receipt-search-icon">
+                <iconify-icon icon="solar:magnifer-linear"></iconify-icon>
+            </span>
+            <input type="text"
+                   class="bakery-input receipt-search-input"
+                   placeholder="Tìm mã phiếu, tên bánh, nhân viên..."
+                   @bind="search"
+                   @bind:event="oninput"
+                   @bind:after="EnsureSelectedMatchesFilter" />
         </div>
-        <label class="text-sm">Từ ngày<input class="bakery-input" type="date" @bind="from" /></label>
-        <label class="text-sm">Đến ngày<input class="bakery-input" type="date" @bind="to" /></label>
-        <button class="bakery-btn bakery-btn-outline" @onclick="() => advancedOpen = !advancedOpen">
-            <iconify-icon icon="solar:filter-linear"></iconify-icon>
-            @(advancedOpen ? "Thu gọn lọc" : "Tìm kiếm nâng cao")
-        </button>
-        <button class="bakery-btn bakery-btn-outline" @onclick="Reset">Đặt lại</button>
+
+        <div class="receipt-supplier-wrap">
+            <select class="bakery-input receipt-supplier-select" @bind="supplierFilter" @bind:after="EnsureSelectedMatchesFilter">
+                <option value="0">Tất cả nhà cung cấp</option>
+                @foreach (var supplier in suppliers)
+                {
+                    <option value="@supplier.SupplierID">@supplier.SupplierCode - @supplier.SupplierName</option>
+                }
+            </select>
+        </div>
+
+        <label class="receipt-date-box">
+            <span class="receipt-date-label">Từ ngày</span>
+            <input class="receipt-date-input" type="date" @bind="from" @bind:after="EnsureSelectedMatchesFilter" />
+        </label>
+
+        <label class="receipt-date-box">
+            <span class="receipt-date-label">Đến ngày</span>
+            <input class="receipt-date-input" type="date" @bind="to" @bind:after="EnsureSelectedMatchesFilter" />
+        </label>
+
+        <div class="receipt-actions-wrap">
+            <button type="button"
+                    class="bakery-btn @(advancedOpen ? "bakery-btn-primary" : "bakery-btn-outline") receipt-toolbar-btn"
+                    @onclick="() => advancedOpen = !advancedOpen">
+                <iconify-icon icon="solar:tuning-square-2-linear"></iconify-icon>
+                <span>@(advancedOpen ? "Thu gọn" : "Lọc nâng cao")</span>
+                @if (employeeFilter != 0 || minTotal.HasValue || maxTotal.HasValue || minLines.HasValue || maxLines.HasValue)
+                {
+                    <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                }
+            </button>
+            <button type="button" class="bakery-btn bakery-btn-outline receipt-toolbar-btn" @onclick="Reset">
+                <iconify-icon icon="solar:refresh-linear"></iconify-icon>
+                <span>Đặt lại</span>
+            </button>
+        </div>
     </div>
+
     @if (advancedOpen)
     {
-        <div class="receipt-filter-chips">
-            <button type="button" class="receipt-filter-chip @(activeAdvancedFilter == "supplier" ? "active" : "")" @onclick='() => ToggleAdvancedFilter("supplier")'>
-                Nhà cung cấp @if (supplierFilter != 0) { <span>●</span> }
-            </button>
-            <button type="button" class="receipt-filter-chip @(activeAdvancedFilter == "employee" ? "active" : "")" @onclick='() => ToggleAdvancedFilter("employee")'>
-                Nhân viên lập phiếu @if (employeeFilter != 0) { <span>●</span> }
-            </button>
-            <button type="button" class="receipt-filter-chip @(activeAdvancedFilter == "total" ? "active" : "")" @onclick='() => ToggleAdvancedFilter("total")'>
-                Tổng tiền @if (minTotal.HasValue || maxTotal.HasValue) { <span>●</span> }
-            </button>
-            <button type="button" class="receipt-filter-chip @(activeAdvancedFilter == "lines" ? "active" : "")" @onclick='() => ToggleAdvancedFilter("lines")'>
-                Số dòng hàng @if (minLines.HasValue || maxLines.HasValue) { <span>●</span> }
-            </button>
+        <div class="receipt-adv-panel">
+            <div class="receipt-adv-field">
+                <span class="receipt-adv-label">Nhân viên lập phiếu</span>
+                <select class="bakery-input w-full" @bind="employeeFilter" @bind:after="EnsureSelectedMatchesFilter">
+                    <option value="0">Tất cả nhân viên</option>
+                    @foreach (var employee in EmployeesWithReceipts)
+                    {
+                        <option value="@employee.EmployeeID">@employee.FullName</option>
+                    }
+                </select>
+            </div>
+
+            <div class="receipt-adv-field">
+                <span class="receipt-adv-label">Khoảng tổng tiền (VNĐ)</span>
+                <div class="receipt-adv-range">
+                    <input class="bakery-input w-full" type="number" min="0" step="10000" placeholder="Từ..." @bind="minTotal" @bind:after="EnsureSelectedMatchesFilter" />
+                    <input class="bakery-input w-full" type="number" min="0" step="10000" placeholder="Đến..." @bind="maxTotal" @bind:after="EnsureSelectedMatchesFilter" />
+                </div>
+            </div>
+
+            <div class="receipt-adv-field">
+                <span class="receipt-adv-label">Số dòng sản phẩm</span>
+                <div class="receipt-adv-range">
+                    <input class="bakery-input w-full" type="number" min="0" placeholder="Từ..." @bind="minLines" @bind:after="EnsureSelectedMatchesFilter" />
+                    <input class="bakery-input w-full" type="number" min="0" placeholder="Đến..." @bind="maxLines" @bind:after="EnsureSelectedMatchesFilter" />
+                </div>
+            </div>
         </div>
-        @if (activeAdvancedFilter == "supplier")
-        {
-            <div class="receipt-filter-popover">
-                <label>Nhà cung cấp
-                    <select class="bakery-input" @bind="supplierFilter">
-                        <option value="0">Tất cả nhà cung cấp</option>
-                        @foreach (var supplier in suppliers)
-                        {
-                            <option value="@supplier.SupplierID">@supplier.SupplierCode - @supplier.SupplierName</option>
-                        }
-                    </select>
-                </label>
-            </div>
-        }
-        else if (activeAdvancedFilter == "employee")
-        {
-            <div class="receipt-filter-popover">
-                <label>Nhân viên lập phiếu
-                    <select class="bakery-input" @bind="employeeFilter">
-                        <option value="0">Tất cả nhân viên</option>
-                        @foreach (var employee in EmployeesWithReceipts)
-                        {
-                            <option value="@employee.EmployeeID">@employee.FullName</option>
-                        }
-                    </select>
-                </label>
-            </div>
-        }
-        else if (activeAdvancedFilter == "total")
-        {
-            <div class="receipt-filter-popover receipt-filter-range">
-                <label>Tổng tiền từ<input class="bakery-input" type="number" min="0" step="1000" placeholder="Không giới hạn" @bind="minTotal" /></label>
-                <label>Tổng tiền đến<input class="bakery-input" type="number" min="0" step="1000" placeholder="Không giới hạn" @bind="maxTotal" /></label>
-            </div>
-        }
-        else if (activeAdvancedFilter == "lines")
-        {
-            <div class="receipt-filter-popover receipt-filter-range">
-                <label>Số dòng hàng từ<input class="bakery-input" type="number" min="0" placeholder="Không giới hạn" @bind="minLines" /></label>
-                <label>Số dòng hàng đến<input class="bakery-input" type="number" min="0" placeholder="Không giới hạn" @bind="maxLines" /></label>
-            </div>
-        }
     }
 </div>
 
+@if (supplierFilter > 0)
+{
+    var activeSupplier = suppliers.FirstOrDefault(s => s.SupplierID == supplierFilter);
+    if (activeSupplier is not null)
+    {
+        <div class="mb-4 rounded-xl border border-blue-200 bg-blue-50/70 dark:bg-blue-950/30 dark:border-blue-800 px-4 py-2.5 flex flex-wrap items-center justify-between gap-2 text-xs">
+            <div class="flex items-center gap-2 text-slate-700 dark:text-slate-200">
+                <iconify-icon icon="solar:buildings-2-bold-duotone" class="text-base text-primary"></iconify-icon>
+                <span>
+                    Đang xem lịch sử phiếu nhập của nhà cung cấp:
+                    <strong class="text-primary">@activeSupplier.SupplierCode - @activeSupplier.SupplierName</strong>
+                    (@FilteredReceiptList.Count phiếu · Tổng @FilteredReceiptList.Sum(x => x.TotalAmount).ToString("N0") đ)
+                </span>
+            </div>
+            <div class="flex items-center gap-3">
+                <a href="/suppliers" class="font-semibold text-slate-600 hover:text-primary">← Quay lại Nhà cung cấp</a>
+                <button type="button" class="font-semibold text-rose-600 hover:underline" @onclick="ClearSupplierFilter">
+                    × Bỏ lọc nhà cung cấp
+                </button>
+            </div>
+        </div>
+    }
+}
+
 <!-- Status Filter Tabs -->
 <div class="flex flex-wrap items-center gap-2 mb-4">
-    <button type="button" class="receipt-filter-chip @(statusFilter == "All" ? "active" : "")" @onclick='() => statusFilter = "All"'>
-        Tất cả (@receipts.Count)
+    <button type="button" class="receipt-filter-chip @(statusFilter == "All" ? "active" : "")" @onclick='() => SetStatusTab("All")'>
+        Tất cả (@ReceiptsForStatusCount.Count())
     </button>
-    <button type="button" class="receipt-filter-chip @(statusFilter == ImportReceiptStatus.Pending ? "active" : "")" @onclick='() => statusFilter = ImportReceiptStatus.Pending'>
+    <button type="button" class="receipt-filter-chip @(statusFilter == ImportReceiptStatus.Pending ? "active" : "")" @onclick='() => SetStatusTab(ImportReceiptStatus.Pending)'>
         <span class="inline-block w-2 h-2 rounded-full bg-amber-500 mr-1.5"></span>
-        Chờ nhập kho (@receipts.Count(r => r.Status == ImportReceiptStatus.Pending))
+        Chờ nhập kho (@ReceiptsForStatusCount.Count(r => r.Status == ImportReceiptStatus.Pending))
     </button>
-    <button type="button" class="receipt-filter-chip @(statusFilter == ImportReceiptStatus.Completed ? "active" : "")" @onclick='() => statusFilter = ImportReceiptStatus.Completed'>
+    <button type="button" class="receipt-filter-chip @(statusFilter == ImportReceiptStatus.Completed ? "active" : "")" @onclick='() => SetStatusTab(ImportReceiptStatus.Completed)'>
         <span class="inline-block w-2 h-2 rounded-full bg-emerald-500 mr-1.5"></span>
-        Đã nhập kho (@receipts.Count(r => r.Status == ImportReceiptStatus.Completed))
+        Đã nhập kho (@ReceiptsForStatusCount.Count(r => r.Status == ImportReceiptStatus.Completed))
     </button>
-    <button type="button" class="receipt-filter-chip @(statusFilter == ImportReceiptStatus.Cancelled ? "active" : "")" @onclick='() => statusFilter = ImportReceiptStatus.Cancelled'>
+    <button type="button" class="receipt-filter-chip @(statusFilter == ImportReceiptStatus.Cancelled ? "active" : "")" @onclick='() => SetStatusTab(ImportReceiptStatus.Cancelled)'>
         <span class="inline-block w-2 h-2 rounded-full bg-rose-500 mr-1.5"></span>
-        Đã hủy (@receipts.Count(r => r.Status == ImportReceiptStatus.Cancelled))
+        Đã hủy (@ReceiptsForStatusCount.Count(r => r.Status == ImportReceiptStatus.Cancelled))
     </button>
 </div>
 
@@ -398,6 +431,9 @@
     [SupplyParameterFromQuery(Name = "id")]
     public int? Id { get; set; }
 
+    [SupplyParameterFromQuery(Name = "supplier")]
+    public int? SupplierQueryId { get; set; }
+
     private List<ImportReceipt> receipts = [];
     private List<Supplier> suppliers = [];
     private ImportReceipt? selected;
@@ -432,13 +468,12 @@
 
     private IEnumerable<Employee> EmployeesWithReceipts => receipts
         .Where(receipt => receipt.Employee is not null)
-        .Select(receipt => receipt.Employee)
+        .Select(receipt => receipt.Employee!)
         .GroupBy(employee => employee.EmployeeID)
         .Select(group => group.First())
         .OrderBy(employee => employee.FullName);
 
-    private IEnumerable<ImportReceipt> FilteredReceipts => receipts.Where(receipt =>
-        (statusFilter == "All" || receipt.Status == statusFilter) &&
+    private IEnumerable<ImportReceipt> ReceiptsForStatusCount => receipts.Where(receipt =>
         (supplierFilter == 0 || receipt.SupplierID == supplierFilter) &&
         (employeeFilter == 0 || receipt.EmployeeID == employeeFilter) &&
         (!from.HasValue || receipt.ReceiptDate.Date >= from.Value.Date) &&
@@ -451,12 +486,21 @@
          ($"PN-{receipt.ReceiptID:D6} {receipt.Supplier?.SupplierCode} {receipt.Supplier?.SupplierName} {receipt.Employee?.FullName} " +
           $"{string.Join(" ", receipt.ImportReceiptDetails.Select(detail => detail.Product?.ProductName))}")
             .Contains(search.Trim(), StringComparison.OrdinalIgnoreCase)));
+
+    private IEnumerable<ImportReceipt> FilteredReceipts => ReceiptsForStatusCount.Where(receipt =>
+        statusFilter == "All" || receipt.Status == statusFilter);
+
     private List<ImportReceipt> FilteredReceiptList => FilteredReceipts.ToList();
 
     protected override async Task OnInitializedAsync() => await LoadAsync();
 
     protected override async Task OnParametersSetAsync()
     {
+        if (SupplierQueryId.HasValue && SupplierQueryId.Value > 0)
+        {
+            supplierFilter = SupplierQueryId.Value;
+        }
+
         if (Id.HasValue && Id.Value > 0 && receipts.Count > 0)
         {
             statusFilter = "All";
@@ -464,8 +508,11 @@
             if (match is not null)
             {
                 selected = match;
+                return;
             }
         }
+
+        EnsureSelectedMatchesFilter();
     }
 
     private async Task LoadAsync()
@@ -473,15 +520,49 @@
         receipts = await Inventory.GetReceiptsAsync();
         suppliers = await Inventory.GetSuppliersAsync();
 
+        if (SupplierQueryId.HasValue && SupplierQueryId.Value > 0)
+        {
+            supplierFilter = SupplierQueryId.Value;
+        }
+
         if (Id.HasValue && Id.Value > 0)
         {
             statusFilter = "All";
             selected = receipts.FirstOrDefault(receipt => receipt.ReceiptID == Id.Value);
         }
 
-        if (selected is not null)
-            selected = receipts.FirstOrDefault(receipt => receipt.ReceiptID == selected.ReceiptID);
-        selected ??= receipts.FirstOrDefault();
+        EnsureSelectedMatchesFilter();
+    }
+
+    private void SetStatusTab(string status)
+    {
+        statusFilter = status;
+        EnsureSelectedMatchesFilter();
+    }
+
+    private void ClearSupplierFilter()
+    {
+        supplierFilter = 0;
+        EnsureSelectedMatchesFilter();
+    }
+
+    private void EnsureSelectedMatchesFilter()
+    {
+        var list = FilteredReceiptList;
+        if (list.Count == 0)
+        {
+            selected = null;
+            return;
+        }
+
+        if (selected is null || !list.Any(r => r.ReceiptID == selected.ReceiptID))
+        {
+            selected = list[0];
+        }
+        else
+        {
+            selected = list.First(r => r.ReceiptID == selected.ReceiptID);
+        }
     }
 
     private void Reset()
@@ -498,6 +579,7 @@
         maxLines = null;
         advancedOpen = false;
         activeAdvancedFilter = null;
+        EnsureSelectedMatchesFilter();
     }
 
     private void ToggleAdvancedFilter(string filter)

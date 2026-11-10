@@ -394,15 +394,15 @@
                     <div class="assign-product-grid">
                         @foreach (var product in productCatalog)
                         {
-                            var assignedToOther = productSupplierIds.TryGetValue(product.ProductID, out var ownerSupplierId) && ownerSupplierId != supplierId;
+                            var hasOtherSuppliers = otherSuppliersByProduct.TryGetValue(product.ProductID, out var otherSuppliers) && otherSuppliers.Count > 0;
                             var isChecked = assignedProductIds.Contains(product.ProductID);
                             var savedPrice = assignmentPrices.GetValueOrDefault(product.ProductID);
 
-                            <label class="assign-product-item @(isChecked ? "selected" : "") @(assignedToOther ? "disabled" : "")">
+                            <label class="assign-product-item @(isChecked ? "selected" : "") @(savingProductAssignment ? "disabled" : "")">
                                 <input type="checkbox"
                                        class="mt-1"
                                        checked="@isChecked"
-                                       disabled="@(savingProductAssignment || assignedToOther)"
+                                       disabled="@savingProductAssignment"
                                        @onchange="() => SelectAssignedProduct(product.ProductID)" />
                                 <div class="flex-1 min-w-0">
                                     <div class="font-semibold text-sm text-slate-800 dark:text-slate-100">@product.ProductName</div>
@@ -413,9 +413,9 @@
                                             <span> · Giá vốn cũ: <strong class="text-emerald-600">@savedPrice.ToString("N0") đ</strong></span>
                                         }
                                     </div>
-                                    @if (assignedToOther)
+                                    @if (hasOtherSuppliers)
                                     {
-                                        <div class="text-xs text-amber-600 mt-0.5">Đã thuộc nhà cung cấp khác</div>
+                                        <div class="text-xs text-slate-400 mt-0.5">Cùng cung cấp bởi: @string.Join(", ", otherSuppliers!)</div>
                                     }
                                 </div>
                             </label>
@@ -579,7 +579,7 @@
     private List<Product> productCatalog = [];
     private HashSet<int> assignedProductIds = [];
     private Dictionary<int, decimal> assignmentPrices = [];
-    private Dictionary<int, int> productSupplierIds = [];
+    private Dictionary<int, List<string>> otherSuppliersByProduct = [];
     private string? assignmentMessage;
 
     private async Task OpenProductAssignment()
@@ -591,14 +591,14 @@
         productCatalog = await Inventory.GetProductsAsync();
         assignedProductIds = (await Inventory.GetSupplierProductIdsAsync(supplierId)).ToHashSet();
         assignmentPrices = await Inventory.GetSupplierProductPricesAsync(supplierId);
-        productSupplierIds = await Inventory.GetProductSupplierIdsAsync();
+        otherSuppliersByProduct = await Inventory.GetOtherSuppliersByProductAsync(supplierId);
         productAssignmentOpen = true;
     }
 
     private async Task RefreshProductCatalog()
     {
         productCatalog = await Inventory.GetProductsAsync();
-        productSupplierIds = await Inventory.GetProductSupplierIdsAsync();
+        otherSuppliersByProduct = await Inventory.GetOtherSuppliersByProductAsync(supplierId);
         assignmentMessage = "Đã tải lại danh sách bánh đang kinh doanh.";
     }
 
