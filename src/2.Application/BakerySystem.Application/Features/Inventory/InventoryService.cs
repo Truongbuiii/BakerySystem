@@ -98,9 +98,33 @@ public sealed class InventoryService(IBakeryDbContext db)
         db.SupplierProducts.AsNoTracking().Where(x => x.SupplierID == supplierId)
             .Select(x => x.ProductID).ToListAsync(ct);
 
-    public Task<Dictionary<int, decimal>> GetSupplierProductPricesAsync(int supplierId, CancellationToken ct = default) =>
-        db.SupplierProducts.AsNoTracking().Where(x => x.SupplierID == supplierId)
+    public async Task<Dictionary<int, decimal>> GetSupplierProductPricesAsync(int supplierId, CancellationToken ct = default)
+    {
+        var links = await db.SupplierProducts.AsNoTracking()
+            .Where(x => x.SupplierID == supplierId)
             .ToDictionaryAsync(x => x.ProductID, x => x.PurchasePrice, ct);
+
+        var missingIds = links.Where(kv => kv.Value <= 0).Select(kv => kv.Key).ToArray();
+        if (missingIds.Length > 0)
+        {
+            var latestHistoryPrices = await db.ImportReceiptDetails.AsNoTracking()
+                .Where(d => missingIds.Contains(d.ProductID) && d.UnitPrice > 0)
+                .OrderByDescending(d => d.ImportReceipt.ReceiptDate)
+                .ThenByDescending(d => d.ReceiptID)
+                .Select(d => new { d.ProductID, d.UnitPrice })
+                .ToListAsync(ct);
+
+            foreach (var item in latestHistoryPrices)
+            {
+                if (links.TryGetValue(item.ProductID, out var current) && current <= 0)
+                {
+                    links[item.ProductID] = item.UnitPrice;
+                }
+            }
+        }
+
+        return links;
+    }
 
     public async Task SaveSupplierProductPriceAsync(int supplierId, int productId, decimal purchasePrice, CancellationToken ct = default)
     {
@@ -126,7 +150,7 @@ public sealed class InventoryService(IBakeryDbContext db)
     public async Task SaveSupplierProductsAsync(
         int supplierId,
         IReadOnlyCollection<int> productIds,
-        IReadOnlyDictionary<int, decimal> purchasePrices,
+        IReadOnlyDictionary<int, decimal>? purchasePrices = null,
         CancellationToken ct = default)
     {
         if (!await db.Suppliers.AnyAsync(x => x.SupplierID == supplierId, ct))
@@ -147,14 +171,32 @@ public sealed class InventoryService(IBakeryDbContext db)
 
         var current = await db.SupplierProducts.Where(x => x.SupplierID == supplierId).ToListAsync(ct);
         var currentByProductId = current.ToDictionary(x => x.ProductID);
+
+        var historyPrices = await db.ImportReceiptDetails.AsNoTracking()
+            .Where(d => selectedIds.Contains(d.ProductID) && d.UnitPrice > 0)
+            .OrderByDescending(d => d.ImportReceipt.ReceiptDate)
+            .ThenByDescending(d => d.ReceiptID)
+            .Select(d => new { d.ProductID, d.UnitPrice })
+            .ToListAsync(ct);
+
+        var latestHistoryByProductId = new Dictionary<int, decimal>();
+        foreach (var item in historyPrices)
+        {
+            if (!latestHistoryByProductId.ContainsKey(item.ProductID))
+                latestHistoryByProductId[item.ProductID] = item.UnitPrice;
+        }
+
         var selectedPrices = new Dictionary<int, decimal>();
         foreach (var productId in selectedIds)
         {
-            var price = purchasePrices.TryGetValue(productId, out var enteredPrice)
-                ? enteredPrice
-                : currentByProductId.GetValueOrDefault(productId)?.PurchasePrice ?? 0;
-            if (price <= 0)
-                throw new InvalidOperationException("Vui lòng cập nhật giá vốn lớn hơn 0 cho tất cả bánh được chọn trước khi lưu.");
+            decimal price = 0;
+            if (purchasePrices is not null && purchasePrices.TryGetValue(productId, out var enteredPrice) && enteredPrice > 0)
+                price = enteredPrice;
+            else if (currentByProductId.TryGetValue(productId, out var existingLink) && existingLink.PurchasePrice > 0)
+                price = existingLink.PurchasePrice;
+            else if (latestHistoryByProductId.TryGetValue(productId, out var historyPrice) && historyPrice > 0)
+                price = historyPrice;
+
             selectedPrices[productId] = price;
         }
 

@@ -61,6 +61,20 @@ public static class BakeryDataSeeder
                         WHERE sp.[ProductID] = d.[ProductID]
                     )
                     GROUP BY d.[ProductID];
+
+                    -- Tự động đồng bộ PurchasePrice từ lần nhập gần nhất nếu PurchasePrice đang <= 0
+                    ;WITH LatestImportPrice AS (
+                        SELECT d.[ProductID], d.[UnitPrice],
+                               ROW_NUMBER() OVER (PARTITION BY d.[ProductID] ORDER BY r.[ReceiptDate] DESC, r.[ReceiptID] DESC) AS rn
+                        FROM [ImportReceiptDetail] d
+                        INNER JOIN [ImportReceipt] r ON r.[ReceiptID] = d.[ReceiptID]
+                        WHERE d.[UnitPrice] > 0
+                    )
+                    UPDATE sp
+                    SET sp.[PurchasePrice] = lip.[UnitPrice]
+                    FROM [SupplierProduct] sp
+                    INNER JOIN LatestImportPrice lip ON lip.[ProductID] = sp.[ProductID] AND lip.rn = 1
+                    WHERE sp.[PurchasePrice] <= 0;
                 END;
 
                 -- Mỗi sản phẩm chỉ thuộc một nhà cung cấp. Giữ lại liên kết có SupplierID nhỏ nhất nếu dữ liệu cũ bị trùng.

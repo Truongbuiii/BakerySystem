@@ -6,117 +6,336 @@
 @inject EmployeeService EmployeeManager
 @inject AuthenticationStateProvider AuthStateProvider
 @inject IJSRuntime JS
+
 <PageTitle>Phiếu nhập kho | BakerySystem</PageTitle>
-<div class="bakery-page-header"><div><h2 class="text-2xl font-bold">Lập phiếu nhập kho</h2><p class="text-bodytext">Tạo phiếu nhập mới và cập nhật số lượng tồn kho.</p></div><div class="bakery-page-actions"><a class="bakery-btn bakery-btn-outline bakery-btn-sm" href="/import-receipt-management">Quản lý phiếu đã nhập</a></div></div>
-<div class="bakery-filter-card min-w-0 max-w-6xl mx-auto">
-    <div class="grid md:grid-cols-2 gap-4">
-        <label>Nhà cung cấp
-            <select class="bakery-input w-full" value="@supplierId" @onchange="SupplierChanged" disabled="@saving">
-                <option value="0">Chọn nhà cung cấp</option>
-                @foreach (var supplier in suppliers) { <option value="@supplier.SupplierID">@supplier.SupplierCode - @supplier.SupplierName</option> }
-            </select>
-            <AuthorizeView Roles="Admin">
-                @if (supplierId > 0)
-                {
-                    <button type="button" class="mt-2 text-sm text-primary hover:underline" @onclick="OpenProductAssignment" disabled="@saving">
-                        Gán / cập nhật bánh của nhà cung cấp này
+
+<div class="bakery-page-header">
+    <div>
+        <h2 class="text-2xl font-bold">Lập phiếu nhập kho</h2>
+        <p class="text-bodytext">Tạo phiếu nhập mới, tự động đối chiếu giá vốn và cập nhật tồn kho.</p>
+    </div>
+    <div class="bakery-page-actions">
+        <a class="bakery-btn bakery-btn-outline bakery-btn-sm" href="/import-receipt-management">
+            <iconify-icon icon="solar:clipboard-list-linear" class="text-base"></iconify-icon>
+            <span>Quản lý phiếu đã nhập</span>
+        </a>
+    </div>
+</div>
+
+<div class="import-page-card max-w-6xl mx-auto">
+    <!-- 1. Thông tin chung của phiếu nhập -->
+    <div class="import-header-grid">
+        <div class="import-field-group">
+            <div class="import-field-label-row">
+                <span class="import-field-label">Nhà cung cấp <span class="text-rose-500">*</span></span>
+                <AuthorizeView Roles="Admin">
+                    <button type="button"
+                            class="import-assign-link"
+                            @onclick="OpenProductAssignment"
+                            disabled="@(saving || supplierId <= 0)"
+                            title="@(supplierId <= 0 ? "Chọn nhà cung cấp trước để phân công bánh" : "Chọn các loại bánh nhà cung cấp này giao")">
+                        <iconify-icon icon="solar:widget-add-linear"></iconify-icon>
+                        <span>@(supplierId > 0 ? $"Chọn bánh cung cấp ({products.Count} bánh)" : "Chọn bánh cung cấp")</span>
                     </button>
+                </AuthorizeView>
+            </div>
+            <select class="bakery-input w-full line-control-height" value="@supplierId" @onchange="SupplierChanged" disabled="@saving">
+                <option value="0">-- Chọn nhà cung cấp --</option>
+                @foreach (var supplier in suppliers)
+                {
+                    <option value="@supplier.SupplierID">@supplier.SupplierCode - @supplier.SupplierName</option>
                 }
-            </AuthorizeView>
-        </label>
-        <label>Nhân viên lập phiếu
-            <input class="bakery-input w-full" value="@employeeName" readonly />
-        </label>
-        <label class="md:col-span-2">Ghi chú
-            <input class="bakery-input w-full" placeholder="Ghi chú về lô hàng hoặc chứng từ..." @bind="note" disabled="@saving" />
-        </label>
+            </select>
+        </div>
+
+        <div class="import-field-group">
+            <div class="import-field-label-row">
+                <span class="import-field-label">Nhân viên lập phiếu</span>
+            </div>
+            <input class="bakery-input w-full line-control-height" value="@employeeName" readonly />
+        </div>
+
+        <div class="import-field-group" style="grid-column: 1 / -1;">
+            <div class="import-field-label-row">
+                <span class="import-field-label">Ghi chú phiếu nhập</span>
+            </div>
+            <input class="bakery-input w-full line-control-height" placeholder="Ghi chú về lô hàng, số hóa đơn giao hàng hoặc tình trạng kiểm nhận..." @bind="note" disabled="@saving" />
+        </div>
     </div>
 
-    <div class="mt-5 border-t border-slate-200 pt-4">
-        <div class="mb-2 flex items-center justify-between gap-3">
+    <!-- 2. Danh sách mặt hàng nhập kho -->
+    <div class="import-section-divider">
+        <div class="import-section-header">
             <div>
-                <h3 class="font-bold mb-0">Danh sách sản phẩm nhập</h3>
-                <p class="text-xs text-slate-500 mb-0">Giá vốn đã lưu sẽ được điền sẵn; bạn có thể sửa lại. Thành tiền tự tính theo số lượng.</p>
+                <h3 class="font-bold text-base mb-0">Danh sách sản phẩm nhập</h3>
+                <p class="text-xs text-slate-500 mb-0">
+                    Chọn <strong>Giá nhập trước</strong> để dùng lại giá vốn cũ hoặc bấm <strong>Nhập giá mới</strong> nếu nhà cung cấp thay đổi giá.
+                </p>
             </div>
-            <span class="text-xs text-slate-500">@lines.Count dòng</span>
+            @if (supplierId > 0 && products.Count > 0)
+            {
+                <span class="bakery-badge bakery-badge-secondary">@lines.Count dòng hàng</span>
+            }
         </div>
+
         @if (supplierId <= 0)
         {
-            <div class="rounded-lg border border-dashed border-slate-300 p-4 text-center text-sm text-slate-500">
-                Vui lòng chọn nhà cung cấp trước khi thêm sản phẩm.
+            <div class="import-empty-box">
+                <iconify-icon icon="solar:buildings-2-linear" class="text-3xl text-slate-400 mb-2"></iconify-icon>
+                <p class="font-semibold text-slate-700 dark:text-slate-200 mb-1">Chưa chọn nhà cung cấp</p>
+                <p class="text-xs text-slate-500 mb-0">Vui lòng chọn nhà cung cấp ở trên để hiển thị danh sách bánh và bắt đầu lập phiếu nhập.</p>
             </div>
         }
         else if (products.Count == 0)
         {
-            <div class="rounded-lg border border-dashed border-amber-300 bg-amber-50 p-4 text-center text-sm text-amber-700">
-                Nhà cung cấp chưa có bánh được gán. Hãy gán sản phẩm trước khi lập phiếu.
+            <div class="import-empty-box">
+                <iconify-icon icon="solar:box-minimalistic-linear" class="text-3xl text-amber-500 mb-2"></iconify-icon>
+                <p class="font-semibold text-slate-800 dark:text-slate-100 mb-1">Nhà cung cấp này chưa có bánh nào được phân công</p>
+                <p class="text-xs text-slate-500 mb-3">Hãy tick chọn những loại bánh mà nhà cung cấp này giao trước khi lập phiếu.</p>
+                <AuthorizeView Roles="Admin">
+                    <Authorized>
+                        <button type="button" class="bakery-btn bakery-btn-primary bakery-btn-sm" @onclick="OpenProductAssignment">
+                            + Chọn bánh cho nhà cung cấp này
+                        </button>
+                    </Authorized>
+                    <NotAuthorized>
+                        <span class="text-xs text-amber-700">Vui lòng nhờ Quản trị viên phân công bánh cho nhà cung cấp này.</span>
+                    </NotAuthorized>
+                </AuthorizeView>
             </div>
         }
-        else if (MissingPurchasePriceCount > 0)
+        else
         {
-            <div class="rounded-lg border border-dashed border-amber-300 bg-amber-50 p-4 text-center text-sm text-amber-700">
-                Cần cập nhật giá vốn cho @MissingPurchasePriceCount bánh trước khi lập phiếu. Cửa sổ cập nhật giá đã được mở.
+            <div class="import-lines-list">
+                @foreach (var line in lines)
+                {
+                    var selectedProduct = products.FirstOrDefault(p => p.ProductID == line.ProductID);
+                    var hasPreviousPrice = line.ProductID > 0 && purchasePrices.TryGetValue(line.ProductID, out var prevPriceVal) && prevPriceVal > 0;
+                    var previousPrice = hasPreviousPrice ? purchasePrices[line.ProductID] : 0m;
+                    var mode = GetPriceMode(line, hasPreviousPrice);
+                    var isLossWarning = selectedProduct is not null && selectedProduct.Price > 0 && line.UnitPrice >= selectedProduct.Price;
+
+                    <div class="import-line-card @(isLossWarning ? "has-loss-warning" : "")">
+                        <div class="import-line-grid">
+                            <!-- Cột 1: Chọn sản phẩm -->
+                            <div class="import-field-group">
+                                <div class="line-col-header">
+                                    <span class="import-field-label">Sản phẩm</span>
+                                </div>
+                                <select class="bakery-input w-full line-control-height"
+                                        @bind="line.ProductID"
+                                        @bind:after="() => ApplyPurchasePrice(line)"
+                                        disabled="@saving">
+                                    <option value="0">-- Chọn bánh cần nhập --</option>
+                                    @foreach (var product in products)
+                                    {
+                                        var isChosen = lines.Any(l => l != line && l.ProductID == product.ProductID);
+                                        <option value="@product.ProductID" disabled="@isChosen">
+                                            @product.ProductName (Tồn: @product.Quantity)@(isChosen ? " — Đã chọn" : "")
+                                        </option>
+                                    }
+                                </select>
+                            </div>
+
+                            <!-- Cột 2: Số lượng -->
+                            <div class="import-field-group">
+                                <div class="line-col-header">
+                                    <span class="import-field-label">Số lượng</span>
+                                </div>
+                                <input class="bakery-input w-full line-control-height"
+                                       type="number"
+                                       min="1"
+                                       placeholder="SL"
+                                       @bind="line.Quantity"
+                                       @bind:event="oninput"
+                                       disabled="@(saving || line.ProductID <= 0)" />
+                            </div>
+
+                            <!-- Cột 3: Đơn giá vốn (2 Button chọn luôn hiển thị cố định tránh nhảy layout) -->
+                            <div class="import-field-group">
+                                <div class="line-col-header">
+                                    <span class="import-field-label">Đơn giá vốn</span>
+                                    <div class="price-mode-tabs">
+                                        <button type="button"
+                                                class="price-mode-btn @(line.ProductID > 0 && mode == "saved" ? "active" : "")"
+                                                disabled="@(line.ProductID <= 0 || !hasPreviousPrice || saving)"
+                                                title="@(hasPreviousPrice ? $"Dùng lại mức giá {previousPrice:N0} đ từ lần nhập trước" : "Sản phẩm này chưa có giá vốn lưu từ trước")"
+                                                @onclick='() => SwitchPriceMode(line, "saved")'>
+                                            @(line.ProductID > 0 && hasPreviousPrice ? $"Giá trước ({previousPrice:N0}đ)" : "Giá trước")
+                                        </button>
+                                        <button type="button"
+                                                class="price-mode-btn @(line.ProductID > 0 && mode == "custom" ? "active" : "")"
+                                                disabled="@(line.ProductID <= 0 || saving)"
+                                                @onclick='() => SwitchPriceMode(line, "custom")'>
+                                            Nhập giá mới
+                                        </button>
+                                    </div>
+                                </div>
+
+                                @if (line.ProductID <= 0)
+                                {
+                                    <input class="bakery-input w-full line-control-height" type="text" value="Chọn sản phẩm trước" disabled />
+                                }
+                                else if (mode == "saved" && hasPreviousPrice)
+                                {
+                                    <div class="saved-price-display line-control-height">
+                                        <span class="saved-price-amount">@line.UnitPrice.ToString("N0") đ / bánh</span>
+                                        <span class="saved-price-tag">Giá lần nhập trước</span>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <input class="bakery-input w-full line-control-height"
+                                           type="text"
+                                           inputmode="numeric"
+                                           placeholder="Nhập đơn giá vốn mới (VNĐ)..."
+                                           value="@GetUnitPriceText(line)"
+                                           @oninput="args => UnitPriceChanged(line, args)"
+                                           @onblur="() => FormatUnitPrice(line)"
+                                           disabled="@saving" />
+                                }
+                            </div>
+
+                            <!-- Cột 4: Thành tiền -->
+                            <div class="import-field-group">
+                                <div class="line-col-header">
+                                    <span class="import-field-label">Thành tiền</span>
+                                </div>
+                                <div class="import-subtotal-box line-control-height">
+                                    <span class="import-subtotal-val">@((line.Quantity * line.UnitPrice).ToString("#,##0", PriceCulture)) đ</span>
+                                </div>
+                            </div>
+
+                            <!-- Cột 5: Nút Xóa dòng -->
+                            <div class="import-field-group">
+                                <div class="line-col-header">
+                                    <span class="import-field-label">&nbsp;</span>
+                                </div>
+                                <button type="button"
+                                        class="import-remove-btn line-control-height"
+                                        title="Xóa dòng sản phẩm này"
+                                        @onclick="() => RemoveLine(line)"
+                                        disabled="@(saving || lines.Count == 1)">
+                                    <iconify-icon icon="solar:trash-bin-trash-linear" class="text-base"></iconify-icon>
+                                    <span>Xóa</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Thanh trạng thái cố định ở đáy thẻ (Zero Layout Shift khi chọn/đổi bánh) -->
+                        <div class="import-line-statusbar">
+                            @if (selectedProduct is null)
+                            {
+                                <div class="status-meta-group">
+                                    <span class="text-slate-400">Chọn sản phẩm để tự động tra cứu giá vốn lần nhập trước và đối chiếu lãi gộp với giá bán lẻ.</span>
+                                </div>
+                                <span class="status-feedback-badge neutral">Chờ chọn bánh</span>
+                            }
+                            else
+                            {
+                                <div class="status-meta-group">
+                                    <span class="status-meta-item">
+                                        Giá bán lẻ: <strong class="text-slate-800 dark:text-slate-100">@selectedProduct.Price.ToString("N0") đ</strong>
+                                    </span>
+                                    <span class="status-meta-dot">•</span>
+                                    <span class="status-meta-item">
+                                        Tồn hiện tại: <strong>@selectedProduct.Quantity bánh</strong>
+                                    </span>
+                                    <span class="status-meta-dot">•</span>
+                                    @if (hasPreviousPrice)
+                                    {
+                                        <span class="status-meta-item">
+                                            Giá vốn cũ: <strong class="text-emerald-700 dark:text-emerald-400">@previousPrice.ToString("N0") đ</strong>
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="status-meta-item text-amber-700 dark:text-amber-400">
+                                            Chưa có lịch sử giá vốn
+                                        </span>
+                                    }
+                                </div>
+
+                                @if (line.UnitPrice <= 0)
+                                {
+                                    <span class="status-feedback-badge danger">
+                                        Vui lòng nhập đơn giá vốn &gt; 0
+                                    </span>
+                                }
+                                else if (selectedProduct.Price > 0 && line.UnitPrice >= selectedProduct.Price)
+                                {
+                                    var lossPerUnit = line.UnitPrice - selectedProduct.Price;
+                                    <span class="status-feedback-badge danger">
+                                        ⚠️ Cảnh báo bán lỗ: Giá vốn @(lossPerUnit == 0 ? "bằng" : $"cao hơn {lossPerUnit:N0} đ so với") giá bán lẻ!
+                                    </span>
+                                }
+                                else if (selectedProduct.Price > 0)
+                                {
+                                    var margin = selectedProduct.Price - line.UnitPrice;
+                                    var marginPct = Math.Round(margin * 100m / selectedProduct.Price, 0);
+                                    <span class="status-feedback-badge profit">
+                                        ✓ Lãi gộp dự kiến: +@margin.ToString("N0") đ/bánh (@marginPct%) · Tự động lưu cho lần sau
+                                    </span>
+                                }
+                            }
+                        </div>
+                    </div>
+                }
             </div>
-        }
-        @foreach (var line in lines)
-        {
-            var selectedProduct = products.FirstOrDefault(p => p.ProductID == line.ProductID);
-            <div class="grid grid-cols-1 md:grid-cols-[minmax(0,2.4fr)_0.8fr_1.2fr_1.2fr_auto] gap-3 mt-3 items-end rounded-lg border border-slate-200 p-3">
-                <label>Sản phẩm
-                    <select class="bakery-input w-full" @bind="line.ProductID" @bind:after="() => ApplyPurchasePrice(line)" disabled="@(saving || products.Count == 0 || MissingPurchasePriceCount > 0)">
-                    <option value="0">Chọn sản phẩm</option>
-                    @foreach (var product in products)
-                    {
-                        var isChosen = lines.Any(l => l != line && l.ProductID == product.ProductID);
-                        <option value="@product.ProductID" disabled="@isChosen">
-                            @product.ProductName (tồn @product.Quantity)@(isChosen ? " — Đã chọn" : "")
-                        </option>
-                    }
-                    </select>
-                </label>
-                <label>Số lượng
-                    <input class="bakery-input w-full" type="number" min="1" @bind="line.Quantity" @bind:event="oninput" disabled="@saving" />
-                </label>
-                <label>Đơn giá vốn
-                    <input class="bakery-input w-full" type="text" inputmode="numeric" value="@GetUnitPriceText(line)"
-                           @oninput="args => UnitPriceChanged(line, args)" @onblur="() => FormatUnitPrice(line)" disabled="@saving" />
-                    @if (line.ProductID > 0 && line.UnitPrice <= 0)
-                    {
-                        <span class="mt-1 block text-xs text-rose-600">Chưa có giá vốn. Nhập giá trước khi lưu phiếu.</span>
-                    }
-                    else if (selectedProduct is not null && selectedProduct.Price > 0 && line.UnitPrice >= selectedProduct.Price)
-                    {
-                        <span class="mt-1 block text-xs text-amber-600">Lưu ý: Giá vốn (@line.UnitPrice.ToString("N0") đ) &gt;= giá bán (@selectedProduct.Price.ToString("N0") đ).</span>
-                    }
-                </label>
-                <div class="pb-2">
-                    <span class="block text-xs text-slate-500">Thành tiền</span>
-                    <strong>@((line.Quantity * line.UnitPrice).ToString("#,##0", PriceCulture)) đ</strong>
+
+            @if (LossWarningLinesCount > 0)
+            {
+                <div class="mt-4 rounded-xl border border-amber-300 bg-amber-50 p-3.5 text-xs text-amber-800 flex items-start justify-between gap-3">
+                    <div>
+                        <strong class="block text-sm text-amber-900 mb-0.5">
+                            ⚠️ Phát hiện @LossWarningLinesCount sản phẩm có Giá vốn cao hơn hoặc bằng Giá bán lẻ!
+                        </strong>
+                        <span>Vui lòng kiểm tra kỹ xem bạn có gõ dư số 0 hay không trước khi lưu phiếu nhập kho.</span>
+                    </div>
                 </div>
-                <button class="bakery-btn bakery-btn-secondary bakery-btn-sm" @onclick="() => lines.Remove(line)" disabled="@(saving || lines.Count == 1)">Xóa</button>
+            }
+
+            <!-- 3. Thanh công cụ cuối phiếu -->
+            <div class="import-footer-bar">
+                <button type="button"
+                        class="bakery-btn bakery-btn-secondary"
+                        @onclick="AddLine"
+                        disabled="@(saving || lines.Count >= products.Count)">
+                    + Thêm dòng sản phẩm
+                </button>
+
+                <div class="import-total-summary">
+                    <div class="import-total-box">
+                        <span class="import-total-label">Tổng cộng (@lines.Where(l => l.ProductID > 0).Sum(l => l.Quantity) bánh)</span>
+                        <span class="import-total-value">@Total.ToString("#,##0", PriceCulture) đ</span>
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-2.5">
+                        <button type="button"
+                                class="bakery-btn bakery-btn-outline"
+                                @onclick='() => Save(ImportReceiptStatus.Pending)'
+                                disabled="@(!CanSave)">
+                            <iconify-icon icon="solar:clock-circle-linear" class="mr-1"></iconify-icon>
+                            @(saving ? "Đang lưu..." : "Lưu phiếu chờ duyệt")
+                        </button>
+                        <button type="button"
+                                class="bakery-btn bakery-btn-primary"
+                                @onclick='() => Save(ImportReceiptStatus.Completed)'
+                                disabled="@(!CanSave)">
+                            <iconify-icon icon="solar:box-minimalistic-bold" class="mr-1"></iconify-icon>
+                            @(saving ? "Đang lưu..." : "Duyệt & Nhập kho ngay")
+                        </button>
+                    </div>
+                </div>
             </div>
         }
     </div>
 
-    <div class="flex flex-wrap justify-between items-center mt-4 gap-3">
-        <button class="bakery-btn bakery-btn-secondary" @onclick="AddLine" disabled="@(saving || supplierId <= 0 || products.Count == 0)">+ Thêm sản phẩm</button>
-        <div class="flex flex-wrap items-center gap-3">
-            <strong>Tổng tiền: @Total.ToString("#,##0", PriceCulture) đ</strong>
-            <button class="bakery-btn bakery-btn-outline" @onclick='() => Save(ImportReceiptStatus.Pending)' disabled="@(!CanSave)">
-                <iconify-icon icon="solar:clock-circle-linear" class="mr-1"></iconify-icon>
-                @(saving ? "Đang lưu..." : "Lưu phiếu chờ duyệt")
-            </button>
-            <button class="bakery-btn bakery-btn-primary" @onclick='() => Save(ImportReceiptStatus.Completed)' disabled="@(!CanSave)">
-                <iconify-icon icon="solar:box-minimalistic-bold" class="mr-1"></iconify-icon>
-                @(saving ? "Đang lưu..." : "Duyệt & Nhập kho ngay")
-            </button>
-        </div>
-    </div>
     @if (!string.IsNullOrEmpty(message))
     {
         @if (saved && lastCreatedReceiptId > 0)
         {
-            <div class="mt-4 rounded-lg border border-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 p-4 text-emerald-800 dark:text-emerald-300 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div class="mt-4 rounded-xl border border-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 p-4 text-emerald-800 dark:text-emerald-300 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div class="flex items-center gap-3">
                     <iconify-icon icon="solar:check-circle-bold" class="text-2xl text-emerald-600 shrink-0"></iconify-icon>
                     <div>
@@ -131,7 +350,7 @@
                     <a class="bakery-btn bakery-btn-primary bakery-btn-sm" href="/import-receipt-management?id=@lastCreatedReceiptId">
                         Xem chi tiết phiếu
                     </a>
-                    <button type="button" class="bakery-btn bakery-btn-secondary bakery-btn-sm" @onclick="() => { saved = false; lastCreatedReceiptId = 0; }">
+                    <button type="button" class="bakery-btn bakery-btn-secondary bakery-btn-sm" @onclick="() => { saved = false; lastCreatedReceiptId = 0; message = null; }">
                         Tiếp tục lập phiếu
                     </button>
                 </div>
@@ -144,6 +363,7 @@
     }
 </div>
 
+<!-- Modal Chọn bánh nhà cung cấp có thể giao (Chỉ tick chọn bánh, KHÔNG bắt nhập giá vốn) -->
 @if (productAssignmentOpen)
 {
     var selectedSupplier = suppliers.FirstOrDefault(supplier => supplier.SupplierID == supplierId);
@@ -157,11 +377,11 @@
                 <button type="button" class="text-slate-400 hover:text-slate-600 text-lg" @onclick="CloseProductAssignment" aria-label="Đóng">×</button>
             </div>
             <div class="bakery-modal-body">
-                <div class="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-slate-50 p-3 text-sm">
-                    <span>Mỗi bánh chỉ thuộc một nhà cung cấp. Chưa có bánh trong danh sách? Tạo bánh trước, rồi tải lại.</span>
+                <div class="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-slate-50 p-3 text-xs text-slate-600">
+                    <span>Tick chọn các loại bánh mà nhà cung cấp này phân phối. Giá vốn sẽ được chọn hoặc nhập trực tiếp khi lập phiếu.</span>
                     <div class="flex gap-2">
                         <a class="bakery-btn bakery-btn-secondary bakery-btn-sm" href="/products" target="_blank" rel="noopener">Mở Menu &amp; Bánh ngọt</a>
-                        <button type="button" class="bakery-btn bakery-btn-secondary bakery-btn-sm" @onclick="RefreshProductCatalog">Tải lại danh sách</button>
+                        <button type="button" class="bakery-btn bakery-btn-secondary bakery-btn-sm" @onclick="RefreshProductCatalog">Tải lại</button>
                     </div>
                 </div>
 
@@ -171,31 +391,36 @@
                 }
                 else
                 {
-                    <div class="grid max-h-80 grid-cols-1 gap-2 overflow-y-auto sm:grid-cols-2">
+                    <div class="assign-product-grid">
                         @foreach (var product in productCatalog)
                         {
-                            <div class="rounded-lg border border-slate-200 p-3">
-                                <label class="flex items-center gap-2">
-                                    <input type="checkbox" checked="@assignedProductIds.Contains(product.ProductID)" @onchange="() => SelectAssignedProduct(product.ProductID)" disabled="@savingProductAssignment" />
-                                    <span>@product.ProductName</span>
-                                </label>
-                                @if (assignedProductIds.Contains(product.ProductID))
-                                {
-                                    <label class="mt-2 block text-xs text-slate-600">Giá vốn mỗi bánh
-                                        <input class="bakery-input mt-1 w-full" type="text" inputmode="numeric"
-                                               value="@FormatPrice(assignmentPrices.GetValueOrDefault(product.ProductID))"
-                                               @onchange="args => UpdateAssignmentPrice(product.ProductID, args)"
-                                               disabled="@savingProductAssignment" />
-                                    </label>
-                                }
-                            </div>
+                            var assignedToOther = productSupplierIds.TryGetValue(product.ProductID, out var ownerSupplierId) && ownerSupplierId != supplierId;
+                            var isChecked = assignedProductIds.Contains(product.ProductID);
+                            var savedPrice = assignmentPrices.GetValueOrDefault(product.ProductID);
+
+                            <label class="assign-product-item @(isChecked ? "selected" : "") @(assignedToOther ? "disabled" : "")">
+                                <input type="checkbox"
+                                       class="mt-1"
+                                       checked="@isChecked"
+                                       disabled="@(savingProductAssignment || assignedToOther)"
+                                       @onchange="() => SelectAssignedProduct(product.ProductID)" />
+                                <div class="flex-1 min-w-0">
+                                    <div class="font-semibold text-sm text-slate-800 dark:text-slate-100">@product.ProductName</div>
+                                    <div class="text-xs text-slate-500 mt-0.5">
+                                        Giá bán lẻ: <strong>@product.Price.ToString("N0") đ</strong>
+                                        @if (savedPrice > 0)
+                                        {
+                                            <span> · Giá vốn cũ: <strong class="text-emerald-600">@savedPrice.ToString("N0") đ</strong></span>
+                                        }
+                                    </div>
+                                    @if (assignedToOther)
+                                    {
+                                        <div class="text-xs text-amber-600 mt-0.5">Đã thuộc nhà cung cấp khác</div>
+                                    }
+                                </div>
+                            </label>
                         }
                     </div>
-                }
-
-                @if (MissingAssignmentPriceCount > 0)
-                {
-                    <p class="mt-3 text-sm text-rose-600">Cần nhập giá vốn lớn hơn 0 cho @MissingAssignmentPriceCount bánh đang chọn trước khi lập phiếu.</p>
                 }
 
                 @if (!string.IsNullOrEmpty(assignmentMessage))
@@ -205,8 +430,8 @@
             </div>
             <div class="bakery-modal-footer">
                 <button type="button" class="bakery-btn bakery-btn-outline" @onclick="CloseProductAssignment" disabled="@savingProductAssignment">Đóng</button>
-                <button type="button" class="bakery-btn bakery-btn-primary" @onclick="SaveProductAssignment" disabled="@(savingProductAssignment || productCatalog.Count == 0 || MissingAssignmentPriceCount > 0)">
-                    @(savingProductAssignment ? "Đang lưu..." : "Lưu và tiếp tục nhập")
+                <button type="button" class="bakery-btn bakery-btn-primary" @onclick="SaveProductAssignment" disabled="@(savingProductAssignment || productCatalog.Count == 0)">
+                    @(savingProductAssignment ? "Đang lưu..." : $"Lưu danh sách ({assignedProductIds.Count} bánh)")
                 </button>
             </div>
         </div>
@@ -220,6 +445,7 @@
     private Dictionary<int, decimal> purchasePrices = [];
     private List<ImportLineInput> lines = [new()];
     private readonly Dictionary<ImportLineInput, string> unitPriceText = [];
+    private readonly Dictionary<ImportLineInput, string> linePriceModes = [];
     private int supplierId;
     private int employeeId;
     private string? note;
@@ -227,13 +453,49 @@
     private string? message;
     private bool saved;
     private bool saving;
+
     private decimal Total => lines.Sum(line => line.Quantity * line.UnitPrice);
+
+    private int LossWarningLinesCount => lines.Count(line =>
+    {
+        if (line.ProductID <= 0 || line.UnitPrice <= 0) return false;
+        var p = products.FirstOrDefault(x => x.ProductID == line.ProductID);
+        return p is not null && p.Price > 0 && line.UnitPrice >= p.Price;
+    });
+
+    private string GetPriceMode(ImportLineInput line, bool hasPreviousPrice)
+    {
+        if (linePriceModes.TryGetValue(line, out var mode))
+        {
+            if (mode == "saved" && !hasPreviousPrice)
+                return "custom";
+            return mode;
+        }
+        return hasPreviousPrice ? "saved" : "custom";
+    }
+
+    private void SwitchPriceMode(ImportLineInput line, string mode)
+    {
+        linePriceModes[line] = mode;
+        if (mode == "saved" && line.ProductID > 0 && purchasePrices.TryGetValue(line.ProductID, out var savedPrice) && savedPrice > 0)
+        {
+            line.UnitPrice = savedPrice;
+            unitPriceText[line] = FormatPrice(line.UnitPrice);
+        }
+        else if (mode == "custom")
+        {
+            unitPriceText[line] = line.UnitPrice > 0 ? FormatPrice(line.UnitPrice) : string.Empty;
+        }
+    }
+
     private string GetUnitPriceText(ImportLineInput line) => unitPriceText.TryGetValue(line, out var value)
         ? value
-        : FormatPrice(line.UnitPrice);
+        : (line.UnitPrice > 0 ? FormatPrice(line.UnitPrice) : string.Empty);
+
     private static string FormatPrice(decimal value) => value.ToString("#,##0.##", PriceCulture);
+
     private static bool TryParsePrice(string? value, out decimal price) => decimal.TryParse(
-        value?.Replace(",", string.Empty),
+        value?.Replace(",", string.Empty).Replace(".", string.Empty),
         System.Globalization.NumberStyles.Number,
         System.Globalization.CultureInfo.InvariantCulture,
         out price);
@@ -245,7 +507,9 @@
         line.UnitPrice = TryParsePrice(value, out var price) ? price : 0;
     }
 
-    private void FormatUnitPrice(ImportLineInput line) => unitPriceText[line] = FormatPrice(line.UnitPrice);
+    private void FormatUnitPrice(ImportLineInput line) =>
+        unitPriceText[line] = line.UnitPrice > 0 ? FormatPrice(line.UnitPrice) : string.Empty;
+
     private bool CanSave => !saving &&
         employeeId > 0 &&
         supplierId > 0 &&
@@ -299,21 +563,15 @@
             line.ProductID = 0;
             line.Quantity = 0;
             line.UnitPrice = 0;
+            linePriceModes.Remove(line);
+            unitPriceText.Remove(line);
             clearedLineCount++;
         }
 
-        message = supplierId > 0 && products.Count == 0
-            ? "Nhà cung cấp này chưa được gán bánh. Bấm “Gán / cập nhật bánh” ngay dưới ô nhà cung cấp để thiết lập."
-            : clearedLineCount > 0
-                ? $"Đã xóa sản phẩm và số liệu ở {clearedLineCount} dòng không thuộc nhà cung cấp mới. Vui lòng chọn lại sản phẩm."
-                : null;
+        message = clearedLineCount > 0
+            ? $"Đã làm mới {clearedLineCount} dòng không thuộc nhà cung cấp mới. Vui lòng chọn sản phẩm."
+            : null;
         saved = false;
-
-        if (products.Count > 0 && MissingPurchasePriceCount > 0)
-        {
-            message = "Cần cập nhật giá vốn cho các bánh đã gán trước khi lập phiếu.";
-            await OpenProductAssignment();
-        }
     }
 
     private bool productAssignmentOpen;
@@ -321,11 +579,8 @@
     private List<Product> productCatalog = [];
     private HashSet<int> assignedProductIds = [];
     private Dictionary<int, decimal> assignmentPrices = [];
+    private Dictionary<int, int> productSupplierIds = [];
     private string? assignmentMessage;
-    private int MissingPurchasePriceCount => products.Count(product =>
-        !purchasePrices.TryGetValue(product.ProductID, out var price) || price <= 0);
-    private int MissingAssignmentPriceCount => assignedProductIds.Count(productId =>
-        !assignmentPrices.TryGetValue(productId, out var price) || price <= 0);
 
     private async Task OpenProductAssignment()
     {
@@ -336,12 +591,14 @@
         productCatalog = await Inventory.GetProductsAsync();
         assignedProductIds = (await Inventory.GetSupplierProductIdsAsync(supplierId)).ToHashSet();
         assignmentPrices = await Inventory.GetSupplierProductPricesAsync(supplierId);
+        productSupplierIds = await Inventory.GetProductSupplierIdsAsync();
         productAssignmentOpen = true;
     }
 
     private async Task RefreshProductCatalog()
     {
         productCatalog = await Inventory.GetProductsAsync();
+        productSupplierIds = await Inventory.GetProductSupplierIdsAsync();
         assignmentMessage = "Đã tải lại danh sách bánh đang kinh doanh.";
     }
 
@@ -349,17 +606,6 @@
     {
         if (!assignedProductIds.Add(productId))
             assignedProductIds.Remove(productId);
-        else if (!assignmentPrices.ContainsKey(productId))
-            assignmentPrices[productId] = 0;
-    }
-
-    private void UpdateAssignmentPrice(int productId, ChangeEventArgs args)
-    {
-        var value = args.Value?.ToString()?.Replace(",", string.Empty);
-        assignmentPrices[productId] = decimal.TryParse(value,
-            System.Globalization.NumberStyles.Number,
-            System.Globalization.CultureInfo.InvariantCulture,
-            out var price) && price > 0 ? price : 0;
     }
 
     private async Task SaveProductAssignment()
@@ -379,8 +625,10 @@
                 line.ProductID = 0;
                 line.Quantity = 0;
                 line.UnitPrice = 0;
+                linePriceModes.Remove(line);
+                unitPriceText.Remove(line);
             }
-            message = "Đã cập nhật danh sách bánh. Bạn có thể tiếp tục chọn bánh để lập phiếu.";
+            message = "Đã cập nhật danh sách bánh của nhà cung cấp.";
             saved = true;
             productAssignmentOpen = false;
         }
@@ -398,13 +646,40 @@
 
     private void AddLine() => lines.Add(new());
 
+    private void RemoveLine(ImportLineInput line)
+    {
+        lines.Remove(line);
+        unitPriceText.Remove(line);
+        linePriceModes.Remove(line);
+    }
+
     private void ApplyPurchasePrice(ImportLineInput line)
     {
-        if (line.ProductID > 0 && purchasePrices.TryGetValue(line.ProductID, out var purchasePrice))
-            line.UnitPrice = purchasePrice;
+        if (line.ProductID > 0)
+        {
+            if (line.Quantity <= 0)
+                line.Quantity = 1;
+
+            if (purchasePrices.TryGetValue(line.ProductID, out var purchasePrice) && purchasePrice > 0)
+            {
+                line.UnitPrice = purchasePrice;
+                linePriceModes[line] = "saved";
+                unitPriceText[line] = FormatPrice(line.UnitPrice);
+            }
+            else
+            {
+                line.UnitPrice = 0;
+                linePriceModes[line] = "custom";
+                unitPriceText[line] = string.Empty;
+            }
+        }
         else
+        {
+            line.Quantity = 0;
             line.UnitPrice = 0;
-        unitPriceText[line] = FormatPrice(line.UnitPrice);
+            linePriceModes.Remove(line);
+            unitPriceText.Remove(line);
+        }
     }
 
     private int lastCreatedReceiptId;
@@ -437,6 +712,7 @@
             note = null;
             lines = [new()];
             unitPriceText.Clear();
+            linePriceModes.Clear();
             products = [];
             await Load();
         }
