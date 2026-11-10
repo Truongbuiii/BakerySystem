@@ -210,6 +210,7 @@ public class ImportReceiptConfiguration : IEntityTypeConfiguration<ImportReceipt
         builder.HasKey(ir => ir.ReceiptID);
         builder.Property(ir => ir.ReceiptDate).HasColumnType("datetime").HasDefaultValueSql("GETDATE()");
         builder.Property(ir => ir.TotalAmount).HasPrecision(18, 2).HasDefaultValue(0);
+        builder.Property(ir => ir.Status).HasMaxLength(20).IsUnicode(false).HasDefaultValue(BakerySystem.Domain.Enums.ImportReceiptStatus.Completed);
         builder.Property(ir => ir.Note).HasMaxLength(500);
 
         builder.HasOne(ir => ir.Supplier)

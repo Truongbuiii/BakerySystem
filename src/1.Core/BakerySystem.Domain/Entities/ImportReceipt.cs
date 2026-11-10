@@ -7,6 +7,7 @@ public class ImportReceipt
     public int EmployeeID { get; set; }
     public DateTime ReceiptDate { get; set; } = DateTime.Now;
     public decimal TotalAmount { get; set; }
+    public string Status { get; set; } = Enums.ImportReceiptStatus.Completed;
     public string? Note { get; set; }
 
     // Navigation Properties

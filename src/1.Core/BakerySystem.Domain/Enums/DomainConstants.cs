@@ -25,6 +25,29 @@ public static class OrderStatus
     public const string Cancelled = "Cancelled";
 }
 
+public static class ImportReceiptStatus
+{
+    public const string Pending = "Pending";       // Chờ nhập kho / Phiếu tạm (Chưa cộng tồn kho)
+    public const string Completed = "Completed";   // Đã nhập kho (Đã kiểm đếm và cộng tồn kho)
+    public const string Cancelled = "Cancelled";   // Đã hủy (Hoàn tác tồn kho nếu đã nhập)
+
+    public static string GetLabel(string? status) => status switch
+    {
+        Pending => "Chờ duyệt nhập",
+        Completed => "Đã nhập kho",
+        Cancelled => "Đã hủy",
+        _ => status ?? "Chưa xác định"
+    };
+
+    public static string GetBadgeClass(string? status) => status switch
+    {
+        Pending => "bakery-badge-warning",
+        Completed => "bakery-badge-success",
+        Cancelled => "bakery-badge-error",
+        _ => "bakery-badge-secondary"
+    };
+}
+
 public static class PaymentMethod
 {
     public const string COD = "COD";

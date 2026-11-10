@@ -1,6 +1,7 @@
 @page "/suppliers/{SupplierId:int}"
 @rendermode InteractiveServer
 @attribute [Authorize(Roles = "Admin")]
+@using BakerySystem.Domain.Enums
 @inject InventoryService Inventory
 @inject IJSRuntime JS
 
@@ -102,6 +103,7 @@ else
                     <tr>
                         <th class="text-left p-3">Mã phiếu</th>
                         <th class="text-left p-3">Ngày nhập</th>
+                        <th class="text-left p-3">Trạng thái</th>
                         <th class="text-left p-3">Nhân viên</th>
                         <th class="text-left p-3">Sản phẩm</th>
                         <th class="text-left p-3">Ghi chú</th>
@@ -114,6 +116,11 @@ else
                         <tr class="border-t align-top">
                             <td class="p-3 font-mono font-semibold">PN-@receipt.ReceiptID.ToString("D6")</td>
                             <td class="p-3 whitespace-nowrap">@receipt.ReceiptDate.ToString("dd/MM/yyyy HH:mm")</td>
+                            <td class="p-3 whitespace-nowrap">
+                                <span class="bakery-badge @ImportReceiptStatus.GetBadgeClass(receipt.Status) text-[11px] py-0.5 px-2">
+                                    @ImportReceiptStatus.GetLabel(receipt.Status)
+                                </span>
+                            </td>
                             <td class="p-3">@receipt.Employee?.FullName</td>
                             <td class="p-3">
                                 <ul class="space-y-1">

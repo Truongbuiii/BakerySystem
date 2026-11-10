@@ -1,6 +1,7 @@
 @page "/import-receipts"
 @rendermode InteractiveServer
 @attribute [Authorize(Roles = "Admin,Employee")]
+@using BakerySystem.Domain.Enums
 @inject InventoryService Inventory
 @inject EmployeeService EmployeeManager
 @inject AuthenticationStateProvider AuthStateProvider
@@ -59,11 +60,18 @@
         }
         @foreach (var line in lines)
         {
+            var selectedProduct = products.FirstOrDefault(p => p.ProductID == line.ProductID);
             <div class="grid grid-cols-1 md:grid-cols-[minmax(0,2.4fr)_0.8fr_1.2fr_1.2fr_auto] gap-3 mt-3 items-end rounded-lg border border-slate-200 p-3">
                 <label>Sản phẩm
                     <select class="bakery-input w-full" @bind="line.ProductID" @bind:after="() => ApplyPurchasePrice(line)" disabled="@(saving || products.Count == 0 || MissingPurchasePriceCount > 0)">
                     <option value="0">Chọn sản phẩm</option>
-                    @foreach (var product in products) { <option value="@product.ProductID">@product.ProductName (tồn @product.Quantity)</option> }
+                    @foreach (var product in products)
+                    {
+                        var isChosen = lines.Any(l => l != line && l.ProductID == product.ProductID);
+                        <option value="@product.ProductID" disabled="@isChosen">
+                            @product.ProductName (tồn @product.Quantity)@(isChosen ? " — Đã chọn" : "")
+                        </option>
+                    }
                     </select>
                 </label>
                 <label>Số lượng
@@ -75,6 +83,10 @@
                     @if (line.ProductID > 0 && line.UnitPrice <= 0)
                     {
                         <span class="mt-1 block text-xs text-rose-600">Chưa có giá vốn. Nhập giá trước khi lưu phiếu.</span>
+                    }
+                    else if (selectedProduct is not null && selectedProduct.Price > 0 && line.UnitPrice >= selectedProduct.Price)
+                    {
+                        <span class="mt-1 block text-xs text-amber-600">Lưu ý: Giá vốn (@line.UnitPrice.ToString("N0") đ) &gt;= giá bán (@selectedProduct.Price.ToString("N0") đ).</span>
                     }
                 </label>
                 <div class="pb-2">
@@ -88,16 +100,47 @@
 
     <div class="flex flex-wrap justify-between items-center mt-4 gap-3">
         <button class="bakery-btn bakery-btn-secondary" @onclick="AddLine" disabled="@(saving || supplierId <= 0 || products.Count == 0)">+ Thêm sản phẩm</button>
-        <div class="flex items-center gap-4">
+        <div class="flex flex-wrap items-center gap-3">
             <strong>Tổng tiền: @Total.ToString("#,##0", PriceCulture) đ</strong>
-            <button class="bakery-btn bakery-btn-primary" @onclick="Save" disabled="@(!CanSave)">
-                @(saving ? "Đang lưu..." : "Lưu phiếu nhập")
+            <button class="bakery-btn bakery-btn-outline" @onclick='() => Save(ImportReceiptStatus.Pending)' disabled="@(!CanSave)">
+                <iconify-icon icon="solar:clock-circle-linear" class="mr-1"></iconify-icon>
+                @(saving ? "Đang lưu..." : "Lưu phiếu chờ duyệt")
+            </button>
+            <button class="bakery-btn bakery-btn-primary" @onclick='() => Save(ImportReceiptStatus.Completed)' disabled="@(!CanSave)">
+                <iconify-icon icon="solar:box-minimalistic-bold" class="mr-1"></iconify-icon>
+                @(saving ? "Đang lưu..." : "Duyệt & Nhập kho ngay")
             </button>
         </div>
     </div>
     @if (!string.IsNullOrEmpty(message))
     {
-        <p class="mt-3 text-sm @(saved ? "text-emerald-600" : "text-rose-600")">@message</p>
+        @if (saved && lastCreatedReceiptId > 0)
+        {
+            <div class="mt-4 rounded-lg border border-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 p-4 text-emerald-800 dark:text-emerald-300 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div class="flex items-center gap-3">
+                    <iconify-icon icon="solar:check-circle-bold" class="text-2xl text-emerald-600 shrink-0"></iconify-icon>
+                    <div>
+                        <strong class="text-sm">@message</strong>
+                        <p class="text-xs text-emerald-700 dark:text-emerald-400 mb-0">
+                            Mã phiếu: <strong class="font-mono">PN-@lastCreatedReceiptId.ToString("D6")</strong> ·
+                            Trạng thái: <strong>@ImportReceiptStatus.GetLabel(savedStatus)</strong>
+                        </p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2 shrink-0">
+                    <a class="bakery-btn bakery-btn-primary bakery-btn-sm" href="/import-receipt-management?id=@lastCreatedReceiptId">
+                        Xem chi tiết phiếu
+                    </a>
+                    <button type="button" class="bakery-btn bakery-btn-secondary bakery-btn-sm" @onclick="() => { saved = false; lastCreatedReceiptId = 0; }">
+                        Tiếp tục lập phiếu
+                    </button>
+                </div>
+            </div>
+        }
+        else
+        {
+            <p class="mt-3 text-sm @(saved ? "text-emerald-600" : "text-rose-600")">@message</p>
+        }
     }
 </div>
 
@@ -364,7 +407,10 @@
         unitPriceText[line] = FormatPrice(line.UnitPrice);
     }
 
-    private async Task Save()
+    private int lastCreatedReceiptId;
+    private string savedStatus = string.Empty;
+
+    private async Task Save(string targetStatus = ImportReceiptStatus.Completed)
     {
         if (saving)
             return;
@@ -372,16 +418,21 @@
         saving = true;
         try
         {
-            await Inventory.SaveReceiptAsync(new()
+            lastCreatedReceiptId = await Inventory.SaveReceiptAsync(new()
             {
                 SupplierID = supplierId,
                 EmployeeID = employeeId,
                 Note = note,
+                Status = targetStatus,
                 Lines = lines
             });
 
-            message = "Đã lưu phiếu và cập nhật tồn kho.";
+            savedStatus = targetStatus;
             saved = true;
+            message = targetStatus == ImportReceiptStatus.Pending
+                ? $"Đã lưu phiếu chờ duyệt PN-{lastCreatedReceiptId:D6}. Tồn kho chưa thay đổi cho đến khi bạn duyệt phiếu."
+                : $"Đã duyệt nhập kho PN-{lastCreatedReceiptId:D6} và cộng tồn kho thành công.";
+
             supplierId = 0;
             note = null;
             lines = [new()];
@@ -393,6 +444,7 @@
         {
             message = ex.Message;
             saved = false;
+            lastCreatedReceiptId = 0;
         }
         finally
         {

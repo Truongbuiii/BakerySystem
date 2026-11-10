@@ -6,7 +6,14 @@ using Microsoft.EntityFrameworkCore;
 namespace BakerySystem.Application.Features.Inventory;
 
 public sealed class ImportLineInput { public int ProductID { get; set; } public int Quantity { get; set; } public decimal UnitPrice { get; set; } }
-public sealed class ImportReceiptInput { public int SupplierID { get; set; } public int EmployeeID { get; set; } public string? Note { get; set; } public List<ImportLineInput> Lines { get; set; } = []; }
+public sealed class ImportReceiptInput
+{
+    public int SupplierID { get; set; }
+    public int EmployeeID { get; set; }
+    public string? Note { get; set; }
+    public string Status { get; set; } = ImportReceiptStatus.Completed;
+    public List<ImportLineInput> Lines { get; set; } = [];
+}
 public sealed class InventoryService(IBakeryDbContext db)
 {
     public Task<List<Supplier>> GetSuppliersAsync(CancellationToken ct = default) => db.Suppliers
@@ -171,7 +178,7 @@ public sealed class InventoryService(IBakeryDbContext db)
         await db.SaveChangesAsync(ct);
     }
 
-    public async Task SaveReceiptAsync(ImportReceiptInput input, CancellationToken ct = default)
+    public async Task<int> SaveReceiptAsync(ImportReceiptInput input, CancellationToken ct = default)
     {
         var submittedLines = input.Lines ?? [];
         var enteredLines = submittedLines
@@ -229,9 +236,124 @@ public sealed class InventoryService(IBakeryDbContext db)
         foreach (var link in supplierProductLinks)
             link.PurchasePrice = linePrices[link.ProductID];
 
-        var receipt = new ImportReceipt { SupplierID = input.SupplierID, EmployeeID = employee.EmployeeID, ReceiptDate = DateTime.Now, Note = input.Note?.Trim(), TotalAmount = lines.Sum(x => x.Quantity * x.UnitPrice) };
-        foreach (var line in lines) { products[line.ProductID].Quantity = checked(products[line.ProductID].Quantity + line.Quantity); receipt.ImportReceiptDetails.Add(new ImportReceiptDetail { ProductID = line.ProductID, Quantity = line.Quantity, UnitPrice = line.UnitPrice, SubTotal = line.Quantity * line.UnitPrice }); }
+        var status = input.Status is ImportReceiptStatus.Pending or ImportReceiptStatus.Completed
+            ? input.Status
+            : ImportReceiptStatus.Completed;
+
+        var receipt = new ImportReceipt
+        {
+            SupplierID = input.SupplierID,
+            EmployeeID = employee.EmployeeID,
+            ReceiptDate = DateTime.Now,
+            Status = status,
+            Note = input.Note?.Trim(),
+            TotalAmount = lines.Sum(x => x.Quantity * x.UnitPrice)
+        };
+
+        foreach (var line in lines)
+        {
+            if (status == ImportReceiptStatus.Completed)
+            {
+                products[line.ProductID].Quantity = checked(products[line.ProductID].Quantity + line.Quantity);
+            }
+
+            receipt.ImportReceiptDetails.Add(new ImportReceiptDetail
+            {
+                ProductID = line.ProductID,
+                Quantity = line.Quantity,
+                UnitPrice = line.UnitPrice,
+                SubTotal = line.Quantity * line.UnitPrice
+            });
+        }
+
         db.ImportReceipts.Add(receipt);
+        await db.SaveChangesAsync(ct);
+        return receipt.ReceiptID;
+    }
+
+    public async Task CompleteReceiptAsync(int receiptId, CancellationToken ct = default)
+    {
+        var receipt = await db.ImportReceipts
+            .Include(r => r.ImportReceiptDetails)
+            .FirstOrDefaultAsync(r => r.ReceiptID == receiptId, ct)
+            ?? throw new InvalidOperationException("Không tìm thấy phiếu nhập kho.");
+
+        if (receipt.Status != ImportReceiptStatus.Pending)
+            throw new InvalidOperationException($"Không thể xác nhận phiếu nhập ở trạng thái '{ImportReceiptStatus.GetLabel(receipt.Status)}'. Chỉ áp dụng cho phiếu Chờ nhập kho.");
+
+        var productIds = receipt.ImportReceiptDetails.Select(d => d.ProductID).Distinct().ToList();
+        var products = await db.Products
+            .Where(p => productIds.Contains(p.ProductID))
+            .ToDictionaryAsync(p => p.ProductID, ct);
+
+        var links = await db.SupplierProducts
+            .Where(sp => sp.SupplierID == receipt.SupplierID && productIds.Contains(sp.ProductID))
+            .ToDictionaryAsync(sp => sp.ProductID, ct);
+
+        foreach (var detail in receipt.ImportReceiptDetails)
+        {
+            if (products.TryGetValue(detail.ProductID, out var product))
+            {
+                product.Quantity = checked(product.Quantity + detail.Quantity);
+            }
+            if (links.TryGetValue(detail.ProductID, out var link))
+            {
+                link.PurchasePrice = detail.UnitPrice;
+            }
+        }
+
+        receipt.Status = ImportReceiptStatus.Completed;
+        await db.SaveChangesAsync(ct);
+    }
+
+    public async Task CancelReceiptAsync(int receiptId, string? cancelReason = null, CancellationToken ct = default)
+    {
+        var receipt = await db.ImportReceipts
+            .Include(r => r.ImportReceiptDetails)
+            .FirstOrDefaultAsync(r => r.ReceiptID == receiptId, ct)
+            ?? throw new InvalidOperationException("Không tìm thấy phiếu nhập kho.");
+
+        if (receipt.Status == ImportReceiptStatus.Cancelled)
+            throw new InvalidOperationException("Phiếu nhập này đã bị hủy trước đó.");
+
+        if (receipt.Status == ImportReceiptStatus.Completed)
+        {
+            var productIds = receipt.ImportReceiptDetails.Select(d => d.ProductID).Distinct().ToList();
+            var products = await db.Products
+                .Where(p => productIds.Contains(p.ProductID))
+                .ToDictionaryAsync(p => p.ProductID, ct);
+
+            // Kiểm tra số lượng tồn kho có đủ để hoàn tác không
+            foreach (var detail in receipt.ImportReceiptDetails)
+            {
+                if (products.TryGetValue(detail.ProductID, out var product))
+                {
+                    if (product.Quantity < detail.Quantity)
+                    {
+                        throw new InvalidOperationException(
+                            $"Không thể hoàn tác phiếu nhập vì sản phẩm '{product.ProductName}' hiện chỉ còn tồn {product.Quantity} cái trong kho (ít hơn {detail.Quantity} cái đã nhập), hàng có thể đã được xuất bán.");
+                    }
+                }
+            }
+
+            // Hoàn tác trừ lại tồn kho
+            foreach (var detail in receipt.ImportReceiptDetails)
+            {
+                if (products.TryGetValue(detail.ProductID, out var product))
+                {
+                    product.Quantity -= detail.Quantity;
+                }
+            }
+        }
+
+        receipt.Status = ImportReceiptStatus.Cancelled;
+        if (!string.IsNullOrWhiteSpace(cancelReason))
+        {
+            receipt.Note = string.IsNullOrWhiteSpace(receipt.Note)
+                ? $"[Đã hủy: {cancelReason.Trim()}]"
+                : $"{receipt.Note.Trim()} | [Đã hủy: {cancelReason.Trim()}]";
+        }
+
         await db.SaveChangesAsync(ct);
     }
     public Task<List<ImportReceipt>> GetReceiptsAsync(CancellationToken ct = default) => db.ImportReceipts.AsNoTracking().Include(x => x.Supplier).Include(x => x.Employee).Include(x => x.ImportReceiptDetails).ThenInclude(x => x.Product).OrderByDescending(x => x.ReceiptDate).ToListAsync(ct);

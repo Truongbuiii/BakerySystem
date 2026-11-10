@@ -23,7 +23,9 @@ public sealed class ReportService(IBakeryDbContext db)
         var ordersQuery = db.Orders
             .Include(o => o.Customer)
             .AsQueryable();
-        var importsQuery = db.ImportReceipts.AsQueryable();
+        var importsQuery = db.ImportReceipts
+            .Where(i => i.Status == BakerySystem.Domain.Enums.ImportReceiptStatus.Completed)
+            .AsQueryable();
 
         if (startDate.HasValue && endDate.HasValue)
         {

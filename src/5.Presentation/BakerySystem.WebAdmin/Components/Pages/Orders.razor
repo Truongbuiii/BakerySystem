@@ -1578,6 +1578,14 @@
         _ = StartPeriodicRefreshAsync(cts.Token);
     }
 
+    protected override async Task OnParametersSetAsync()
+    {
+        if (OrderIdFromQuery is int orderId && orders.Count > 0)
+        {
+            selectedOrder = orders.FirstOrDefault(o => o.OrderID == orderId);
+        }
+    }
+
     private void HandleOrderNotification()
     {
         _ = InvokeAsync(async () =>

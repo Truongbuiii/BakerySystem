@@ -88,6 +88,12 @@ public static class BakeryDataSeeder
                     END;
                 END;
 
+                -- Bổ sung cột Status cho ImportReceipt nếu thiếu
+                IF COL_LENGTH('ImportReceipt', 'Status') IS NULL
+                BEGIN
+                    ALTER TABLE [ImportReceipt] ADD [Status] varchar(20) NOT NULL CONSTRAINT [DF_ImportReceipt_Status] DEFAULT 'Completed';
+                END;
+
                 -- 3. Đảm bảo bảng PromotionOrderTier tồn tại
                 IF OBJECT_ID(N'[PromotionOrderTier]') IS NULL
                 BEGIN
@@ -935,7 +941,8 @@ public static class BakeryDataSeeder
                     EmployeeID = chefEmployee.EmployeeID,
                     ReceiptDate = DateTime.Today.AddDays(-12),
                     Note = "Nhập nguyên liệu bột làm bánh và bơ lạt đầu tháng",
-                    TotalAmount = 3500000m
+                    TotalAmount = 3500000m,
+                    Status = ImportReceiptStatus.Completed
                 };
                 receipt1.ImportReceiptDetails.Add(new ImportReceiptDetail
                 {
@@ -961,7 +968,8 @@ public static class BakeryDataSeeder
                     EmployeeID = chefEmployee.EmployeeID,
                     ReceiptDate = DateTime.Today.AddDays(-3),
                     Note = "Nhập chocolate Bỉ và nguyên liệu làm bánh mousse",
-                    TotalAmount = 2800000m
+                    TotalAmount = 2800000m,
+                    Status = ImportReceiptStatus.Completed
                 };
                 if (allProducts.Count > 2)
                 {
