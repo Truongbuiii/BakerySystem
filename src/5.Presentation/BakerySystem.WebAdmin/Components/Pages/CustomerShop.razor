@@ -21,13 +21,13 @@
     </div>
 }
 
-<div class="bakery-page-header">
+<div class="bakery-page-header" style="margin-bottom: 0.85rem;">
     <div>
         <h2 class="text-xl font-bold text-slate-900 dark:text-white mb-0.5">
             Xin chào, @(customerProfile?.FullName ?? "Quý khách")!
         </h2>
         <p class="text-xs text-slate-500 mb-0">
-            Thực đơn bánh nướng tươi mỗi ngày &bull; Giao tận nơi hoặc thanh toán trực tuyến tiện lợi.
+            Chọn các món bánh tươi bên trái và kiểm tra chi tiết đơn hàng của bạn ở khung bên phải.
         </p>
     </div>
 
@@ -36,9 +36,9 @@
             <iconify-icon icon="solar:restart-linear"></iconify-icon>
             <span>Làm mới menu</span>
         </button>
-        <a href="/my-orders" class="bakery-btn bakery-btn-outline bakery-btn-sm">
-            <iconify-icon icon="solar:bag-heart-linear"></iconify-icon>
-            <span>Đơn hàng của tôi (@customerOrders.Count)</span>
+        <a href="/my-orders" class="bakery-btn bakery-btn-primary bakery-btn-sm">
+            <iconify-icon icon="solar:bag-heart-bold"></iconify-icon>
+            <span>Xem đơn hàng đã đặt (@customerOrders.Count)</span>
         </a>
     </div>
 </div>
@@ -81,24 +81,22 @@ else
         </div>
     }
 
-    <!-- Banner Kho Voucher & Ưu đãi -->
+    <!-- Banner Kho Voucher & Ưu đãi nhỏ gọn -->
     <div class="shop-promo-banner">
-        <div>
-            <div class="shop-promo-pill">
+        <div class="flex items-center gap-3 flex-wrap">
+            <span class="shop-promo-pill">
                 <iconify-icon icon="solar:ticket-sale-bold"></iconify-icon>
                 <span>ƯU ĐÃI HÔM NAY</span>
-            </div>
-            <h3 class="text-base font-bold text-white mb-0.5">Kho Voucher &amp; Khuyến Mãi BakerySystem</h3>
-            <p class="text-xs mb-0" style="color: rgba(255,255,255,0.88);">
-                @(promotions.Count > 0
-                    ? $"Hiện có {promotions.Count} mã ưu đãi đang mở. Chọn mã trực tiếp để giảm giá ngay trên đơn hàng!"
-                    : "Theo dõi các chương trình khuyến mãi mới nhất từ tiệm bánh.")
-            </p>
+            </span>
+            <span class="text-sm font-bold text-white">Kho Voucher BakerySystem</span>
+            <span class="text-xs" style="color: rgba(255,255,255,0.88);">
+                @(promotions.Count > 0 ? $"Có {promotions.Count} mã giảm giá đang mở" : "Ưu đãi trực tuyến")
+            </span>
         </div>
         <div class="flex items-center gap-2">
             @if (!string.IsNullOrEmpty(CartService.AppliedVoucherCode))
             {
-                <span class="px-3 py-1.5 rounded-lg text-xs font-bold" style="background: rgba(255,255,255,0.2); color: #fff;">
+                <span class="px-2.5 py-1 rounded-lg text-xs font-bold" style="background: rgba(255,255,255,0.2); color: #fff;">
                     Đang dùng: @CartService.AppliedVoucherCode
                 </span>
             }
@@ -112,29 +110,29 @@ else
     </div>
 
     <div class="shop-layout">
-        <!-- CỘT TRÁI: TÌM KIẾM, LỌC DANH MỤC & LƯỚI BÁNH -->
+        <!-- CỘT TRÁI: Ô BÁNH NHỎ GỌN, CHỌN MÓN RÕ RÀNG -->
         <div class="bakery-pos-left">
-            <div class="bakery-pos-filter-card">
+            <div class="bakery-pos-filter-card" style="padding: 0.65rem 0.85rem !important;">
                 <div class="shop-filter-bar">
                     <div class="bakery-search-input-wrap shop-search-wrap">
                         <iconify-icon icon="solar:magnifer-linear"></iconify-icon>
                         <input type="text"
                                class="bakery-search-input"
-                               placeholder="Tìm tên bánh, bánh kem, tiramisu, croissant..."
+                               style="height: 36px !important;"
+                               placeholder="Tìm tên bánh kem, tiramisu, croissant..."
                                @bind="searchQuery"
                                @bind:event="oninput" />
                     </div>
 
                     <select class="shop-sort-select" @bind="sortOrder" title="Sắp xếp sản phẩm">
-                        <option value="default">Sắp xếp: Mặc định</option>
-                        <option value="price-asc">Giá: Thấp đến cao</option>
-                        <option value="price-desc">Giá: Cao đến thấp</option>
+                        <option value="default">Mặc định</option>
+                        <option value="price-asc">Giá: Thấp → Cao</option>
+                        <option value="price-desc">Giá: Cao → Thấp</option>
                     </select>
 
                     @if (!string.IsNullOrWhiteSpace(searchQuery) || selectedCategoryId != 0 || sortOrder != "default")
                     {
                         <button type="button" class="bakery-btn bakery-btn-outline bakery-btn-sm" @onclick="ResetFilters">
-                            <iconify-icon icon="solar:restart-linear"></iconify-icon>
                             <span>Xóa lọc</span>
                         </button>
                     }
@@ -161,7 +159,7 @@ else
 
             @if (!FilteredProducts.Any())
             {
-                <div class="bakery-card p-10 text-center text-slate-400">
+                <div class="bakery-card p-8 text-center text-slate-400">
                     <iconify-icon icon="solar:cup-paper-linear" class="text-4xl mb-2"></iconify-icon>
                     <p class="text-sm font-semibold text-slate-700 mb-1">Không tìm thấy món bánh phù hợp</p>
                     <p class="text-xs mb-0">Vui lòng thử từ khóa hoặc danh mục khác.</p>
@@ -174,11 +172,13 @@ else
                     {
                         var isOutOfStock = prod.Quantity <= 0;
                         var inCartItem = CartService.Items.FirstOrDefault(i => i.ProductID == prod.ProductID);
+                        var isSelected = inCartItem is not null;
                         var productDiscount = CartService.GetProductDiscountAmount(prod.ProductID, prod.Price);
                         var productDiscountPct = CartService.GetProductDiscountPercent(prod.ProductID);
                         var discountedPrice = prod.Price - productDiscount;
 
-                        <div class="shop-product-card @(isOutOfStock ? "opacity-60" : "")" @onclick="() => OpenProductModal(prod)">
+                        <div class="shop-product-card @(isSelected ? "is-selected" : "") @(isOutOfStock ? "opacity-60" : "")"
+                             @onclick="() => OpenProductModal(prod)">
                             <div>
                                 <div class="shop-product-img-box">
                                     <img src="@WebCartService.ResolveProductImageUrl(prod)"
@@ -197,46 +197,72 @@ else
                                     }
                                     else if (prod.Quantity <= 5)
                                     {
-                                        <span class="shop-stock-tag is-low">Chỉ còn @prod.Quantity</span>
+                                        <span class="shop-stock-tag is-low">Còn @prod.Quantity</span>
                                     }
 
                                     @if (!isOutOfStock && inCartItem is not null)
                                     {
-                                        <span class="bakery-pos-cart-badge">Trong giỏ: @inCartItem.Quantity</span>
+                                        <span class="shop-card-selected-badge">Đã chọn: @inCartItem.Quantity</span>
                                     }
                                 </div>
 
-                                <div class="bakery-pos-card-title" title="@prod.ProductName">@prod.ProductName</div>
-                                <div class="bakery-pos-card-cat">@(prod.Category?.CategoryName ?? "Bánh tươi")</div>
-                                <p class="shop-product-desc">@(string.IsNullOrWhiteSpace(prod.Description) ? "Bánh nướng thủ công tươi mới mỗi ngày." : prod.Description)</p>
+                                <div class="shop-card-title" title="@prod.ProductName">@prod.ProductName</div>
+                                <div class="shop-card-cat">@(prod.Category?.CategoryName ?? "Bánh tươi")</div>
                             </div>
 
                             <div>
-                                <div class="bakery-pos-card-footer">
+                                <div class="shop-card-price-row">
                                     <div>
                                         @if (productDiscount > 0)
                                         {
-                                            <del class="text-[11px] text-slate-400 mr-1">@($"{prod.Price:N0}đ")</del>
-                                            <span class="bakery-pos-card-price" style="color: #dc2626 !important;">@($"{discountedPrice:N0}đ")</span>
+                                            <del class="text-[10px] text-slate-400 mr-1">@($"{prod.Price:N0}đ")</del>
+                                            <span class="shop-card-price" style="color: #dc2626;">@($"{discountedPrice:N0}đ")</span>
                                         }
                                         else
                                         {
-                                            <span class="bakery-pos-card-price">@($"{prod.Price:N0}đ")</span>
+                                            <span class="shop-card-price">@($"{prod.Price:N0}đ")</span>
                                         }
                                     </div>
-                                    <span class="bakery-pos-card-stock @(isOutOfStock ? "danger" : (prod.Quantity <= 5 ? "warning" : ""))">
-                                        @(isOutOfStock ? "Hết hàng" : $"Còn {prod.Quantity}")
+                                    <span class="shop-card-stock @(isOutOfStock ? "is-out" : (prod.Quantity <= 5 ? "is-low" : ""))">
+                                        @(isOutOfStock ? "Hết" : $"Còn {prod.Quantity}")
                                     </span>
                                 </div>
 
-                                <button type="button"
-                                        class="bakery-pos-btn-add"
-                                        disabled="@(isOutOfStock || (inCartItem != null && inCartItem.Quantity >= prod.Quantity))"
-                                        @onclick:stopPropagation="true"
-                                        @onclick="() => QuickAddToCart(prod)">
-                                    <iconify-icon icon="solar:cart-plus-linear"></iconify-icon>
-                                    <span>@(isOutOfStock ? "Hết hàng" : (inCartItem != null && inCartItem.Quantity >= prod.Quantity ? "Đã đạt tối đa" : "Thêm vào giỏ"))</span>
-                                </button>
+                                @if (isOutOfStock)
+                                {
+                                    <button type="button" class="shop-card-select-btn" disabled>
+                                        <span>Hết hàng</span>
+                                    </button>
+                                }
+                                else if (inCartItem is not null)
+                                {
+                                    <div class="shop-card-qty-bar" @onclick:stopPropagation="true">
+                                        <button type="button"
+                                                class="shop-card-qty-btn"
+                                                title="Giảm số lượng"
+                                                @onclick="() => CartService.UpdateQuantity(prod.ProductID, -1)">
+                                            -
+                                        </button>
+                                        <span class="shop-card-qty-val">Đã chọn @inCartItem.Quantity</span>
+                                        <button type="button"
+                                                class="shop-card-qty-btn"
+                                                title="Tăng số lượng"
+                                                disabled="@(inCartItem.Quantity >= prod.Quantity)"
+                                                @onclick="() => CartService.UpdateQuantity(prod.ProductID, 1)">
+                                            +
+                                        </button>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <button type="button"
+                                            class="shop-card-select-btn"
+                                            @onclick:stopPropagation="true"
+                                            @onclick="() => QuickAddToCart(prod)">
+                                        <iconify-icon icon="solar:cart-plus-bold"></iconify-icon>
+                                        <span>Chọn vào đơn</span>
+                                    </button>
+                                }
                             </div>
                         </div>
                     }
@@ -244,53 +270,63 @@ else
             }
         </div>
 
-        <!-- CỘT PHẢI: GIỎ HÀNG & ĐẶT BÁNH -->
+        <!-- CỘT PHẢI: CHI TIẾT GIỎ HÀNG & ĐẶT ĐƠN LỚN, RÕ RÀNG -->
         <aside class="shop-cart-panel">
             <div class="shop-cart-header">
                 <div class="flex items-center gap-2">
-                    <iconify-icon icon="solar:cart-large-2-bold" class="text-primary text-xl"></iconify-icon>
-                    <h3 class="text-sm font-bold text-slate-900 mb-0">Giỏ hàng của bạn</h3>
-                    <span class="bakery-badge bakery-badge-primary text-[10px]">@CartService.TotalItemsCount món</span>
+                    <iconify-icon icon="solar:bill-check-bold" class="text-primary text-xl"></iconify-icon>
+                    <div>
+                        <h3 class="text-sm font-bold text-slate-900 mb-0">Chi tiết giỏ hàng &amp; Đặt đơn</h3>
+                        <span class="text-[11px] text-slate-500">Kiểm tra các món bánh đã chọn và xác nhận đặt hàng</span>
+                    </div>
                 </div>
-                @if (CartService.Items.Any())
-                {
-                    <button type="button" class="text-xs text-rose-600 font-semibold hover:underline border-0 bg-transparent cursor-pointer"
-                            @onclick="ClearCart">
-                        Xóa giỏ
-                    </button>
-                }
+                <div class="flex items-center gap-2">
+                    <span class="bakery-badge bakery-badge-primary text-xs">@CartService.TotalItemsCount món</span>
+                    @if (CartService.Items.Any())
+                    {
+                        <button type="button" class="text-xs text-rose-600 font-semibold hover:underline border-0 bg-transparent cursor-pointer"
+                                @onclick="ClearCart">
+                            Xóa giỏ
+                        </button>
+                    }
+                </div>
             </div>
 
             <div class="shop-cart-body">
                 @if (!CartService.Items.Any())
                 {
-                    <div class="text-center py-6 text-slate-500">
-                        <iconify-icon icon="solar:bag-cross-linear" class="text-4xl text-slate-300 mb-2"></iconify-icon>
-                        <p class="text-sm font-semibold text-slate-700 mb-1">Giỏ hàng đang trống</p>
-                        <p class="text-xs mb-0">Chọn những chiếc bánh thơm ngon từ thực đơn bên trái để đặt hàng nhé!</p>
+                    <div class="text-center py-8 text-slate-500">
+                        <iconify-icon icon="solar:cart-large-2-linear" class="text-5xl text-slate-300 mb-2"></iconify-icon>
+                        <p class="text-sm font-bold text-slate-700 mb-1">Chưa có món bánh nào trong đơn</p>
+                        <p class="text-xs mb-0">Hãy bấm <strong>"Chọn vào đơn"</strong> ở các ô bánh bên trái để bắt đầu đặt bánh nhé!</p>
                     </div>
                 }
                 else
                 {
-                    <!-- Danh sách món trong giỏ -->
+                    <!-- Danh sách chi tiết các món đã chọn -->
                     <div class="shop-cart-items">
                         @foreach (var item in CartService.Items)
                         {
                             <div class="shop-cart-item">
-                                <div class="flex items-center gap-2.5 min-w-0">
+                                <div class="flex items-center gap-2.5 min-w-0 flex-1">
                                     <img src="@item.ImageURL" alt="@item.ProductName" class="shop-cart-item-img"
                                          onerror="this.src='/assets/images/products/default-bakery.svg'" />
-                                    <div class="min-w-0">
-                                        <div class="text-xs font-bold text-slate-800 truncate" title="@item.ProductName">@item.ProductName</div>
-                                        <div class="text-xs font-semibold text-primary">@($"{item.UnitPrice:N0}đ")</div>
+                                    <div class="min-w-0 flex-1">
+                                        <div class="text-xs font-bold text-slate-900 truncate" title="@item.ProductName">@item.ProductName</div>
+                                        <div class="text-[11px] text-slate-500">
+                                            Đơn giá: <strong class="text-slate-700">@($"{item.UnitPrice:N0}đ")</strong> &bull; Tồn: @item.MaxStock
+                                        </div>
                                     </div>
                                 </div>
-                                <div class="flex items-center gap-2 shrink-0">
+                                <div class="flex items-center gap-2.5 shrink-0">
                                     <div class="shop-stepper">
                                         <button type="button" @onclick="() => CartService.UpdateQuantity(item.ProductID, -1)" title="Giảm">-</button>
                                         <span>@item.Quantity</span>
                                         <button type="button" @onclick="() => CartService.UpdateQuantity(item.ProductID, 1)"
                                                 disabled="@(item.Quantity >= item.MaxStock)" title="Tăng">+</button>
+                                    </div>
+                                    <div class="text-right" style="min-width: 78px;">
+                                        <strong class="text-xs text-primary">@($"{item.SubTotal:N0}đ")</strong>
                                     </div>
                                     <button type="button" class="border-0 bg-transparent text-rose-600 cursor-pointer p-1"
                                             title="Xóa món"
@@ -327,7 +363,7 @@ else
                         }
 
                         <div class="flex gap-2">
-                            <input type="text" class="bakery-input w-full" style="height: 36px;"
+                            <input type="text" class="bakery-input w-full" style="height: 34px;"
                                    placeholder="Nhập mã voucher..."
                                    @bind="voucherInput" />
                             <button type="button" class="bakery-btn bakery-btn-secondary bakery-btn-sm shrink-0"
@@ -338,78 +374,78 @@ else
 
                         @if (!string.IsNullOrEmpty(voucherMessage))
                         {
-                            <p class="text-xs font-semibold mt-1.5 mb-0 @(voucherAppliedSuccess ? "text-emerald-600" : "text-rose-600")">
+                            <p class="text-xs font-semibold mt-1 mb-0 @(voucherAppliedSuccess ? "text-emerald-600" : "text-rose-600")">
                                 @voucherMessage
                             </p>
                         }
 
                         @if (!string.IsNullOrEmpty(CartService.AppliedVoucherCode) && CartService.RemainingForVoucher > 0)
                         {
-                            <div class="shop-alert-inline is-warning mt-2">
+                            <div class="shop-alert-inline is-warning mt-1.5">
                                 Cần mua thêm <strong>@($"{CartService.RemainingForVoucher:N0}đ")</strong> để áp dụng mã @CartService.AppliedVoucherCode.
                             </div>
                         }
                         else if (string.IsNullOrEmpty(CartService.AppliedVoucherCode) && GetUpsellSuggestion() is string upsell)
                         {
-                            <div class="shop-alert-inline is-info mt-2">
+                            <div class="shop-alert-inline is-info mt-1.5">
                                 @upsell
                             </div>
                         }
                     </div>
 
-                    <!-- Thông tin giao nhận -->
+                    <!-- Thông tin giao nhận 2 cột gọn gàng -->
                     <div class="shop-section-box">
                         <div class="shop-section-title">
                             <span>Thông tin nhận bánh</span>
                         </div>
-                        <div class="space-y-2">
+                        <div class="shop-form-grid-2">
                             <div>
                                 <label class="text-[11px] font-semibold text-slate-600 block mb-0.5">Người nhận (*)</label>
-                                <input type="text" class="bakery-input w-full" style="height: 36px;"
+                                <input type="text" class="bakery-input w-full" style="height: 34px;"
                                        placeholder="Họ và tên người nhận" @bind="receiverName" />
                             </div>
                             <div>
                                 <label class="text-[11px] font-semibold text-slate-600 block mb-0.5">Số điện thoại (*)</label>
-                                <input type="tel" class="bakery-input w-full" style="height: 36px;"
-                                       placeholder="Số điện thoại liên hệ" @bind="receiverPhone" />
+                                <input type="tel" class="bakery-input w-full" style="height: 34px;"
+                                       placeholder="SĐT liên hệ" @bind="receiverPhone" />
                             </div>
                             <div>
                                 <label class="text-[11px] font-semibold text-slate-600 block mb-0.5">Địa chỉ giao bánh (*)</label>
-                                <input type="text" class="bakery-input w-full" style="height: 36px;"
-                                       placeholder="Số nhà, đường, phường/xã, quận/huyện" @bind="receiverAddress" />
+                                <input type="text" class="bakery-input w-full" style="height: 34px;"
+                                       placeholder="Địa chỉ nhận bánh" @bind="receiverAddress" />
                             </div>
                             <div>
-                                <label class="text-[11px] font-semibold text-slate-600 block mb-0.5">Ghi chú cho tiệm bánh</label>
-                                <input type="text" class="bakery-input w-full" style="height: 36px;"
-                                       placeholder="VD: Viết chữ lên bánh, giao trước 17h..." @bind="orderNote" />
+                                <label class="text-[11px] font-semibold text-slate-600 block mb-0.5">Ghi chú cho tiệm</label>
+                                <input type="text" class="bakery-input w-full" style="height: 34px;"
+                                       placeholder="VD: Viết chữ, giao trước 17h..." @bind="orderNote" />
                             </div>
                         </div>
                     </div>
 
-                    <!-- Phương thức thanh toán -->
+                    <!-- Phương thức thanh toán 2 cột ngang -->
                     <div class="shop-section-box">
                         <div class="shop-section-title">
                             <span>Phương thức thanh toán</span>
                         </div>
-                        <div class="space-y-2">
+                        <div class="shop-pay-grid-2">
                             <label class="shop-pay-option @(selectedPaymentMethod == PaymentMethod.COD ? "active" : "")">
-                                <span class="flex items-center gap-2">
+                                <span class="flex items-center gap-1.5">
                                     <input type="radio" name="webPaymentMethod"
                                            checked="@(selectedPaymentMethod == PaymentMethod.COD)"
                                            @onchange="() => selectedPaymentMethod = PaymentMethod.COD" />
-                                    <span>Tiền mặt khi nhận bánh (COD)</span>
+                                    <span>Tiền mặt (COD)</span>
                                 </span>
-                                <iconify-icon icon="solar:wallet-money-bold" class="text-lg"></iconify-icon>
+                                <iconify-icon icon="solar:wallet-money-bold" class="text-base"></iconify-icon>
                             </label>
 
                             <label class="shop-pay-option @(selectedPaymentMethod == PaymentMethod.BankTransfer ? "active" : "")">
-                                <span class="flex items-center gap-2">
+                                <span class="flex items-center gap-1.5">
                                     <input type="radio" name="webPaymentMethod"
                                            checked="@(selectedPaymentMethod == PaymentMethod.BankTransfer)"
                                            @onchange="() => selectedPaymentMethod = PaymentMethod.BankTransfer" />
-                                    <span>Chuyển khoản VietQR</span>
+                                    <span>Chuyển khoản QR</span>
                                 </span>
-                                <iconify-icon icon="solar:qr-code-bold" class="text-lg"></iconify-icon>
+                                <iconify-icon icon="solar:qr-code-bold" class="text-base"></iconify-icon>
                             </label>
                         </div>
                     </div>
@@ -417,7 +453,7 @@ else
                     <!-- Tổng kết thanh toán -->
                     <div class="shop-summary-box">
                         <div class="shop-summary-row">
-                            <span>Tạm tính tiền bánh</span>
+                            <span>Tạm tính (@CartService.TotalItemsCount món)</span>
                             <strong>@($"{CartService.SubTotalAmount:N0}đ")</strong>
                         </div>
                         @if (CartService.InvoiceDiscountAmount > 0)
@@ -449,20 +485,21 @@ else
                         <div class="shop-alert-inline is-error">@checkoutError</div>
                     }
 
-                    <button type="button" class="bakery-btn bakery-btn-primary w-full" style="height: 42px;"
+                    <button type="button" class="bakery-btn bakery-btn-primary w-full" style="height: 44px; font-size: 0.875rem;"
                             disabled="@isSubmittingOrder"
                             @onclick="RequestPlaceOrder">
+                        <iconify-icon icon="@(selectedPaymentMethod == PaymentMethod.BankTransfer ? "solar:qr-code-bold" : "solar:check-circle-bold")"></iconify-icon>
                         @if (isSubmittingOrder)
                         {
                             <span>Đang gửi đơn hàng...</span>
                         }
                         else if (selectedPaymentMethod == PaymentMethod.BankTransfer)
                         {
-                            <span>Hiển thị mã QR &amp; Thanh toán • @($"{CartService.FinalAmount:N0}đ")</span>
+                            <span>Thanh toán VietQR &amp; Đặt đơn • @($"{CartService.FinalAmount:N0}đ")</span>
                         }
                         else
                         {
-                            <span>Xác nhận đặt bánh • @($"{CartService.FinalAmount:N0}đ")</span>
+                            <span>Xác nhận đặt đơn ngay • @($"{CartService.FinalAmount:N0}đ")</span>
                         }
                     </button>
                 }
@@ -532,7 +569,7 @@ else
                         disabled="@(selectedProduct.Quantity <= 0)"
                         @onclick="AddFromModal">
                     <iconify-icon icon="solar:cart-plus-bold"></iconify-icon>
-                    <span>Thêm vào giỏ (@($"{(selectedProduct.Price * modalQuantity - prodDiscount):N0}đ"))</span>
+                    <span>Chọn vào đơn (@($"{(selectedProduct.Price * modalQuantity - prodDiscount):N0}đ"))</span>
                 </button>
             </div>
         </div>
@@ -851,7 +888,7 @@ else
             return;
 
         CartService.AddItem(selectedProduct, modalQuantity);
-        ShowToast($"Đã thêm {modalQuantity} × {selectedProduct.ProductName} vào giỏ hàng.");
+        ShowToast($"Đã thêm {modalQuantity} × {selectedProduct.ProductName} vào đơn.");
         selectedProduct = null;
     }
 
@@ -859,7 +896,7 @@ else
     {
         if (product.Quantity <= 0) return;
         CartService.AddItem(product, 1);
-        ShowToast($"Đã thêm {product.ProductName} vào giỏ hàng.");
+        ShowToast($"Đã chọn {product.ProductName} vào đơn.");
     }
 
     private void ClearCart()
