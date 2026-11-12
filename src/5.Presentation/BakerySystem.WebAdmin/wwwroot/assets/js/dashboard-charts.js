@@ -168,77 +168,88 @@ window.initBakeryDashboardCharts = function (categorySeries, categoryLabels) {
     }
 };
 
+// Auto-run when DOM is loaded or after Blazor navigation
+document.addEventListener("DOMContentLoaded", function () {
+    setTimeout(window.initBakeryDashboardCharts, 200);
+});
+
+window.__bakeryReportsFinChart = null;
+window.__bakeryReportsDonutChart = null;
+
 /**
- * BakerySystem Reports Charts (Module 7)
+ * BakerySystem Reports Charts
+ * Renders Revenue vs COGS vs Gross Profit and Category Net Revenue Donut
  */
-window.initBakeryReportsCharts = function (categories, revenueSeries, costSeries, catDonutSeries, catDonutLabels) {
+window.initBakeryReportsCharts = function (labels, revSeries, costSeries, profitSeries, donutSeries, donutLabels, donutColors) {
     if (typeof ApexCharts === 'undefined') {
-        setTimeout(function() {
-            window.initBakeryReportsCharts(categories, revenueSeries, costSeries, catDonutSeries, catDonutLabels);
+        setTimeout(function () {
+            window.initBakeryReportsCharts(labels, revSeries, costSeries, profitSeries, donutSeries, donutLabels, donutColors);
         }, 120);
         return;
     }
 
     const isDark = document.documentElement.classList.contains('dark');
+    const axisLabelColor = isDark ? '#94a3b8' : '#64748b';
 
-    // 1. Financial Comparison Chart (Doanh thu vs Chi phí vốn)
-    const finEl = document.querySelector("#reports-financial-chart");
-    if (finEl) {
-        finEl.innerHTML = "";
-        const finOptions = {
+    // 1. Comparison Chart: Doanh thu thực thu vs Giá vốn (COGS) vs Lợi nhuận gộp
+    const finChartEl = document.querySelector("#reports-financial-chart");
+    if (finChartEl) {
+        if (window.__bakeryReportsFinChart) {
+            try { window.__bakeryReportsFinChart.destroy(); } catch { }
+            window.__bakeryReportsFinChart = null;
+        }
+        finChartEl.innerHTML = "";
+
+        const options = {
             series: [
-                {
-                    name: 'Doanh thu thực thu',
-                    data: revenueSeries || []
-                },
-                {
-                    name: 'Chi phí vốn nhập hàng',
-                    data: costSeries || []
-                }
+                { name: 'Doanh thu thực thu', type: 'column', data: revSeries || [] },
+                { name: 'Giá vốn (COGS)', type: 'column', data: costSeries || [] },
+                { name: 'Lợi nhuận gộp', type: 'line', data: profitSeries || [] }
             ],
             chart: {
-                type: 'bar',
-                height: 180,
-                fontFamily: "inherit",
-                toolbar: { show: false }
+                height: 260,
+                type: 'line',
+                stacked: false,
+                toolbar: { show: false },
+                fontFamily: 'inherit',
+                animations: { speed: 350 }
             },
-            colors: ['#2563eb', '#f59e0b'],
+            colors: ['#2563eb', '#f59e0b', '#10b981'],
+            stroke: {
+                width: [0, 0, 3],
+                curve: 'smooth'
+            },
             plotOptions: {
                 bar: {
                     horizontal: false,
                     columnWidth: '48%',
-                    borderRadius: 6,
+                    borderRadius: 5,
                     borderRadiusApplication: 'end'
                 }
             },
-            dataLabels: { enabled: false },
-            stroke: {
-                show: true,
-                width: 2,
-                colors: ['transparent']
+            markers: {
+                size: [0, 0, 4],
+                strokeWidth: 2,
+                hover: { size: 6 }
             },
+            dataLabels: { enabled: false },
             xaxis: {
-                categories: categories || [],
+                categories: labels || [],
                 labels: {
-                    style: {
-                        colors: isDark ? '#94a3b8' : '#64748b',
-                        fontSize: '11px',
-                        fontWeight: 500
-                    }
+                    style: { colors: axisLabelColor, fontSize: '11px', fontWeight: 500 }
                 },
                 axisBorder: { show: false },
                 axisTicks: { show: false }
             },
             yaxis: {
                 labels: {
+                    style: { colors: axisLabelColor, fontSize: '11px' },
                     formatter: function (val) {
-                        if (val >= 1000000) return (val / 1000000).toFixed(1) + ' tr';
-                        if (val >= 1000) return (val / 1000).toFixed(0) + ' k';
+                        const abs = Math.abs(val);
+                        const sign = val < 0 ? '-' : '';
+                        if (abs >= 1000000) return sign + (abs / 1000000).toFixed(1) + ' tr';
+                        if (abs >= 1000) return sign + (abs / 1000).toFixed(0) + ' k';
                         return val;
-                    },
-                    style: {
-                        colors: isDark ? '#94a3b8' : '#64748b',
-                        fontSize: '11px'
                     }
                 }
             },
@@ -247,136 +258,87 @@ window.initBakeryReportsCharts = function (categories, revenueSeries, costSeries
                 strokeDashArray: 3,
                 xaxis: { lines: { show: false } }
             },
-            fill: { opacity: 1 },
+            fill: { opacity: [0.95, 0.9, 1] },
             tooltip: {
+                shared: true,
+                intersect: false,
                 theme: isDark ? 'dark' : 'light',
                 y: {
                     formatter: function (val) {
-                        return new Intl.NumberFormat('vi-VN').format(val) + ' đ';
+                        if (val === null || val === undefined) return '0 đ';
+                        return new Intl.NumberFormat('vi-VN').format(Math.round(val)) + ' đ';
                     }
                 }
             },
             legend: {
                 position: 'top',
                 horizontalAlign: 'right',
-                labels: {
-                    colors: isDark ? '#cbd5e1' : '#475569'
-                }
+                fontSize: '12px',
+                fontWeight: 500,
+                labels: { colors: isDark ? '#cbd5e1' : '#334155' },
+                markers: { radius: 4 }
             }
         };
-        const finChart = new ApexCharts(finEl, finOptions);
-        finChart.render();
+
+        window.__bakeryReportsFinChart = new ApexCharts(finChartEl, options);
+        window.__bakeryReportsFinChart.render();
     }
 
-    // 2. Category Share Donut Chart (Cơ cấu doanh thu theo Loại bánh)
+    // 2. Category Donut Chart (Net Revenue after proportional voucher allocation)
     const donutEl = document.querySelector("#reports-category-donut");
     if (donutEl) {
+        if (window.__bakeryReportsDonutChart) {
+            try { window.__bakeryReportsDonutChart.destroy(); } catch { }
+            window.__bakeryReportsDonutChart = null;
+        }
         donutEl.innerHTML = "";
-        const donutOptions = {
-            series: catDonutSeries && catDonutSeries.length > 0 ? catDonutSeries : [1],
-            labels: catDonutLabels && catDonutLabels.length > 0 ? catDonutLabels : ['Chưa có dữ liệu'],
-            chart: {
-                type: 'donut',
-                height: 220,
-                fontFamily: "inherit"
-            },
-            colors: ['#2563eb', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4'],
-            dataLabels: { enabled: false },
-            legend: {
-                position: 'bottom',
-                fontSize: '11px',
-                labels: {
-                    colors: isDark ? '#cbd5e1' : '#475569'
-                }
-            },
-            plotOptions: {
-                pie: {
-                    donut: {
-                        size: '72%',
-                        labels: {
-                            show: true,
-                            name: { fontSize: '12px', color: isDark ? '#cbd5e1' : '#64748b' },
-                            value: {
-                                fontSize: '15px',
-                                fontWeight: 700,
-                                color: isDark ? '#f8fafc' : '#0f172a',
-                                formatter: function (val) {
-                                    return new Intl.NumberFormat('vi-VN').format(val) + ' đ';
-                                }
-                            },
-                            total: {
-                                show: true,
-                                label: 'Tổng doanh thu',
-                                color: isDark ? '#cbd5e1' : '#64748b',
-                                formatter: function (w) {
-                                    const total = w.globals.seriesTotals.reduce((a, b) => a + b, 0);
-                                    return new Intl.NumberFormat('vi-VN').format(total) + ' đ';
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            stroke: {
-                colors: [isDark ? '#1e293b' : '#ffffff'],
-                width: 2
-            },
-            tooltip: {
-                theme: isDark ? 'dark' : 'light',
-                y: {
-                    formatter: function (val) {
-                        return new Intl.NumberFormat('vi-VN').format(val) + ' đ';
-                    }
-                }
-            }
-        };
-        const donutChart = new ApexCharts(donutEl, donutOptions);
-        donutChart.render();
-    }
 
-    // 3. Compact Donut Chart (for side-by-side layout)
-    const compactDonutEl = document.querySelector("#reports-category-donut-compact");
-    if (compactDonutEl) {
-        compactDonutEl.innerHTML = "";
-        const compactDonutOptions = {
-            series: catDonutSeries && catDonutSeries.length > 0 ? catDonutSeries : [1],
-            labels: catDonutLabels && catDonutLabels.length > 0 ? catDonutLabels : ['Chưa có dữ liệu'],
+        const hasData = Array.isArray(donutSeries) && donutSeries.some(v => v > 0);
+        const palette = (Array.isArray(donutColors) && donutColors.length > 0)
+            ? donutColors
+            : ['#2563eb', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4'];
+
+        const donutOptions = {
+            series: hasData ? donutSeries : [1],
+            labels: hasData ? donutLabels : ['Chưa có doanh thu'],
             chart: {
                 type: 'donut',
-                height: 260,
-                fontFamily: "inherit"
+                height: 200,
+                fontFamily: 'inherit'
             },
-            colors: ['#2563eb', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4'],
+            colors: hasData ? palette : [isDark ? '#334155' : '#e2e8f0'],
             dataLabels: { enabled: false },
-            legend: {
-                position: 'bottom',
-                fontSize: '10px',
-                labels: {
-                    colors: isDark ? '#cbd5e1' : '#475569'
-                }
-            },
+            legend: { show: false },
             plotOptions: {
                 pie: {
                     donut: {
-                        size: '65%',
+                        size: '70%',
                         labels: {
                             show: true,
-                            name: { fontSize: '11px', color: isDark ? '#cbd5e1' : '#64748b' },
+                            name: {
+                                show: true,
+                                fontSize: '11px',
+                                color: axisLabelColor
+                            },
                             value: {
+                                show: true,
                                 fontSize: '14px',
                                 fontWeight: 700,
                                 color: isDark ? '#f8fafc' : '#0f172a',
                                 formatter: function (val) {
-                                    return new Intl.NumberFormat('vi-VN').format(val) + ' đ';
+                                    if (!hasData) return '0 đ';
+                                    return new Intl.NumberFormat('vi-VN').format(Math.round(val)) + ' đ';
                                 }
                             },
                             total: {
                                 show: true,
-                                label: 'Tổng doanh thu',
-                                color: isDark ? '#cbd5e1' : '#64748b',
+                                label: 'Thực thu',
+                                fontSize: '11px',
+                                color: axisLabelColor,
                                 formatter: function (w) {
+                                    if (!hasData) return '0 đ';
                                     const total = w.globals.seriesTotals.reduce((a, b) => a + b, 0);
-                                    return new Intl.NumberFormat('vi-VN').format(total) + ' đ';
+                                    return new Intl.NumberFormat('vi-VN').format(Math.round(total)) + ' đ';
                                 }
                             }
                         }
@@ -388,117 +350,17 @@ window.initBakeryReportsCharts = function (categories, revenueSeries, costSeries
                 width: 2
             },
             tooltip: {
+                enabled: hasData,
                 theme: isDark ? 'dark' : 'light',
                 y: {
                     formatter: function (val) {
-                        return new Intl.NumberFormat('vi-VN').format(val) + ' đ';
+                        return new Intl.NumberFormat('vi-VN').format(Math.round(val)) + ' đ';
                     }
                 }
             }
         };
-        const compactDonutChart = new ApexCharts(compactDonutEl, compactDonutOptions);
-        compactDonutChart.render();
-    }
-};
 
-// Auto-run when DOM is loaded or after Blazor navigation
-document.addEventListener("DOMContentLoaded", function () {
-    setTimeout(window.initBakeryDashboardCharts, 200);
-});
-
-
-// Reports Page Charts Integration
-window.initBakeryReportsCharts = function (labels, revSeries, costSeries, donutSeries, donutLabels) {
-    if (typeof ApexCharts === 'undefined') {
-        setTimeout(function() {
-            window.initBakeryReportsCharts(labels, revSeries, costSeries, donutSeries, donutLabels);
-        }, 120);
-        return;
-    }
-
-    const isDark = document.documentElement.classList.contains('dark');
-
-    // 1. Comparison Bar Chart (Revenue vs Cost)
-    const finChartEl = document.querySelector("#reports-financial-chart");
-    if (finChartEl) {
-        finChartEl.innerHTML = "";
-        const options = {
-            series: [
-                { name: 'Doanh thu', data: revSeries },
-                { name: 'Chi phí vốn', data: costSeries }
-            ],
-            chart: {
-                type: 'bar',
-                height: 180,
-                toolbar: { show: false },
-                fontFamily: 'inherit'
-            },
-            colors: ['#2563eb', '#f59e0b'],
-            plotOptions: {
-                bar: {
-                    horizontal: false,
-                    columnWidth: '45%',
-                    borderRadius: 4
-                }
-            },
-            dataLabels: { enabled: false },
-            stroke: { show: true, width: 2, colors: ['transparent'] },
-            xaxis: {
-                categories: labels,
-                labels: {
-                    style: { colors: isDark ? '#94a3b8' : '#64748b', fontSize: '11px' }
-                }
-            },
-            yaxis: {
-                labels: {
-                    style: { colors: isDark ? '#94a3b8' : '#64748b', fontSize: '11px' },
-                    formatter: function (val) {
-                        if (val >= 1000000) return (val / 1000000).toFixed(1) + ' tr';
-                        if (val >= 1000) return (val / 1000).toFixed(0) + ' k';
-                        return val;
-                    }
-                }
-            },
-            fill: { opacity: 1 },
-            tooltip: {
-                theme: isDark ? 'dark' : 'light',
-                y: {
-                    formatter: function (val) {
-                        return new Intl.NumberFormat('vi-VN').format(val) + ' đ';
-                    }
-                }
-            },
-            legend: { show: false }
-        };
-        const chart = new ApexCharts(finChartEl, options);
-        chart.render();
-    }
-
-    // 2. Category Donut Chart
-    const donutEl = document.querySelector("#reports-category-donut");
-    if (donutEl && donutSeries && donutSeries.length > 0) {
-        donutEl.innerHTML = "";
-        const donutOptions = {
-            series: donutSeries,
-            labels: donutLabels,
-            chart: {
-                type: 'donut',
-                height: 150,
-                fontFamily: 'inherit'
-            },
-            colors: ['#2563eb', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4'],
-            dataLabels: { enabled: false },
-            legend: { show: false },
-            tooltip: {
-                theme: isDark ? 'dark' : 'light',
-                y: {
-                    formatter: function (val) {
-                        return new Intl.NumberFormat('vi-VN').format(val) + ' đ';
-                    }
-                }
-            }
-        };
-        const donutChart = new ApexCharts(donutEl, donutOptions);
-        donutChart.render();
+        window.__bakeryReportsDonutChart = new ApexCharts(donutEl, donutOptions);
+        window.__bakeryReportsDonutChart.render();
     }
 };
