@@ -1,0 +1,26 @@
+@page "/access-denied"
+@attribute [AllowAnonymous]
+@inject AuthenticationStateProvider AuthStateProvider
+
+<PageTitle>Không có quyền truy cập | BakerySystem Shop</PageTitle>
+
+<div class="max-w-lg mx-auto my-12 p-8 bg-white rounded-2xl border border-slate-200 shadow-sm text-center">
+    <div class="w-16 h-16 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center mx-auto mb-4">
+        <iconify-icon icon="solar:lock-keyhole-bold-duotone" class="text-3xl"></iconify-icon>
+    </div>
+    <h1 class="text-xl font-bold text-slate-800 mb-2">Không có quyền truy cập</h1>
+    <p class="text-sm text-slate-500 mb-5">Trang này chỉ dành cho tài khoản Khách hàng của BakerySystem Shop.</p>
+    <a href="@(isAuthenticated ? "/" : "/login")" class="bakery-btn bakery-btn-primary bakery-btn-sm inline-flex items-center gap-1">
+        @(isAuthenticated ? "Về cửa hàng bánh" : "Đăng nhập khách hàng")
+    </a>
+</div>
+
+@code {
+    private bool isAuthenticated;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        isAuthenticated = authState.User.Identity?.IsAuthenticated == true;
+    }
+}

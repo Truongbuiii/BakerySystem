@@ -85,8 +85,11 @@ public sealed class CustomerOrderService(IBakeryDbContext db)
     {
         var query = db.Orders
             .AsNoTracking()
+            .Include(o => o.PromotionInvoice)
+                .ThenInclude(pi => pi!.Promotion)
             .Include(o => o.OrderDetails)
                 .ThenInclude(od => od.Product)
+                    .ThenInclude(p => p.Category)
             .AsQueryable();
 
         if (customerId.HasValue)

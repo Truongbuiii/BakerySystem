@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="vi" class="light">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <base href="/" />
+    <ResourcePreloader />
+    <link rel="icon" type="image/svg+xml" href="/assets/images/logos/shop-icon.svg" />
+
+    <!-- Standard Enterprise Font: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+    <!-- Tabler Icons Webfont -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@@tabler/icons-webfont@@2.44.0/tabler-icons.min.css" />
+
+    <!-- Core Styles -->
+    <link rel="stylesheet" href="/assets/css/theme.css" />
+    <link rel="stylesheet" href="/assets/css/layout.css" />
+    <link rel="stylesheet" href="/assets/css/bakery-admin.css?v=5.1" />
+    <link rel="stylesheet" href="/app.css" />
+    <link rel="stylesheet" href="@Assets["BakerySystem.WebShop.styles.css"]" />
+    <ImportMap />
+    <HeadOutlet />
+</head>
+
+<body class="DEFAULT_THEME bg-slate-50 text-bodytext antialiased font-sans">
+    <Routes @rendermode="InteractiveServer" />
+    <ReconnectModal />
+
+    <!-- Iconify Web Component -->
+    <script src="https://cdn.jsdelivr.net/npm/iconify-icon@2.3.0/dist/iconify-icon.min.js"></script>
+    <script src="/assets/js/admin.js?v=2.cA5"></script>
+    <script>
+        window.bakeryShopCart = window.bakeryShopCart || {
+            save: function (payload) {
+                try {
+                    sessionStorage.setItem('bakeryShopCart', JSON.stringify(payload || { items: [], voucherCode: '' }));
+                } catch (_) {}
+            },
+            load: function () {
+                try {
+                    const raw = sessionStorage.getItem('bakeryShopCart');
+                    return raw ? JSON.parse(raw) : null;
+                } catch (_) {
+                    return null;
+                }
+            },
+            clear: function () {
+                try {
+                    sessionStorage.removeItem('bakeryShopCart');
+                } catch (_) {}
+            }
+        };
+
+        window.bakeryShopLayout = window.bakeryShopLayout || {
+            logout: async function () {
+                window.bakeryShopCart.clear();
+                try {
+                    await fetch('/api/shop/auth/logout', { method: 'POST' });
+                } finally {
+                    window.location.href = '/';
+                }
+            },
+            scrollToCart: function () {
+                const el = document.getElementById('shop-cart-panel');
+                if (el) {
+                    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    return true;
+                }
+                return false;
+            }
+        };
+    </script>
+    <script src="@Assets["_framework/blazor.web.js"]"></script>
+</body>
+
+</html>

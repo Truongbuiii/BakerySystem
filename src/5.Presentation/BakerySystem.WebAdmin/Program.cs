@@ -4,7 +4,6 @@ using BakerySystem.Application.Features.Auth;
 using BakerySystem.Infrastructure;
 using BakerySystem.Infrastructure.Data;
 using BakerySystem.WebAdmin.Components;
-using BakerySystem.WebAdmin.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
@@ -19,12 +18,12 @@ builder.Services.AddRazorComponents()
 // Đăng ký tầng Application và tầng Infrastructure (kết nối SQL Server qua Entity Framework Core)
 builder.Services.AddApplicationServices();
 builder.Services.AddInfrastructureServices(builder.Configuration);
-builder.Services.AddScoped<WebCartService>();
 
-// === Authentication: Cookie-based ===
+// === Authentication: Cookie-based (tách riêng cookie với WebShop) ===
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
+        options.Cookie.Name = ".BakerySystem.AdminAuth";
         options.LoginPath = "/login";
         options.LogoutPath = "/api/auth/logout";
         options.AccessDeniedPath = "/access-denied";
@@ -125,12 +124,21 @@ app.UseAntiforgery();
 
 app.MapStaticAssets();
 
-// === Minimal API: Auth endpoints ===
+// === Minimal API: Auth endpoints (chỉ dành cho Admin & Nhân viên) ===
 app.MapPost("/api/auth/login", async (LoginRequest request, [FromServices] IAuthService authService, HttpContext httpContext) =>
 {
     var result = await authService.LoginAsync(request);
     if (!result.Success)
         return Results.Json(result);
+
+    if (result.Role == BakerySystem.Domain.Enums.AccountRole.Customer)
+    {
+        return Results.Json(new LoginResult
+        {
+            Success = false,
+            ErrorMessage = "Tài khoản khách hàng vui lòng đặt bánh & đăng nhập tại cổng WebShop (localhost:5150)."
+        });
+    }
 
     var claims = new List<Claim>
     {
@@ -150,38 +158,6 @@ app.MapPost("/api/auth/login", async (LoginRequest request, [FromServices] IAuth
         });
 
     return Results.Json(result);
-}).DisableAntiforgery();
-
-app.MapPost("/api/auth/register", async (CustomerRegisterRequest request, [FromServices] IAuthService authService, HttpContext httpContext) =>
-{
-    var result = await authService.RegisterCustomerAsync(request);
-    if (!result.Success || result.Customer is null || result.Customer.AccountId is null)
-        return Results.Json(new { success = false, errorMessage = result.ErrorMessage ?? "Đăng ký không thành công." });
-
-    var claims = new List<Claim>
-    {
-        new(ClaimTypes.NameIdentifier, result.Customer.AccountId.Value.ToString()),
-        new(ClaimTypes.Name, result.Customer.Username),
-        new(ClaimTypes.Role, BakerySystem.Domain.Enums.AccountRole.Customer),
-        new("FullName", string.IsNullOrWhiteSpace(result.Customer.FullName) ? result.Customer.Username : result.Customer.FullName)
-    };
-    var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-    await httpContext.SignInAsync(
-        CookieAuthenticationDefaults.AuthenticationScheme,
-        new ClaimsPrincipal(identity),
-        new AuthenticationProperties
-        {
-            IsPersistent = true,
-            ExpiresUtc = DateTimeOffset.UtcNow.AddHours(8)
-        });
-
-    return Results.Json(new
-    {
-        success = true,
-        role = BakerySystem.Domain.Enums.AccountRole.Customer,
-        username = result.Customer.Username,
-        fullName = result.Customer.FullName
-    });
 }).DisableAntiforgery();
 
 app.MapPost("/api/auth/logout", async (HttpContext httpContext) =>

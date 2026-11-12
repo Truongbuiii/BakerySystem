@@ -1,11 +1,10 @@
 @page "/profile"
 @rendermode InteractiveServer
-@attribute [Authorize]
+@attribute [Authorize(Roles = "Admin,Employee")]
 @using System.Security.Claims
 @inject AuthenticationStateProvider AuthState
 @inject EmployeeService Employees
 @inject IAuthService AuthService
-@inject CustomerOrderService CustomerOrderService
 
 <PageTitle>Hồ sơ &amp; bảo mật | BakerySystem</PageTitle>
 
@@ -13,11 +12,7 @@
     <div class="profile-header">
         <div>
             <h2 class="profile-title">Hồ sơ &amp; bảo mật</h2>
-            <p class="profile-subtitle">
-                @(isCustomer
-                    ? "Xem, chỉnh sửa thông tin cá nhân, địa chỉ nhận bánh và bảo mật tài khoản."
-                    : "Xem và cập nhật thông tin cá nhân, mật khẩu đăng nhập.")
-            </p>
+            <p class="profile-subtitle">Xem và cập nhật thông tin cá nhân, mật khẩu đăng nhập.</p>
         </div>
 
         <div class="profile-account-pill" title="Tài khoản đang đăng nhập">
@@ -31,49 +26,6 @@
             </span>
         </div>
     </div>
-
-    @if (isCustomer && customerProfile is not null)
-    {
-        <div class="profile-vip-banner">
-            <div class="profile-vip-left">
-                <span class="profile-vip-avatar">@Initials</span>
-                <div class="min-w-0">
-                    <div class="flex items-center gap-2 flex-wrap">
-                        <strong class="text-base text-slate-900">@DisplayName</strong>
-                        <span class="bakery-badge bakery-badge-primary text-[11px]">Khách hàng thành viên</span>
-                    </div>
-                    <div class="profile-vip-meta">
-                        <span class="profile-vip-meta-item">
-                            <iconify-icon icon="solar:phone-bold" class="text-primary"></iconify-icon>
-                            <span>@(string.IsNullOrWhiteSpace(customerProfile.Phone) ? "Chưa cập nhật SĐT" : customerProfile.Phone)</span>
-                        </span>
-                        <span class="profile-vip-meta-item">
-                            <iconify-icon icon="solar:map-point-bold" class="text-primary"></iconify-icon>
-                            <span>@(string.IsNullOrWhiteSpace(customerProfile.Address) ? "Chưa có địa chỉ giao bánh" : customerProfile.Address)</span>
-                        </span>
-                    </div>
-                    @if (!isEditingProfile)
-                    {
-                        <button type="button" class="profile-vip-edit-btn" @onclick="OpenEditProfileForm">
-                            <iconify-icon icon="solar:pen-new-square-linear"></iconify-icon>
-                            <span>Chỉnh sửa thông tin cá nhân</span>
-                        </button>
-                    }
-                </div>
-            </div>
-
-            <div class="profile-vip-stats">
-                <div class="profile-vip-stat">
-                    <span class="profile-vip-stat-label">Tổng chi tiêu</span>
-                    <span class="profile-vip-stat-value" style="color: #1e40af;">@($"{customerTotalSpent:N0}đ")</span>
-                </div>
-                <div class="profile-vip-stat">
-                    <span class="profile-vip-stat-label">Đơn đã hoàn tất</span>
-                    <span class="profile-vip-stat-value" style="color: #059669;">@customerOrdersCount đơn</span>
-                </div>
-            </div>
-        </div>
-    }
 
     <div class="profile-grid">
         <section class="profile-card">
@@ -103,7 +55,7 @@
                             <span class="profile-info-key">Quyền truy cập</span>
                             <span class="profile-info-val">@RoleLabel(roleCode)</span>
                         </div>
-                        @if (employee is not null || customerProfile is not null)
+                        @if (employee is not null)
                         {
                             <div class="profile-info-row">
                                 <span class="profile-info-key">Họ và tên</span>
@@ -113,13 +65,6 @@
                                 <span class="profile-info-key">Số điện thoại</span>
                                 <span class="profile-info-val">@(string.IsNullOrWhiteSpace(phone) ? "Chưa cập nhật" : phone)</span>
                             </div>
-                            @if (customerProfile is not null)
-                            {
-                                <div class="profile-info-row">
-                                    <span class="profile-info-key">Địa chỉ nhận bánh</span>
-                                    <span class="profile-info-val">@(string.IsNullOrWhiteSpace(address) ? "Chưa cập nhật" : address)</span>
-                                </div>
-                            }
                         }
                     </div>
 
@@ -131,7 +76,7 @@
                         </div>
                     }
 
-                    @if (employee is not null || customerProfile is not null)
+                    @if (employee is not null)
                     {
                         <div class="profile-card-footer">
                             <span class="profile-footer-note">Bấm nút bên cạnh để sửa thông tin của bạn.</span>
@@ -201,7 +146,7 @@
                     <div class="profile-field">
                         <div class="profile-label-row">
                             <label class="profile-label-text" for="profile-phone">
-                                Số điện thoại@if (isCustomer) { <span class="profile-required">*</span> }
+                                Số điện thoại
                             </label>
                             <span class="profile-label-hint">Chỉ nhập chữ số · 9–11 số</span>
                         </div>
@@ -219,25 +164,6 @@
                             <small class="text-xs text-rose-600 mt-1 block">Số điện thoại phải bắt đầu bằng 0 và gồm 9–11 chữ số (không chứa chữ cái).</small>
                         }
                     </div>
-
-                    @if (customerProfile is not null)
-                    {
-                        <div class="profile-field">
-                            <div class="profile-label-row">
-                                <label class="profile-label-text" for="profile-address">
-                                    Địa chỉ nhận bánh mặc định
-                                </label>
-                                <span class="profile-label-hint">5–255 ký tự</span>
-                            </div>
-                            <input id="profile-address"
-                                   class="bakery-input"
-                                   maxlength="255"
-                                   placeholder="VD: 123 Lê Lợi, Phường Bến Thành, Quận 1, TP.HCM"
-                                   @bind="address"
-                                   @bind:event="oninput"
-                                   disabled="@isSavingProfile" />
-                        </div>
-                    }
 
                     @if (!string.IsNullOrEmpty(profileMessage))
                     {
@@ -416,12 +342,7 @@
     private string accountStatus = AccountStatus.Active;
     private string fullName = string.Empty;
     private string? phone;
-    private string? address;
     private Employee? employee;
-    private CustomerDto? customerProfile;
-    private bool isCustomer;
-    private decimal customerTotalSpent;
-    private int customerOrdersCount;
 
     private bool isEditingProfile;
     private bool isChangePasswordOpen;
@@ -443,9 +364,7 @@
 
     private string DisplayName => !string.IsNullOrWhiteSpace(employee?.FullName)
         ? employee.FullName
-        : (!string.IsNullOrWhiteSpace(customerProfile?.FullName)
-            ? customerProfile.FullName
-            : (!string.IsNullOrWhiteSpace(fullName) ? fullName : (string.IsNullOrWhiteSpace(username) ? "Tài khoản" : username)));
+        : (!string.IsNullOrWhiteSpace(fullName) ? fullName : (string.IsNullOrWhiteSpace(username) ? "Tài khoản" : username));
 
     private string Initials
     {
@@ -469,38 +388,18 @@
         username = state.User.Identity?.Name ?? string.Empty;
         roleCode = state.User.FindFirst(ClaimTypes.Role)?.Value ?? AccountRole.Employee;
         fullName = state.User.FindFirst("FullName")?.Value ?? username;
-        isCustomer = roleCode == AccountRole.Customer;
 
         if (accountId > 0)
         {
-            if (isCustomer)
+            var result = await Employees.GetProfileAsync(accountId);
+            if (result is not null)
             {
-                customerProfile = await AuthService.GetCustomerByAccountIdAsync(accountId);
-                if (customerProfile is not null)
-                {
-                    username = customerProfile.Username;
-                    fullName = customerProfile.FullName;
-                    phone = customerProfile.Phone;
-                    address = customerProfile.Address;
-
-                    var orders = await CustomerOrderService.GetOrdersAsync(customerProfile.CustomerId, null);
-                    var completedOrders = orders.Where(o => o.Status == OrderStatus.Completed).ToList();
-                    customerOrdersCount = completedOrders.Count;
-                    customerTotalSpent = completedOrders.Sum(o => o.FinalAmount);
-                }
-            }
-            else
-            {
-                var result = await Employees.GetProfileAsync(accountId);
-                if (result is not null)
-                {
-                    employee = result.Value.Employee;
-                    username = result.Value.Username;
-                    fullName = employee.FullName;
-                    phone = employee.Phone;
-                    roleCode = employee.Account?.Role ?? roleCode;
-                    accountStatus = employee.Account?.Status ?? AccountStatus.Active;
-                }
+                employee = result.Value.Employee;
+                username = result.Value.Username;
+                fullName = employee.FullName;
+                phone = employee.Phone;
+                roleCode = employee.Account?.Role ?? roleCode;
+                accountStatus = employee.Account?.Status ?? AccountStatus.Active;
             }
         }
     }
@@ -509,13 +408,7 @@
     {
         profileMessage = null;
         profileSaved = false;
-        if (customerProfile is not null)
-        {
-            fullName = customerProfile.FullName;
-            phone = customerProfile.Phone;
-            address = customerProfile.Address;
-        }
-        else if (employee is not null)
+        if (employee is not null)
         {
             fullName = employee.FullName;
             phone = employee.Phone;
@@ -525,13 +418,7 @@
 
     private void CancelEditProfileForm()
     {
-        if (customerProfile is not null)
-        {
-            fullName = customerProfile.FullName;
-            phone = customerProfile.Phone;
-            address = customerProfile.Address;
-        }
-        else if (employee is not null)
+        if (employee is not null)
         {
             fullName = employee.FullName;
             phone = employee.Phone;
@@ -563,7 +450,7 @@
 
     private async Task SaveProfile()
     {
-        if (isSavingProfile || (employee is null && customerProfile is null))
+        if (isSavingProfile || employee is null)
             return;
 
         profileMessage = null;
@@ -577,70 +464,21 @@
         }
 
         var normalizedPhone = string.IsNullOrWhiteSpace(phone) ? null : phone.Trim();
-        if (isCustomer && normalizedPhone is null)
-        {
-            profileMessage = "Vui lòng nhập số điện thoại liên hệ.";
-            return;
-        }
-
         if (normalizedPhone is not null && !System.Text.RegularExpressions.Regex.IsMatch(normalizedPhone, @"^0\d{8,10}$"))
         {
             profileMessage = "Số điện thoại phải bắt đầu bằng số 0 và gồm 9 đến 11 chữ số (không chứa chữ cái hay ký tự đặc biệt).";
             return;
         }
 
-        if (customerProfile is not null)
-        {
-            var normalizedAddrCheck = string.IsNullOrWhiteSpace(address) ? null : address.Trim();
-            if (normalizedAddrCheck is not null && (normalizedAddrCheck.Length < 5 || normalizedAddrCheck.Length > 255 || !normalizedAddrCheck.Any(char.IsLetter)))
-            {
-                profileMessage = "Địa chỉ giao bánh phải từ 5 đến 255 ký tự và chứa tên đường/khu vực hợp lệ.";
-                return;
-            }
-        }
-
         isSavingProfile = true;
         try
         {
-            if (customerProfile is not null)
-            {
-                var normalizedAddress = string.IsNullOrWhiteSpace(address) ? null : address.Trim();
-                if (normalizedAddress is { Length: > 255 })
-                {
-                    profileMessage = "Địa chỉ không được vượt quá 255 ký tự.";
-                    return;
-                }
+            await Employees.UpdateProfileAsync(accountId, trimmedName, normalizedPhone);
 
-                var updated = await AuthService.UpdateCustomerProfileAsync(new UpdateCustomerProfileRequest
-                {
-                    CustomerId = customerProfile.CustomerId,
-                    FullName = trimmedName,
-                    Phone = normalizedPhone,
-                    Address = normalizedAddress
-                });
-
-                if (!updated)
-                {
-                    profileMessage = "Không tìm thấy hồ sơ khách hàng.";
-                    return;
-                }
-
-                fullName = trimmedName;
-                phone = normalizedPhone;
-                address = normalizedAddress;
-                customerProfile.FullName = fullName;
-                customerProfile.Phone = phone;
-                customerProfile.Address = address;
-            }
-            else if (employee is not null)
-            {
-                await Employees.UpdateProfileAsync(accountId, trimmedName, normalizedPhone);
-
-                fullName = trimmedName;
-                phone = normalizedPhone;
-                employee.FullName = fullName;
-                employee.Phone = phone;
-            }
+            fullName = trimmedName;
+            phone = normalizedPhone;
+            employee.FullName = fullName;
+            employee.Phone = phone;
 
             await SyncDisplayNameAsync(fullName);
 

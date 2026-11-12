@@ -1,0 +1,507 @@
+@page "/login"
+@layout LoginLayout
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+@attribute [AllowAnonymous]
+@rendermode InteractiveServer
+
+<PageTitle>@(authMode == "register" ? "Đăng ký khách hàng" : "Đăng nhập") | BakerySystem Shop</PageTitle>
+
+<div class="bakery-login-card bakery-login-card-wide">
+    <!-- Brand Logo & Header -->
+    <div class="bakery-login-header">
+        <div class="flex items-center justify-center gap-2 mb-3">
+            <img src="/assets/images/logos/shop-logo.svg" alt="BakeryShop" class="h-9 block" />
+        </div>
+        <h1 class="bakery-login-title">
+            @(authMode == "register" ? "Đăng ký khách hàng" : "Chào mừng đến BakerySystem")
+        </h1>
+        <p class="bakery-login-subtitle">
+            @(authMode == "register"
+                ? "Tạo tài khoản khách hàng để đặt bánh tươi online & theo dõi đơn hàng"
+                : "Đăng nhập để đặt bánh giao tận nơi, dùng voucher và theo dõi đơn hàng")
+        </p>
+    </div>
+
+    <!-- Switcher: Đăng nhập / Đăng ký -->
+    <div class="bakery-auth-tabs" role="tablist">
+        <button type="button"
+                role="tab"
+                class="bakery-auth-tab @(authMode == "login" ? "active" : "")"
+                @onclick='() => SwitchAuthMode("login")'>
+            <iconify-icon icon="solar:login-2-linear"></iconify-icon>
+            <span>Đăng nhập</span>
+        </button>
+        <button type="button"
+                role="tab"
+                class="bakery-auth-tab @(authMode == "register" ? "active" : "")"
+                @onclick='() => SwitchAuthMode("register")'>
+            <iconify-icon icon="solar:user-plus-rounded-linear"></iconify-icon>
+            <span>Đăng ký tài khoản</span>
+        </button>
+    </div>
+
+    @if (authMode == "login")
+    {
+        <!-- Dev Quick-Fill Helper Box: Customer Accounts Only -->
+        <div class="bakery-login-devbox">
+            <div class="flex items-center justify-between mb-1.5">
+                <span class="text-[11px] font-semibold text-slate-700 uppercase tracking-wide">
+                    Tài khoản khách hàng thử nghiệm:
+                </span>
+                <span class="text-[10px] text-slate-500 font-mono">dev mode</span>
+            </div>
+            <div class="shop-dev-chips-2">
+                <button type="button"
+                        class="bakery-dev-chip @(username == "hoanganh" ? "active" : "")"
+                        @onclick='() => SelectDevAccount("hoanganh", "customer123")'
+                        title="Khách hàng Nguyễn Hoàng Anh">
+                    <span class="font-bold block">Nguyễn Hoàng Anh</span>
+                    <span class="text-[10px] opacity-75">hoanganh · 0912345678</span>
+                </button>
+                <button type="button"
+                        class="bakery-dev-chip @(username == "thuha" ? "active" : "")"
+                        @onclick='() => SelectDevAccount("thuha", "customer123")'
+                        title="Khách hàng Trần Thu Hà">
+                    <span class="font-bold block">Trần Thu Hà</span>
+                    <span class="text-[10px] opacity-75">thuha · 0987654321</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Login Form -->
+        <div class="bakery-login-form">
+            @if (!string.IsNullOrEmpty(errorMessage))
+            {
+                <div class="bakery-login-error">
+                    <iconify-icon icon="solar:danger-triangle-linear" class="text-base shrink-0"></iconify-icon>
+                    <span>@errorMessage</span>
+                </div>
+            }
+
+            <div class="bakery-login-field">
+                <label for="username" class="bakery-login-label">Tên đăng nhập hoặc Số điện thoại</label>
+                <div class="bakery-login-input-wrap">
+                    <iconify-icon icon="solar:user-linear" class="bakery-login-input-icon"></iconify-icon>
+                    <input id="username"
+                           type="text"
+                           class="bakery-login-input"
+                           placeholder="VD: hoanganh hoặc 0912345678"
+                           @bind="username"
+                           @bind:event="oninput"
+                           @onkeydown="HandleLoginKeyDown"
+                           disabled="@isLoading"
+                           autocomplete="username" />
+                </div>
+            </div>
+
+            <div class="bakery-login-field">
+                <label for="password" class="bakery-login-label">Mật khẩu</label>
+                <div class="bakery-login-input-wrap">
+                    <iconify-icon icon="solar:lock-keyhole-linear" class="bakery-login-input-icon"></iconify-icon>
+                    <input id="password"
+                           type="@(showPassword ? "text" : "password")"
+                           class="bakery-login-input"
+                           placeholder="Nhập mật khẩu"
+                           @bind="password"
+                           @bind:event="oninput"
+                           @onkeydown="HandleLoginKeyDown"
+                           disabled="@isLoading"
+                           autocomplete="current-password" />
+                    <button type="button"
+                            class="bakery-login-toggle-pw"
+                            @onclick="() => showPassword = !showPassword"
+                            tabindex="-1"
+                            title="@(showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu")">
+                        <iconify-icon icon="@(showPassword ? "solar:eye-closed-linear" : "solar:eye-linear")" class="text-base"></iconify-icon>
+                    </button>
+                </div>
+            </div>
+
+            <button type="button" class="bakery-login-btn shop-login-btn" @onclick="HandleLogin" disabled="@isLoading">
+                @if (isLoading)
+                {
+                    <span class="bakery-login-spinner"></span>
+                    <span>Đang đăng nhập...</span>
+                }
+                else
+                {
+                    <span>Đăng nhập &amp; Đặt bánh ngay</span>
+                }
+            </button>
+        </div>
+    }
+    else
+    {
+        <!-- Customer Register Form -->
+        <div class="bakery-login-form">
+            @if (!string.IsNullOrEmpty(registerError))
+            {
+                <div class="bakery-login-error">
+                    <iconify-icon icon="solar:danger-triangle-linear" class="text-base shrink-0"></iconify-icon>
+                    <span>@registerError</span>
+                </div>
+            }
+
+            <div class="bakery-login-field">
+                <label for="reg-fullname" class="bakery-login-label">Họ và tên (*)</label>
+                <div class="bakery-login-input-wrap">
+                    <iconify-icon icon="solar:user-bold" class="bakery-login-input-icon"></iconify-icon>
+                    <input id="reg-fullname"
+                           type="text"
+                           class="bakery-login-input"
+                           maxlength="100"
+                           placeholder="VD: Nguyễn Văn An"
+                           @bind="regFullName"
+                           @bind:event="oninput"
+                           disabled="@isLoading" />
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div class="bakery-login-field">
+                    <label for="reg-username" class="bakery-login-label">Tên đăng nhập (*)</label>
+                    <div class="bakery-login-input-wrap">
+                        <iconify-icon icon="solar:user-id-linear" class="bakery-login-input-icon"></iconify-icon>
+                        <input id="reg-username"
+                               type="text"
+                               class="bakery-login-input"
+                               maxlength="50"
+                               placeholder="3–50 ký tự, không dấu"
+                               @bind="regUsername"
+                               @bind:event="oninput"
+                               disabled="@isLoading"
+                               autocomplete="username" />
+                    </div>
+                </div>
+
+                <div class="bakery-login-field">
+                    <label for="reg-phone" class="bakery-login-label">Số điện thoại (*)</label>
+                    <div class="bakery-login-input-wrap">
+                        <iconify-icon icon="solar:phone-linear" class="bakery-login-input-icon"></iconify-icon>
+                        <input id="reg-phone"
+                               type="tel"
+                               inputmode="numeric"
+                               maxlength="11"
+                               class="bakery-login-input"
+                               placeholder="VD: 0912345678"
+                               @bind="regPhone"
+                               @bind:event="oninput"
+                               disabled="@isLoading" />
+                    </div>
+                </div>
+            </div>
+
+            <div class="bakery-login-field">
+                <label for="reg-address" class="bakery-login-label">Địa chỉ giao bánh mặc định</label>
+                <div class="bakery-login-input-wrap">
+                    <iconify-icon icon="solar:map-point-linear" class="bakery-login-input-icon"></iconify-icon>
+                    <input id="reg-address"
+                           type="text"
+                           class="bakery-login-input"
+                           maxlength="255"
+                           placeholder="VD: 123 Lê Lợi, Q.1, TP.HCM"
+                           @bind="regAddress"
+                           @bind:event="oninput"
+                           disabled="@isLoading" />
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div class="bakery-login-field">
+                    <label for="reg-password" class="bakery-login-label">Mật khẩu (*)</label>
+                    <div class="bakery-login-input-wrap">
+                        <iconify-icon icon="solar:lock-keyhole-linear" class="bakery-login-input-icon"></iconify-icon>
+                        <input id="reg-password"
+                               type="@(showRegisterPassword ? "text" : "password")"
+                               class="bakery-login-input"
+                               maxlength="100"
+                               placeholder="Ít nhất 6 ký tự"
+                               @bind="regPassword"
+                               @bind:event="oninput"
+                               disabled="@isLoading"
+                               autocomplete="new-password" />
+                        <button type="button"
+                                class="bakery-login-toggle-pw"
+                                @onclick="() => showRegisterPassword = !showRegisterPassword"
+                                tabindex="-1">
+                            <iconify-icon icon="@(showRegisterPassword ? "solar:eye-closed-linear" : "solar:eye-linear")" class="text-base"></iconify-icon>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="bakery-login-field">
+                    <label for="reg-confirm" class="bakery-login-label">Xác nhận mật khẩu (*)</label>
+                    <div class="bakery-login-input-wrap">
+                        <iconify-icon icon="solar:check-circle-linear" class="bakery-login-input-icon"></iconify-icon>
+                        <input id="reg-confirm"
+                               type="@(showRegisterPassword ? "text" : "password")"
+                               class="bakery-login-input"
+                               maxlength="100"
+                               placeholder="Nhập lại mật khẩu"
+                               @bind="regConfirmPassword"
+                               @bind:event="oninput"
+                               @onkeydown="HandleRegisterKeyDown"
+                               disabled="@isLoading"
+                               autocomplete="new-password" />
+                    </div>
+                </div>
+            </div>
+
+            <button type="button" class="bakery-login-btn shop-login-btn" @onclick="HandleRegister" disabled="@isLoading">
+                @if (isLoading)
+                {
+                    <span class="bakery-login-spinner"></span>
+                    <span>Đang tạo tài khoản...</span>
+                }
+                else
+                {
+                    <span>Tạo tài khoản &amp; Mua bánh ngay</span>
+                }
+            </button>
+        </div>
+    }
+
+    <!-- Card Footer -->
+    <div class="bakery-login-footer flex flex-col items-center gap-2">
+        <a href="/" class="shop-back-link">
+            <iconify-icon icon="solar:arrow-left-linear"></iconify-icon>
+            <span>Tiếp tục xem thực đơn bánh không cần đăng nhập</span>
+        </a>
+        <span>&copy; @DateTime.Now.Year BakerySystem Shop. Đồng bộ tài khoản trên Web &amp; Mobile App.</span>
+    </div>
+</div>
+
+<script>
+    window.bakeryShopAuth = window.bakeryShopAuth || {};
+    window.bakeryShopAuth.resolveTargetUrl = function (returnUrl) {
+        if (!returnUrl) return '/';
+        const cleanReturn = '/' + returnUrl.replace(/^\/+/, '');
+        if (cleanReturn.startsWith('/login') || cleanReturn.startsWith('//')) {
+            return '/';
+        }
+        return cleanReturn;
+    };
+
+    window.bakeryShopAuth.login = async function (username, password, returnUrl) {
+        try {
+            const resp = await fetch('/api/shop/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: username, password: password })
+            });
+            if (!resp.ok) {
+                let errText = 'Lỗi máy chủ (' + resp.status + ')';
+                try {
+                    const errJson = await resp.json();
+                    if (errJson.errorMessage) errText = errJson.errorMessage;
+                } catch (_) {}
+                return { success: false, errorMessage: errText };
+            }
+            const data = await resp.json();
+            if (data.success) {
+                window.location.href = window.bakeryShopAuth.resolveTargetUrl(returnUrl);
+                return { success: true };
+            }
+            return { success: false, errorMessage: data.errorMessage || 'Đăng nhập không thành công.' };
+        } catch (err) {
+            return { success: false, errorMessage: 'Không thể kết nối đến máy chủ: ' + (err.message || 'Lỗi mạng') };
+        }
+    };
+
+    window.bakeryShopAuth.register = async function (payload, returnUrl) {
+        try {
+            const resp = await fetch('/api/shop/auth/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            if (!resp.ok) {
+                return { success: false, errorMessage: 'Lỗi máy chủ (' + resp.status + ')' };
+            }
+            const data = await resp.json();
+            if (data.success) {
+                window.location.href = window.bakeryShopAuth.resolveTargetUrl(returnUrl);
+                return { success: true };
+            }
+            return { success: false, errorMessage: data.errorMessage || 'Đăng ký không thành công.' };
+        } catch (err) {
+            return { success: false, errorMessage: 'Không thể kết nối đến máy chủ: ' + (err.message || 'Lỗi mạng') };
+        }
+    };
+</script>
+
+@code {
+    [SupplyParameterFromQuery(Name = "returnUrl")]
+    public string? ReturnUrl { get; set; }
+
+    [SupplyParameterFromQuery(Name = "mode")]
+    public string? Mode { get; set; }
+
+    private string authMode = "login";
+
+    private string username = "hoanganh";
+    private string password = "customer123";
+    private string? errorMessage;
+    private bool isLoading;
+    private bool showPassword;
+
+    private string regFullName = string.Empty;
+    private string regUsername = string.Empty;
+    private string regPhone = string.Empty;
+    private string regAddress = string.Empty;
+    private string regPassword = string.Empty;
+    private string regConfirmPassword = string.Empty;
+    private string? registerError;
+    private bool showRegisterPassword;
+
+    protected override void OnParametersSet()
+    {
+        if (string.Equals(Mode, "register", StringComparison.OrdinalIgnoreCase))
+        {
+            authMode = "register";
+        }
+    }
+
+    private void SwitchAuthMode(string mode)
+    {
+        authMode = mode;
+        errorMessage = null;
+        registerError = null;
+    }
+
+    private void SelectDevAccount(string u, string p)
+    {
+        username = u;
+        password = p;
+        errorMessage = null;
+    }
+
+    private async Task HandleLoginKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await HandleLogin();
+        }
+    }
+
+    private async Task HandleRegisterKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await HandleRegister();
+        }
+    }
+
+    private async Task HandleLogin()
+    {
+        errorMessage = null;
+
+        if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
+        {
+            errorMessage = "Vui lòng nhập đầy đủ tên đăng nhập và mật khẩu.";
+            return;
+        }
+
+        isLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            var response = await JSRuntime.InvokeAsync<AuthJsResponse>("bakeryShopAuth.login", username.Trim(), password, ReturnUrl);
+            if (!response.Success)
+            {
+                errorMessage = response.ErrorMessage ?? "Đăng nhập không thành công.";
+                isLoading = false;
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = "Lỗi kết nối: " + ex.Message;
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task HandleRegister()
+    {
+        registerError = null;
+
+        var trimmedName = regFullName.Trim();
+        if (trimmedName.Length < 2 || trimmedName.Length > 100 || trimmedName.Count(char.IsLetter) < 2)
+        {
+            registerError = "Họ và tên phải từ 2 đến 100 ký tự và chứa ít nhất 2 chữ cái.";
+            return;
+        }
+
+        var trimmedUsername = regUsername.Trim();
+        if (!System.Text.RegularExpressions.Regex.IsMatch(trimmedUsername, @"^[a-zA-Z0-9_.-]{3,50}$"))
+        {
+            registerError = "Tên đăng nhập từ 3–50 ký tự, chỉ gồm chữ không dấu, số và ký tự (_, ., -), không chứa khoảng trắng.";
+            return;
+        }
+
+        var trimmedPhone = regPhone.Trim();
+        if (!System.Text.RegularExpressions.Regex.IsMatch(trimmedPhone, @"^0\d{8,10}$"))
+        {
+            registerError = "Số điện thoại phải bắt đầu bằng số 0 và gồm 9 đến 11 chữ số (VD: 0912345678).";
+            return;
+        }
+
+        var trimmedAddress = regAddress.Trim();
+        if (!string.IsNullOrEmpty(trimmedAddress) && (trimmedAddress.Length < 5 || trimmedAddress.Length > 255 || !trimmedAddress.Any(char.IsLetter)))
+        {
+            registerError = "Địa chỉ giao bánh phải từ 5 đến 255 ký tự và chứa tên đường/khu vực hợp lệ.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(regPassword) || regPassword.Length < 6 || regPassword.Length > 100)
+        {
+            registerError = "Mật khẩu phải có từ 6 đến 100 ký tự.";
+            return;
+        }
+
+        if (regPassword != regConfirmPassword)
+        {
+            registerError = "Xác nhận mật khẩu không trùng khớp.";
+            return;
+        }
+
+        isLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            var payload = new CustomerRegisterRequest
+            {
+                FullName = trimmedName,
+                Username = trimmedUsername,
+                Phone = trimmedPhone,
+                Address = trimmedAddress,
+                Password = regPassword,
+                ConfirmPassword = regConfirmPassword
+            };
+
+            var response = await JSRuntime.InvokeAsync<AuthJsResponse>("bakeryShopAuth.register", payload, ReturnUrl);
+            if (!response.Success)
+            {
+                registerError = response.ErrorMessage ?? "Đăng ký không thành công.";
+                isLoading = false;
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            registerError = "Lỗi kết nối: " + ex.Message;
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private class AuthJsResponse
+    {
+        public bool Success { get; set; }
+        public string? ErrorMessage { get; set; }
+    }
+}

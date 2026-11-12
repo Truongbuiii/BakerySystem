@@ -1,6 +1,5 @@
-@page "/shop"
+@page "/"
 @rendermode InteractiveServer
-@attribute [Authorize(Roles = "Customer")]
 @implements IDisposable
 @using System.Security.Claims
 @inject CustomerOrderService CustomerOrderService
@@ -11,7 +10,7 @@
 @inject NavigationManager Navigation
 @inject IJSRuntime JS
 
-<PageTitle>Thực đơn &amp; Đặt bánh Online | BakerySystem</PageTitle>
+<PageTitle>Thực đơn &amp; Đặt bánh Online | BakerySystem Shop</PageTitle>
 
 @if (!string.IsNullOrEmpty(toastMessage))
 {
@@ -36,10 +35,13 @@
             <iconify-icon icon="solar:restart-linear"></iconify-icon>
             <span>Làm mới menu</span>
         </button>
-        <a href="/my-orders" class="bakery-btn bakery-btn-primary bakery-btn-sm">
-            <iconify-icon icon="solar:bag-heart-bold"></iconify-icon>
-            <span>Xem đơn hàng đã đặt (@customerOrders.Count)</span>
-        </a>
+        @if (customerProfile is not null)
+        {
+            <a href="/my-orders" class="bakery-btn bakery-btn-primary bakery-btn-sm">
+                <iconify-icon icon="solar:bag-heart-bold"></iconify-icon>
+                <span>Xem đơn hàng đã đặt (@customerOrders.Count)</span>
+            </a>
+        }
     </div>
 </div>
 
@@ -81,27 +83,27 @@ else
         </div>
     }
 
-    <!-- Banner Kho Voucher & Ưu đãi nhỏ gọn -->
+    <!-- Banner Kho Voucher & Ưu đãi dịu mắt -->
     <div class="shop-promo-banner">
         <div class="flex items-center gap-3 flex-wrap">
             <span class="shop-promo-pill">
                 <iconify-icon icon="solar:ticket-sale-bold"></iconify-icon>
                 <span>ƯU ĐÃI HÔM NAY</span>
             </span>
-            <span class="text-sm font-bold text-white">Kho Voucher BakerySystem</span>
-            <span class="text-xs" style="color: rgba(255,255,255,0.88);">
+            <span class="text-sm font-bold" style="color: #4A3222;">Kho Voucher BakeryShop</span>
+            <span class="text-xs" style="color: #785E4D;">
                 @(promotions.Count > 0 ? $"Có {promotions.Count} mã giảm giá đang mở" : "Ưu đãi trực tuyến")
             </span>
         </div>
         <div class="flex items-center gap-2">
             @if (!string.IsNullOrEmpty(CartService.AppliedVoucherCode))
             {
-                <span class="px-2.5 py-1 rounded-lg text-xs font-bold" style="background: rgba(255,255,255,0.2); color: #fff;">
+                <span class="px-2.5 py-1 rounded-lg text-xs font-bold" style="background: #EFE4D8; color: #7D5233; border: 1px solid #DFCBB5;">
                     Đang dùng: @CartService.AppliedVoucherCode
                 </span>
             }
             <button type="button" class="bakery-btn bakery-btn-sm"
-                    style="background: #ffffff; color: #1e40af; font-weight: 700;"
+                    style="background: #ffffff; color: #7D5233; border: 1px solid #DFCBB5; font-weight: 700;"
                     @onclick="() => isVoucherModalOpen = true">
                 <iconify-icon icon="solar:ticket-sale-bold"></iconify-icon>
                 <span>Mở Kho Voucher (@promotions.Count)</span>
@@ -271,7 +273,7 @@ else
         </div>
 
         <!-- CỘT PHẢI: CHI TIẾT GIỎ HÀNG & ĐẶT ĐƠN LỚN, RÕ RÀNG -->
-        <aside class="shop-cart-panel">
+        <aside id="shop-cart-panel" class="shop-cart-panel">
             <div class="shop-cart-header">
                 <div class="flex items-center gap-2">
                     <iconify-icon icon="solar:bill-check-bold" class="text-primary text-xl"></iconify-icon>
@@ -393,67 +395,70 @@ else
                         }
                     </div>
 
-                    <!-- Thông tin giao nhận 2 cột gọn gàng -->
-                    <div class="shop-section-box">
-                        <div class="shop-section-title">
-                            <span>Thông tin nhận bánh</span>
-                            <a href="/profile" class="text-xs font-bold text-primary hover:underline">
-                                Sửa hồ sơ mặc định
-                            </a>
+                    @if (customerProfile is not null)
+                    {
+                        <!-- Thông tin giao nhận 2 cột gọn gàng -->
+                        <div class="shop-section-box">
+                            <div class="shop-section-title">
+                                <span>Thông tin nhận bánh</span>
+                                <a href="/profile" class="text-xs font-bold text-primary hover:underline">
+                                    Sửa hồ sơ mặc định
+                                </a>
+                            </div>
+                            <div class="shop-form-grid-2">
+                                <div>
+                                    <label class="text-[11px] font-semibold text-slate-600 block mb-0.5">Người nhận (*)</label>
+                                    <input type="text" class="bakery-input w-full" style="height: 34px;"
+                                           placeholder="Họ và tên người nhận" @bind="receiverName" />
+                                </div>
+                                <div>
+                                    <label class="text-[11px] font-semibold text-slate-600 block mb-0.5">Số điện thoại (*)</label>
+                                    <input type="tel" inputmode="numeric" maxlength="11" class="bakery-input w-full" style="height: 34px;"
+                                           placeholder="VD: 0912345678"
+                                           @bind="receiverPhone"
+                                           @bind:event="oninput" />
+                                </div>
+                                <div>
+                                    <label class="text-[11px] font-semibold text-slate-600 block mb-0.5">Địa chỉ giao bánh (*)</label>
+                                    <input type="text" class="bakery-input w-full" style="height: 34px;"
+                                           placeholder="Địa chỉ nhận bánh" @bind="receiverAddress" />
+                                </div>
+                                <div>
+                                    <label class="text-[11px] font-semibold text-slate-600 block mb-0.5">Ghi chú cho tiệm</label>
+                                    <input type="text" class="bakery-input w-full" style="height: 34px;"
+                                           placeholder="VD: Viết chữ, giao trước 17h..." @bind="orderNote" />
+                                </div>
+                            </div>
                         </div>
-                        <div class="shop-form-grid-2">
-                            <div>
-                                <label class="text-[11px] font-semibold text-slate-600 block mb-0.5">Người nhận (*)</label>
-                                <input type="text" class="bakery-input w-full" style="height: 34px;"
-                                       placeholder="Họ và tên người nhận" @bind="receiverName" />
-                            </div>
-                            <div>
-                                <label class="text-[11px] font-semibold text-slate-600 block mb-0.5">Số điện thoại (*)</label>
-                                <input type="tel" inputmode="numeric" maxlength="11" class="bakery-input w-full" style="height: 34px;"
-                                       placeholder="VD: 0912345678"
-                                       @bind="receiverPhone"
-                                       @bind:event="oninput" />
-                            </div>
-                            <div>
-                                <label class="text-[11px] font-semibold text-slate-600 block mb-0.5">Địa chỉ giao bánh (*)</label>
-                                <input type="text" class="bakery-input w-full" style="height: 34px;"
-                                       placeholder="Địa chỉ nhận bánh" @bind="receiverAddress" />
-                            </div>
-                            <div>
-                                <label class="text-[11px] font-semibold text-slate-600 block mb-0.5">Ghi chú cho tiệm</label>
-                                <input type="text" class="bakery-input w-full" style="height: 34px;"
-                                       placeholder="VD: Viết chữ, giao trước 17h..." @bind="orderNote" />
-                            </div>
-                        </div>
-                    </div>
 
-                    <!-- Phương thức thanh toán 2 cột ngang -->
-                    <div class="shop-section-box">
-                        <div class="shop-section-title">
-                            <span>Phương thức thanh toán</span>
-                        </div>
-                        <div class="shop-pay-grid-2">
-                            <label class="shop-pay-option @(selectedPaymentMethod == PaymentMethod.COD ? "active" : "")">
-                                <span class="flex items-center gap-1.5">
-                                    <input type="radio" name="webPaymentMethod"
-                                           checked="@(selectedPaymentMethod == PaymentMethod.COD)"
-                                           @onchange="() => selectedPaymentMethod = PaymentMethod.COD" />
-                                    <span>Tiền mặt (COD)</span>
-                                </span>
-                                <iconify-icon icon="solar:wallet-money-bold" class="text-base"></iconify-icon>
-                            </label>
+                        <!-- Phương thức thanh toán 2 cột ngang -->
+                        <div class="shop-section-box">
+                            <div class="shop-section-title">
+                                <span>Phương thức thanh toán</span>
+                            </div>
+                            <div class="shop-pay-grid-2">
+                                <label class="shop-pay-option @(selectedPaymentMethod == PaymentMethod.COD ? "active" : "")">
+                                    <span class="flex items-center gap-1.5">
+                                        <input type="radio" name="webPaymentMethod"
+                                               checked="@(selectedPaymentMethod == PaymentMethod.COD)"
+                                               @onchange="() => selectedPaymentMethod = PaymentMethod.COD" />
+                                        <span>Tiền mặt (COD)</span>
+                                    </span>
+                                    <iconify-icon icon="solar:wallet-money-bold" class="text-base"></iconify-icon>
+                                </label>
 
-                            <label class="shop-pay-option @(selectedPaymentMethod == PaymentMethod.BankTransfer ? "active" : "")">
-                                <span class="flex items-center gap-1.5">
-                                    <input type="radio" name="webPaymentMethod"
-                                           checked="@(selectedPaymentMethod == PaymentMethod.BankTransfer)"
-                                           @onchange="() => selectedPaymentMethod = PaymentMethod.BankTransfer" />
-                                    <span>Chuyển khoản QR</span>
-                                </span>
-                                <iconify-icon icon="solar:qr-code-bold" class="text-base"></iconify-icon>
-                            </label>
+                                <label class="shop-pay-option @(selectedPaymentMethod == PaymentMethod.BankTransfer ? "active" : "")">
+                                    <span class="flex items-center gap-1.5">
+                                        <input type="radio" name="webPaymentMethod"
+                                               checked="@(selectedPaymentMethod == PaymentMethod.BankTransfer)"
+                                               @onchange="() => selectedPaymentMethod = PaymentMethod.BankTransfer" />
+                                        <span>Chuyển khoản QR</span>
+                                    </span>
+                                    <iconify-icon icon="solar:qr-code-bold" class="text-base"></iconify-icon>
+                                </label>
+                            </div>
                         </div>
-                    </div>
+                    }
 
                     <!-- Tổng kết thanh toán -->
                     <div class="shop-summary-box">
@@ -490,23 +495,36 @@ else
                         <div class="shop-alert-inline is-error">@checkoutError</div>
                     }
 
-                    <button type="button" class="bakery-btn bakery-btn-primary w-full" style="height: 44px; font-size: 0.875rem;"
-                            disabled="@isSubmittingOrder"
-                            @onclick="RequestPlaceOrder">
-                        <iconify-icon icon="@(selectedPaymentMethod == PaymentMethod.BankTransfer ? "solar:qr-code-bold" : "solar:check-circle-bold")"></iconify-icon>
-                        @if (isSubmittingOrder)
-                        {
-                            <span>Đang gửi đơn hàng...</span>
-                        }
-                        else if (selectedPaymentMethod == PaymentMethod.BankTransfer)
-                        {
-                            <span>Thanh toán VietQR &amp; Đặt đơn • @($"{CartService.FinalAmount:N0}đ")</span>
-                        }
-                        else
-                        {
-                            <span>Xác nhận đặt đơn ngay • @($"{CartService.FinalAmount:N0}đ")</span>
-                        }
-                    </button>
+                    @if (customerProfile is null)
+                    {
+                        <div class="shop-alert-inline is-info">
+                            Bạn có thể chọn món vào giỏ ngay bây giờ, sau đó đăng nhập để xác nhận đặt đơn và theo dõi giao hàng.
+                        </div>
+                        <a href="/login?returnUrl=%2F" class="bakery-btn bakery-btn-primary w-full flex items-center justify-center gap-2" style="height: 44px; font-size: 0.875rem;">
+                            <iconify-icon icon="solar:login-2-bold"></iconify-icon>
+                            <span>Đăng nhập để hoàn tất đặt đơn &bull; @($"{CartService.FinalAmount:N0}đ")</span>
+                        </a>
+                    }
+                    else
+                    {
+                        <button type="button" class="bakery-btn bakery-btn-primary w-full" style="height: 44px; font-size: 0.875rem;"
+                                disabled="@isSubmittingOrder"
+                                @onclick="RequestPlaceOrder">
+                            <iconify-icon icon="@(selectedPaymentMethod == PaymentMethod.BankTransfer ? "solar:qr-code-bold" : "solar:check-circle-bold")"></iconify-icon>
+                            @if (isSubmittingOrder)
+                            {
+                                <span>Đang gửi đơn hàng...</span>
+                            }
+                            else if (selectedPaymentMethod == PaymentMethod.BankTransfer)
+                            {
+                                <span>Thanh toán VietQR &amp; Đặt đơn • @($"{CartService.FinalAmount:N0}đ")</span>
+                            }
+                            else
+                            {
+                                <span>Xác nhận đặt đơn ngay • @($"{CartService.FinalAmount:N0}đ")</span>
+                            }
+                        </button>
+                    }
                 }
             </div>
         </aside>
@@ -799,6 +817,9 @@ else
     private Order? justPlacedOrder;
     private string? toastMessage;
     private bool isDisposed;
+    private bool isRestoringCart;
+    private bool hasRestoredCart;
+    private readonly CancellationTokenSource pollCts = new();
 
     private IEnumerable<Product> FilteredProducts
     {
@@ -828,23 +849,53 @@ else
     {
         CartService.OnChange += HandleStateChanged;
         NotifService.OnOrderChanged += HandleExternalOrderChanged;
+        AuthStateProvider.AuthenticationStateChanged += HandleAuthStateChanged;
 
-        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
-        int.TryParse(authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var accountId);
-
-        if (accountId > 0)
-        {
-            customerProfile = await AuthService.GetCustomerByAccountIdAsync(accountId);
-            if (customerProfile is not null)
-            {
-                receiverName = customerProfile.FullName;
-                receiverPhone = customerProfile.Phone ?? string.Empty;
-                receiverAddress = customerProfile.Address ?? string.Empty;
-            }
-        }
+        await SyncCustomerFromAuthAsync();
 
         await LoadDataAsync();
         isLoading = false;
+        StartPollingLoop();
+    }
+
+    private async Task SyncCustomerFromAuthAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        if (authState.User.Identity?.IsAuthenticated == true && authState.User.IsInRole(AccountRole.Customer))
+        {
+            int.TryParse(authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var accountId);
+
+            if (accountId > 0)
+            {
+                customerProfile = await AuthService.GetCustomerByAccountIdAsync(accountId);
+                if (customerProfile is not null)
+                {
+                    receiverName = customerProfile.FullName;
+                    receiverPhone = customerProfile.Phone ?? string.Empty;
+                    receiverAddress = customerProfile.Address ?? string.Empty;
+                    return;
+                }
+            }
+        }
+
+        customerProfile = null;
+        customerOrders = [];
+        receiverName = string.Empty;
+        receiverPhone = string.Empty;
+        receiverAddress = string.Empty;
+    }
+
+    private async void HandleAuthStateChanged(Task<AuthenticationState> authTask)
+    {
+        if (isDisposed) return;
+        await authTask;
+        await InvokeAsync(async () =>
+        {
+            if (isDisposed) return;
+            await SyncCustomerFromAuthAsync();
+            await LoadDataAsync();
+            StateHasChanged();
+        });
     }
 
     private async Task LoadDataAsync()
@@ -862,7 +913,89 @@ else
         ShowToast("Đã cập nhật thực đơn mới nhất!");
     }
 
-    private void HandleStateChanged() => InvokeAsync(StateHasChanged);
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || hasRestoredCart)
+            return;
+
+        hasRestoredCart = true;
+        if (CartService.Items.Any())
+            return;
+
+        try
+        {
+            var saved = await JS.InvokeAsync<SavedCartPayload?>("bakeryShopCart.load");
+            if (saved?.Items is not { Count: > 0 } || isDisposed)
+                return;
+
+            isRestoringCart = true;
+            var productsById = products.ToDictionary(p => p.ProductID);
+            var restoredAny = false;
+            foreach (var entry in saved.Items)
+            {
+                if (entry.Quantity > 0 && productsById.TryGetValue(entry.ProductID, out var liveProd) && liveProd.Quantity > 0)
+                {
+                    CartService.AddItem(liveProd, Math.Min(entry.Quantity, liveProd.Quantity));
+                    restoredAny = true;
+                }
+            }
+
+            if (restoredAny && !string.IsNullOrWhiteSpace(saved.VoucherCode))
+            {
+                await CartService.ApplyVoucherAsync(saved.VoucherCode, CustomerOrderService);
+            }
+
+            isRestoringCart = false;
+            if (restoredAny)
+                StateHasChanged();
+        }
+        catch
+        {
+            isRestoringCart = false;
+        }
+    }
+
+    private void HandleStateChanged()
+    {
+        _ = InvokeAsync(async () =>
+        {
+            if (isDisposed) return;
+            if (hasRestoredCart && !isRestoringCart)
+            {
+                await PersistCartAsync();
+            }
+            StateHasChanged();
+        });
+    }
+
+    private async Task PersistCartAsync()
+    {
+        try
+        {
+            var payload = new SavedCartPayload
+            {
+                Items = CartService.Items.Select(i => new SavedCartLine { ProductID = i.ProductID, Quantity = i.Quantity }).ToList(),
+                VoucherCode = CartService.AppliedVoucherCode ?? string.Empty
+            };
+            await JS.InvokeVoidAsync("bakeryShopCart.save", payload);
+        }
+        catch
+        {
+            // Ignore transient JS interop disconnects during navigation/logout
+        }
+    }
+
+    private sealed class SavedCartPayload
+    {
+        public List<SavedCartLine> Items { get; set; } = [];
+        public string? VoucherCode { get; set; }
+    }
+
+    private sealed class SavedCartLine
+    {
+        public int ProductID { get; set; }
+        public int Quantity { get; set; }
+    }
 
     private void HandleExternalOrderChanged()
     {
@@ -1116,10 +1249,41 @@ else
         });
     }
 
+    private void StartPollingLoop()
+    {
+        if (customerProfile is null)
+            return;
+
+        _ = Task.Run(async () =>
+        {
+            using var timer = new PeriodicTimer(TimeSpan.FromSeconds(5));
+            try
+            {
+                while (await timer.WaitForNextTickAsync(pollCts.Token))
+                {
+                    if (isDisposed) break;
+                    await InvokeAsync(async () =>
+                    {
+                        if (isDisposed || customerProfile is null) return;
+                        customerOrders = await CustomerOrderService.GetOrdersAsync(customerProfile.CustomerId, null);
+                        StateHasChanged();
+                    });
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                // Expected on component disposal
+            }
+        });
+    }
+
     public void Dispose()
     {
         isDisposed = true;
+        pollCts.Cancel();
+        pollCts.Dispose();
         CartService.OnChange -= HandleStateChanged;
         NotifService.OnOrderChanged -= HandleExternalOrderChanged;
+        AuthStateProvider.AuthenticationStateChanged -= HandleAuthStateChanged;
     }
 }

@@ -1,0 +1,731 @@
+@page "/my-orders"
+@rendermode InteractiveServer
+@attribute [Authorize(Roles = "Customer")]
+@implements IDisposable
+@using System.Security.Claims
+@inject CustomerOrderService CustomerOrderService
+@inject IAuthService AuthService
+@inject WebCartService CartService
+@inject OrderNotificationService NotifService
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+
+<PageTitle>Đơn hàng của tôi | BakerySystem</PageTitle>
+
+@if (!string.IsNullOrEmpty(toastMessage))
+{
+    <div class="myorders-toast" role="status">
+        <iconify-icon icon="solar:check-circle-bold" style="color: #34d399; font-size: 1.1rem;"></iconify-icon>
+        <span>@toastMessage</span>
+    </div>
+}
+
+<div class="bakery-page-header">
+    <div>
+        <h2 class="myorders-page-title">Đơn hàng của tôi</h2>
+        <p class="myorders-page-sub">
+            Theo dõi tiến trình chuẩn bị bánh &amp; giao hàng theo thời gian thực (@orders.Count đơn hàng).
+        </p>
+    </div>
+
+    <div class="bakery-page-actions">
+        <button type="button" class="bakery-btn bakery-btn-secondary bakery-btn-sm" @onclick="RefreshOrdersAsync">
+            <iconify-icon icon="solar:restart-linear"></iconify-icon>
+            <span>Đồng bộ trạng thái</span>
+        </button>
+        <a href="/" class="bakery-btn bakery-btn-primary bakery-btn-sm">
+            <iconify-icon icon="solar:shop-2-bold"></iconify-icon>
+            <span>Đặt bánh mới</span>
+        </a>
+    </div>
+</div>
+
+<!-- Bộ lọc trạng thái & tìm kiếm -->
+<div class="bakery-filter-card mb-4">
+    <div class="flex flex-wrap items-center gap-3 mb-3">
+        <div class="bakery-search-input-wrap" style="flex: 1 1 260px;">
+            <iconify-icon icon="solar:magnifer-linear"></iconify-icon>
+            <input type="text"
+                   class="bakery-search-input"
+                   placeholder="Tìm theo mã đơn (#HD-0001), tên người nhận, tên món bánh..."
+                   @bind="searchQuery"
+                   @bind:event="oninput" />
+        </div>
+        @if (!string.IsNullOrWhiteSpace(searchQuery) || selectedStatus != "All")
+        {
+            <button type="button" class="bakery-btn bakery-btn-outline bakery-btn-sm" @onclick="ResetFilters">
+                <iconify-icon icon="solar:refresh-linear"></iconify-icon>
+                <span>Đặt lại</span>
+            </button>
+        }
+    </div>
+
+    <div class="flex flex-wrap gap-2">
+        <button type="button" class="bakery-pos-cat-pill @(selectedStatus == "All" ? "active" : "")"
+                @onclick='() => selectedStatus = "All"'>
+            Tất cả (@orders.Count)
+        </button>
+        <button type="button" class="bakery-pos-cat-pill @(selectedStatus == OrderStatus.Pending ? "active" : "")"
+                @onclick='() => selectedStatus = OrderStatus.Pending'>
+            Chờ duyệt (@orders.Count(o => o.Status == OrderStatus.Pending))
+        </button>
+        <button type="button" class="bakery-pos-cat-pill @(selectedStatus == OrderStatus.Confirmed ? "active" : "")"
+                @onclick='() => selectedStatus = OrderStatus.Confirmed'>
+            Đã duyệt (@orders.Count(o => o.Status == OrderStatus.Confirmed))
+        </button>
+        <button type="button" class="bakery-pos-cat-pill @(selectedStatus == OrderStatus.Delivered ? "active" : "")"
+                @onclick='() => selectedStatus = OrderStatus.Delivered'>
+            Giao hàng / Chờ nhận (@orders.Count(o => o.Status is OrderStatus.Delivered or OrderStatus.Shipping))
+        </button>
+        <button type="button" class="bakery-pos-cat-pill @(selectedStatus == OrderStatus.Completed ? "active" : "")"
+                @onclick='() => selectedStatus = OrderStatus.Completed'>
+            Hoàn tất (@orders.Count(o => o.Status == OrderStatus.Completed))
+        </button>
+        <button type="button" class="bakery-pos-cat-pill @(selectedStatus == OrderStatus.Cancelled ? "active" : "")"
+                @onclick='() => selectedStatus = OrderStatus.Cancelled'>
+            Đã hủy (@orders.Count(o => o.Status == OrderStatus.Cancelled))
+        </button>
+    </div>
+</div>
+
+@if (isLoading)
+{
+    <div class="bakery-card p-10 text-center">
+        <div class="w-9 h-9 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+        <p class="myorders-page-sub">Đang tải danh sách đơn hàng...</p>
+    </div>
+}
+else if (!FilteredOrders.Any())
+{
+    <div class="bakery-card p-10 text-center">
+        <iconify-icon icon="solar:box-minimalistic-linear" class="text-4xl text-slate-300 mb-2"></iconify-icon>
+        <h4 class="text-sm font-bold mb-1" style="color: #1e293b;">Chưa có đơn hàng nào</h4>
+        <p class="myorders-page-sub mb-4">
+            @(string.IsNullOrWhiteSpace(searchQuery) && selectedStatus == "All"
+                ? "Bạn chưa đặt đơn hàng nào. Hãy khám phá thực đơn bánh tươi ngay nhé!"
+                : "Không tìm thấy đơn hàng phù hợp với bộ lọc hiện tại.")
+        </p>
+        <a href="/" class="bakery-btn bakery-btn-primary bakery-btn-sm">Khám phá thực đơn bánh</a>
+    </div>
+}
+else
+{
+    <div class="myorders-list">
+        @foreach (var order in FilteredOrders)
+        {
+            var isOnline = IsOnlineOrder(order);
+            <div class="myorder-card">
+                <div class="myorder-card-head">
+                    <div class="myorder-card-top">
+                        <div class="myorder-card-id-row">
+                            <span class="myorder-code">#HD-@order.OrderID.ToString("D4")</span>
+                            <span class="bakery-badge @(isOnline ? "bakery-badge-primary" : "bakery-badge-secondary")" style="font-size: 0.65rem; padding: 0.14rem 0.5rem;">
+                                @(isOnline ? "Online" : "Tại quầy")
+                            </span>
+                        </div>
+                        <span class="bakery-badge @GetStatusBadgeClass(order.Status)" style="font-size: 0.68rem;">
+                            @GetStatusLabel(order.Status)
+                        </span>
+                    </div>
+
+                    <div class="myorder-meta-line">
+                        <span>@order.OrderDate.ToString("dd/MM/yyyy HH:mm")</span>
+                        <span>&bull;</span>
+                        <span>@order.OrderDetails.Sum(d => d.Quantity) bánh</span>
+                    </div>
+
+                    <div class="myorder-receiver-line" title="@($"{order.ReceiverName ?? customerProfile?.FullName} ({order.ReceiverPhone}) - {order.ShippingAddress}")">
+                        Người nhận: <strong>@(order.ReceiverName ?? customerProfile?.FullName)</strong>
+                        @if (!string.IsNullOrWhiteSpace(order.ReceiverPhone))
+                        {
+                            <span> (@order.ReceiverPhone)</span>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(order.ShippingAddress))
+                        {
+                            <span> &bull; @order.ShippingAddress</span>
+                        }
+                    </div>
+                </div>
+
+                @if (order.Status is OrderStatus.Delivered or OrderStatus.Shipping)
+                {
+                    <div class="myorder-delivered-box">
+                        <iconify-icon icon="solar:delivery-bold" style="font-size: 1.05rem; flex-shrink: 0; margin-top: 1px;"></iconify-icon>
+                        <span>Bánh đã giao tới nơi! Vui lòng kiểm tra và xác nhận đã nhận.</span>
+                    </div>
+                }
+
+                <div class="myorder-items">
+                    @foreach (var detail in order.OrderDetails.Take(3))
+                    {
+                        <div class="myorder-item-row">
+                            <div class="myorder-item-left">
+                                <img src="@WebCartService.ResolveProductImageUrl(detail.Product)"
+                                     alt="@detail.Product?.ProductName"
+                                     class="myorder-item-img"
+                                     onerror="this.src='/assets/images/products/default-bakery.svg'" />
+                                <div class="min-w-0">
+                                    <div class="myorder-item-name">@(detail.Product?.ProductName ?? $"Món #{detail.ProductID}")</div>
+                                    <div class="myorder-item-sub">@detail.Quantity &times; @($"{detail.UnitPrice:N0}đ")</div>
+                                </div>
+                            </div>
+                            <span class="myorder-item-price">@($"{detail.SubTotal:N0}đ")</span>
+                        </div>
+                    }
+                    @if (order.OrderDetails.Count > 3)
+                    {
+                        <button type="button" class="myorder-more-btn" @onclick="() => selectedOrder = order">
+                            + Xem thêm @(order.OrderDetails.Count - 3) món bánh khác...
+                        </button>
+                    }
+                </div>
+
+                @if (!string.IsNullOrWhiteSpace(order.Note))
+                {
+                    <div class="myorder-note" title="@order.Note">
+                        <iconify-icon icon="solar:notes-bold" style="font-size: 0.95rem; flex-shrink: 0; margin-top: 1px;"></iconify-icon>
+                        <span><strong>Ghi chú:</strong> @order.Note</span>
+                    </div>
+                }
+
+                <div class="myorder-foot">
+                    <div class="myorder-foot-pay">
+                        <div>
+                            <span>@GetPaymentMethodLabel(order.PaymentMethod)</span>
+                            <span class="myorder-pay-status @(order.PaymentStatus == PaymentStatus.Paid ? "is-paid" : "is-unpaid")">
+                                &bull; @(order.PaymentStatus == PaymentStatus.Paid ? "Đã thanh toán" : "Chưa thanh toán")
+                            </span>
+                        </div>
+                        @if (order.DiscountAmount > 0)
+                        {
+                            <span class="myorder-discount-tag">Giảm @($"{order.DiscountAmount:N0}đ")</span>
+                        }
+                    </div>
+
+                    <div class="myorder-foot-total">
+                        <span>Tổng thanh toán</span>
+                        <span class="myorder-total-val">@($"{order.FinalAmount:N0}đ")</span>
+                    </div>
+
+                    <div class="myorder-foot-actions">
+                        @if (order.Status is OrderStatus.Delivered or OrderStatus.Shipping)
+                        {
+                            <button type="button" class="bakery-btn bakery-btn-sm"
+                                    style="background: #059669; border-color: #059669; color: #ffffff;"
+                                    @onclick="() => ConfirmReceivedAsync(order.OrderID)">
+                                <iconify-icon icon="solar:check-circle-bold"></iconify-icon>
+                                <span>Đã nhận bánh</span>
+                            </button>
+                        }
+
+                        <button type="button" class="bakery-btn bakery-btn-secondary bakery-btn-sm"
+                                @onclick="() => selectedOrder = order">
+                            <iconify-icon icon="solar:eye-linear"></iconify-icon>
+                            <span>Chi tiết</span>
+                        </button>
+
+                        <button type="button" class="bakery-btn bakery-btn-outline bakery-btn-sm"
+                                @onclick="() => ReOrderAsync(order)">
+                            <iconify-icon icon="solar:cart-large-minimalistic-bold"></iconify-icon>
+                            <span>Đặt lại</span>
+                        </button>
+
+                        @if (order.Status == OrderStatus.Pending)
+                        {
+                            <button type="button" class="bakery-btn bakery-btn-danger bakery-btn-sm"
+                                    @onclick="() => CancelOrderAsync(order.OrderID)">
+                                <iconify-icon icon="solar:close-circle-bold"></iconify-icon>
+                                <span>Hủy</span>
+                            </button>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+<!-- MODAL CHI TIẾT ĐƠN HÀNG ĐẦY ĐỦ -->
+@if (selectedOrder is not null)
+{
+    var isSelectedOnline = IsOnlineOrder(selectedOrder);
+    var totalCakeCount = selectedOrder.OrderDetails.Sum(d => d.Quantity);
+    var voucherCode = !string.IsNullOrWhiteSpace(selectedOrder.PromotionInvoice?.VoucherCode)
+        ? selectedOrder.PromotionInvoice.VoucherCode
+        : selectedOrder.PromotionInvoice?.Promotion?.PromotionCode;
+    var promotionName = selectedOrder.PromotionInvoice?.Promotion?.PromotionName;
+
+    <div class="bakery-modal-backdrop" @onclick="() => selectedOrder = null">
+        <div class="bakery-modal-card order-detail-modal" @onclick:stopPropagation="true">
+            <div class="bakery-modal-header">
+                <div>
+                    <div class="order-modal-title-row">
+                        <h4 class="order-modal-title">Chi tiết đơn hàng #HD-@selectedOrder.OrderID.ToString("D4")</h4>
+                        <span class="bakery-badge @GetStatusBadgeClass(selectedOrder.Status)">
+                            @GetStatusLabel(selectedOrder.Status)
+                        </span>
+                        <span class="bakery-badge @(isSelectedOnline ? "bakery-badge-primary" : "bakery-badge-secondary")">
+                            @(isSelectedOnline ? "Đặt Online" : "Mua tại quầy")
+                        </span>
+                    </div>
+                    <span class="order-modal-sub">
+                        Đặt lúc @selectedOrder.OrderDate.ToString("dd/MM/yyyy HH:mm") &middot; @totalCakeCount bánh (@selectedOrder.OrderDetails.Count món)
+                    </span>
+                </div>
+                <button type="button" class="order-modal-close" title="Đóng" @onclick="() => selectedOrder = null">&times;</button>
+            </div>
+
+            <div class="bakery-modal-body order-modal-body">
+                @if (selectedOrder.Status == OrderStatus.Cancelled)
+                {
+                    <div class="order-cancelled-banner">
+                        <iconify-icon icon="solar:close-circle-bold"></iconify-icon>
+                        <div>
+                            <strong>Đơn hàng này đã bị hủy</strong>
+                            <span>Đơn hàng không còn hiệu lực giao nhận. Bạn có thể bấm "Đặt lại đơn này" để mua lại nhanh.</span>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <div class="order-stepper-card">
+                        <div class="myorder-stepper">
+                            <div class="myorder-step is-done">
+                                <span class="myorder-step-icon"><iconify-icon icon="solar:bag-check-bold"></iconify-icon></span>
+                                <span class="myorder-step-label">Đặt hàng</span>
+                            </div>
+                            <div class="myorder-step @GetStepClass(selectedOrder.Status, 2)">
+                                <span class="myorder-step-icon"><iconify-icon icon="solar:check-circle-bold"></iconify-icon></span>
+                                <span class="myorder-step-label">Đã duyệt</span>
+                            </div>
+                            <div class="myorder-step @GetStepClass(selectedOrder.Status, 3)">
+                                <span class="myorder-step-icon"><iconify-icon icon="solar:delivery-bold"></iconify-icon></span>
+                                <span class="myorder-step-label">Giao hàng</span>
+                            </div>
+                            <div class="myorder-step @GetStepClass(selectedOrder.Status, 4)">
+                                <span class="myorder-step-icon"><iconify-icon icon="solar:verified-check-bold"></iconify-icon></span>
+                                <span class="myorder-step-label">Hoàn tất</span>
+                            </div>
+                        </div>
+                        <div class="order-step-desc">
+                            @GetStatusDescription(selectedOrder.Status, isSelectedOnline)
+                        </div>
+                    </div>
+                }
+
+                <div class="order-modal-info-grid">
+                    <div class="order-info-card">
+                        <div class="order-info-card-head">
+                            <iconify-icon icon="solar:map-point-wave-bold"></iconify-icon>
+                            <span>Thông tin nhận bánh</span>
+                        </div>
+                        <div class="order-info-row">
+                            <span class="order-info-key">Hình thức</span>
+                            <span class="order-info-val">@(isSelectedOnline ? "Giao hàng tận nơi" : "Nhận trực tiếp tại quầy")</span>
+                        </div>
+                        <div class="order-info-row">
+                            <span class="order-info-key">Người nhận</span>
+                            <span class="order-info-val">@(selectedOrder.ReceiverName ?? customerProfile?.FullName ?? "Khách hàng")</span>
+                        </div>
+                        <div class="order-info-row">
+                            <span class="order-info-key">Số điện thoại</span>
+                            <span class="order-info-val">@(string.IsNullOrWhiteSpace(selectedOrder.ReceiverPhone) ? "Chưa cập nhật" : selectedOrder.ReceiverPhone)</span>
+                        </div>
+                        <div class="order-info-row">
+                            <span class="order-info-key">Địa chỉ</span>
+                            <span class="order-info-val">@(string.IsNullOrWhiteSpace(selectedOrder.ShippingAddress) ? "Tại cửa hàng BakerySystem" : selectedOrder.ShippingAddress)</span>
+                        </div>
+                    </div>
+
+                    <div class="order-info-card">
+                        <div class="order-info-card-head">
+                            <iconify-icon icon="solar:wallet-money-bold"></iconify-icon>
+                            <span>Thanh toán &amp; Ưu đãi</span>
+                        </div>
+                        <div class="order-info-row">
+                            <span class="order-info-key">Phương thức</span>
+                            <span class="order-info-val">@GetPaymentMethodLabel(selectedOrder.PaymentMethod)</span>
+                        </div>
+                        <div class="order-info-row">
+                            <span class="order-info-key">Trạng thái TT</span>
+                            <span class="order-info-val">
+                                <span class="bakery-badge @(selectedOrder.PaymentStatus == PaymentStatus.Paid ? "bakery-badge-success" : "bakery-badge-warning")" style="font-size: 0.68rem;">
+                                    @(selectedOrder.PaymentStatus == PaymentStatus.Paid ? "Đã thanh toán" : "Chưa thanh toán")
+                                </span>
+                            </span>
+                        </div>
+                        <div class="order-info-row">
+                            <span class="order-info-key">Mã khuyến mãi</span>
+                            <span class="order-info-val">
+                                @if (!string.IsNullOrWhiteSpace(voucherCode))
+                                {
+                                    <span class="order-voucher-chip">
+                                        <iconify-icon icon="solar:ticket-sale-bold"></iconify-icon>
+                                        <span>@voucherCode</span>
+                                    </span>
+                                }
+                                else if (selectedOrder.DiscountAmount > 0)
+                                {
+                                    <span>Ưu đãi trực tiếp</span>
+                                }
+                                else
+                                {
+                                    <span style="color: #64748b; font-weight: 500;">Không áp dụng</span>
+                                }
+                            </span>
+                        </div>
+                        @if (!string.IsNullOrWhiteSpace(promotionName))
+                        {
+                            <div class="order-info-row">
+                                <span class="order-info-key">Chương trình</span>
+                                <span class="order-info-val">@promotionName</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                @if (!string.IsNullOrWhiteSpace(selectedOrder.Note))
+                {
+                    <div class="order-modal-note-box">
+                        <iconify-icon icon="solar:notes-bold"></iconify-icon>
+                        <div>
+                            <strong style="display: block; margin-bottom: 0.1rem;">Lời nhắn ghi bánh &amp; Dặn dò tiệm:</strong>
+                            <span>@selectedOrder.Note</span>
+                        </div>
+                    </div>
+                }
+
+                <div class="order-modal-items-section">
+                    <div class="order-section-title">
+                        <span>Danh sách bánh đã đặt</span>
+                        <span class="bakery-badge bakery-badge-secondary">@totalCakeCount sản phẩm</span>
+                    </div>
+                    <div class="order-modal-items-list">
+                        @foreach (var detail in selectedOrder.OrderDetails)
+                        {
+                            <div class="order-modal-item">
+                                <div class="myorder-item-left">
+                                    <img src="@WebCartService.ResolveProductImageUrl(detail.Product)"
+                                         alt="@detail.Product?.ProductName"
+                                         class="order-modal-item-img"
+                                         onerror="this.src='/assets/images/products/default-bakery.svg'" />
+                                    <div class="min-w-0">
+                                        <div class="myorder-item-name">@(detail.Product?.ProductName ?? $"Món #{detail.ProductID}")</div>
+                                        @if (!string.IsNullOrWhiteSpace(detail.Product?.Category?.CategoryName))
+                                        {
+                                            <div class="order-modal-item-cat">@detail.Product.Category.CategoryName</div>
+                                        }
+                                        <div class="myorder-item-sub">
+                                            @($"{detail.UnitPrice:N0}đ") &times; @detail.Quantity
+                                            @if (detail.DiscountAmount > 0)
+                                            {
+                                                <span class="order-modal-item-discount">Giảm @($"{detail.DiscountAmount:N0}đ")</span>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                                <span class="myorder-item-price">@($"{detail.SubTotal:N0}đ")</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <div class="order-modal-summary">
+                    <div class="order-summary-row">
+                        <span>Tạm tính (@totalCakeCount bánh)</span>
+                        <strong>@($"{selectedOrder.TotalAmount:N0}đ")</strong>
+                    </div>
+                    @if (selectedOrder.DiscountAmount > 0)
+                    {
+                        <div class="order-summary-row is-discount">
+                            <span>
+                                Giảm giá khuyến mãi
+                                @if (!string.IsNullOrWhiteSpace(voucherCode))
+                                {
+                                    <span>(@voucherCode)</span>
+                                }
+                            </span>
+                            <strong>-@($"{selectedOrder.DiscountAmount:N0}đ")</strong>
+                        </div>
+                    }
+                    @if (isSelectedOnline)
+                    {
+                        <div class="order-summary-row is-shipping">
+                            <span>Phí giao hàng</span>
+                            <strong>Miễn phí (Freeship)</strong>
+                        </div>
+                    }
+                    <div class="order-summary-total">
+                        <span>Tổng thanh toán</span>
+                        <strong>@($"{selectedOrder.FinalAmount:N0}đ")</strong>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bakery-modal-footer">
+                @if (selectedOrder.Status is OrderStatus.Delivered or OrderStatus.Shipping)
+                {
+                    <button type="button" class="bakery-btn bakery-btn-primary" style="background-color: #059669; border-color: #059669;"
+                            @onclick="() => ConfirmReceivedAsync(selectedOrder.OrderID)">
+                        <iconify-icon icon="solar:check-circle-bold"></iconify-icon>
+                        <span>Xác nhận đã nhận bánh</span>
+                    </button>
+                }
+                @if (selectedOrder.Status == OrderStatus.Pending)
+                {
+                    <button type="button" class="bakery-btn bakery-btn-danger"
+                            @onclick="() => CancelOrderAsync(selectedOrder.OrderID)">
+                        <iconify-icon icon="solar:close-circle-bold"></iconify-icon>
+                        <span>Hủy đơn hàng</span>
+                    </button>
+                }
+                <button type="button" class="bakery-btn bakery-btn-secondary" @onclick="() => ReOrderAsync(selectedOrder)">
+                    <iconify-icon icon="solar:cart-large-minimalistic-bold"></iconify-icon>
+                    <span>Đặt lại đơn này</span>
+                </button>
+                <button type="button" class="bakery-btn bakery-btn-outline" @onclick="() => selectedOrder = null">
+                    Đóng
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private CustomerDto? customerProfile;
+    private List<Order> orders = [];
+    private Order? selectedOrder;
+
+    private bool isLoading = true;
+    private string selectedStatus = "All";
+    private string searchQuery = string.Empty;
+    private string? toastMessage;
+
+    private readonly CancellationTokenSource pollCts = new();
+    private bool isDisposed;
+
+    private IEnumerable<Order> FilteredOrders
+    {
+        get
+        {
+            var query = orders.AsEnumerable();
+            if (selectedStatus != "All")
+            {
+                query = selectedStatus == OrderStatus.Delivered
+                    ? query.Where(o => o.Status is OrderStatus.Delivered or OrderStatus.Shipping)
+                    : query.Where(o => o.Status.Equals(selectedStatus, StringComparison.OrdinalIgnoreCase));
+            }
+
+            if (!string.IsNullOrWhiteSpace(searchQuery))
+            {
+                var term = searchQuery.Trim();
+                query = query.Where(o => o.OrderID.ToString().Contains(term, StringComparison.OrdinalIgnoreCase)
+                    || $"#HD-{o.OrderID:D4}".Contains(term, StringComparison.OrdinalIgnoreCase)
+                    || (o.ReceiverName != null && o.ReceiverName.Contains(term, StringComparison.OrdinalIgnoreCase))
+                    || o.OrderDetails.Any(d => d.Product != null && d.Product.ProductName.Contains(term, StringComparison.OrdinalIgnoreCase)));
+            }
+
+            return query;
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        NotifService.OnOrderChanged += HandleOrderChanged;
+
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        int.TryParse(authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var accountId);
+
+        if (accountId > 0)
+            customerProfile = await AuthService.GetCustomerByAccountIdAsync(accountId);
+
+        await LoadOrdersAsync();
+        isLoading = false;
+
+        _ = PollOrdersAsync(pollCts.Token);
+    }
+
+    private async Task LoadOrdersAsync()
+    {
+        if (customerProfile is null)
+        {
+            orders = [];
+            return;
+        }
+
+        orders = await CustomerOrderService.GetOrdersAsync(customerProfile.CustomerId, null);
+        if (selectedOrder is not null)
+            selectedOrder = orders.FirstOrDefault(o => o.OrderID == selectedOrder.OrderID);
+    }
+
+    private async Task RefreshOrdersAsync()
+    {
+        await LoadOrdersAsync();
+        ShowToast("Đã đồng bộ trạng thái đơn hàng mới nhất!");
+    }
+
+    private void HandleOrderChanged()
+    {
+        _ = InvokeAsync(async () =>
+        {
+            if (isDisposed) return;
+            await LoadOrdersAsync();
+            StateHasChanged();
+        });
+    }
+
+    private async Task PollOrdersAsync(CancellationToken ct)
+    {
+        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(5));
+        try
+        {
+            while (await timer.WaitForNextTickAsync(ct))
+            {
+                if (isDisposed) break;
+                var hasOpenOrders = orders.Any(o => o.Status is OrderStatus.Pending or OrderStatus.Confirmed or OrderStatus.InProgress or OrderStatus.Shipping or OrderStatus.Delivered);
+                if (!hasOpenOrders) continue;
+
+                await LoadOrdersAsync();
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Expected on dispose
+        }
+    }
+
+    private void ResetFilters()
+    {
+        selectedStatus = "All";
+        searchQuery = string.Empty;
+    }
+
+    private async Task CancelOrderAsync(int orderId)
+    {
+        if (customerProfile is null) return;
+        bool confirmed = await JS.InvokeAsync<bool>("confirm", $"Bạn có chắc chắn muốn hủy đơn hàng #HD-{orderId:D4}?");
+        if (!confirmed) return;
+
+        var ok = await CustomerOrderService.CancelOrderAsync(orderId, customerProfile.CustomerId);
+        if (ok)
+        {
+            ShowToast($"Đã hủy đơn hàng #HD-{orderId:D4}.");
+            await LoadOrdersAsync();
+            NotifService.NotifyOrderChanged();
+        }
+        else
+        {
+            ShowToast("Không thể hủy đơn hàng ở trạng thái hiện tại.");
+        }
+    }
+
+    private async Task ConfirmReceivedAsync(int orderId)
+    {
+        if (customerProfile is null) return;
+        var ok = await CustomerOrderService.ConfirmReceivedOrderAsync(orderId, customerProfile.CustomerId);
+        if (ok)
+        {
+            ShowToast($"Cảm ơn bạn! Đơn #HD-{orderId:D4} đã hoàn tất.");
+            await LoadOrdersAsync();
+            NotifService.NotifyOrderChanged();
+        }
+    }
+
+    private async Task ReOrderAsync(Order order)
+    {
+        var activeProducts = await CustomerOrderService.GetActiveProductsAsync();
+        var activeById = activeProducts.ToDictionary(p => p.ProductID);
+        var added = CartService.ReOrder(order, activeById);
+        if (added > 0)
+        {
+            Navigation.NavigateTo("/");
+        }
+        else
+        {
+            ShowToast("Các món bánh trong đơn này hiện đã hết hàng hoặc ngừng bán.");
+        }
+    }
+
+    private static bool IsOnlineOrder(Order order) =>
+        !string.IsNullOrWhiteSpace(order.ShippingAddress)
+        && !order.ShippingAddress.Contains("Nhận tại quầy", StringComparison.OrdinalIgnoreCase)
+        && !order.ShippingAddress.Contains("Mua trực tiếp tại", StringComparison.OrdinalIgnoreCase);
+
+    private static string GetStatusLabel(string status) => status switch
+    {
+        OrderStatus.Pending => "Chờ tiệm duyệt",
+        OrderStatus.Confirmed => "Đã duyệt",
+        OrderStatus.InProgress => "Đang chuẩn bị",
+        OrderStatus.Shipping or OrderStatus.Delivered => "Đang giao tới nơi",
+        OrderStatus.Completed => "Hoàn tất",
+        OrderStatus.Cancelled => "Đã hủy",
+        _ => status
+    };
+
+    private static string GetStatusDescription(string status, bool isOnline) => status switch
+    {
+        OrderStatus.Pending => "Đơn hàng đã được gửi và đang chờ tiệm bánh kiểm tra xác nhận.",
+        OrderStatus.Confirmed or OrderStatus.InProgress => "Tiệm bánh đã duyệt đơn và đang chuẩn bị bánh tươi cho bạn.",
+        OrderStatus.Shipping or OrderStatus.Delivered => isOnline
+            ? "Nhân viên giao hàng đã mang bánh đến nơi! Vui lòng kiểm tra bánh và bấm \"Xác nhận đã nhận bánh\"."
+            : "Bánh đã sẵn sàng tại quầy. Vui lòng nhận bánh và bấm xác nhận hoàn tất.",
+        OrderStatus.Completed => "Đơn hàng đã giao nhận thành công và hoàn tất. Cảm ơn bạn đã ủng hộ!",
+        _ => string.Empty
+    };
+
+    private static string GetStatusBadgeClass(string status) => status switch
+    {
+        OrderStatus.Pending => "bakery-badge-warning",
+        OrderStatus.Confirmed or OrderStatus.InProgress => "bakery-badge-primary",
+        OrderStatus.Shipping or OrderStatus.Delivered => "bakery-badge-success",
+        OrderStatus.Completed => "bakery-badge-success",
+        OrderStatus.Cancelled => "bakery-badge-error",
+        _ => "bakery-badge-secondary"
+    };
+
+    private static string GetPaymentMethodLabel(string method) => method switch
+    {
+        PaymentMethod.BankTransfer => "Chuyển khoản VietQR",
+        PaymentMethod.COD => "Tiền mặt khi nhận (COD)",
+        "Cash" => "Tiền mặt tại quầy",
+        _ => method
+    };
+
+    private static string GetStepClass(string status, int step)
+    {
+        var rank = status switch
+        {
+            OrderStatus.Pending => 1,
+            OrderStatus.Confirmed or OrderStatus.InProgress => 2,
+            OrderStatus.Shipping or OrderStatus.Delivered => 3,
+            OrderStatus.Completed => 4,
+            _ => 0
+        };
+
+        if (rank > step) return "is-done";
+        if (rank == step) return rank == 4 ? "is-done" : "is-active";
+        return string.Empty;
+    }
+
+    private void ShowToast(string message)
+    {
+        toastMessage = message;
+        _ = Task.Run(async () =>
+        {
+            await Task.Delay(2600);
+            if (isDisposed) return;
+            toastMessage = null;
+            await InvokeAsync(StateHasChanged);
+        });
+    }
+
+    public void Dispose()
+    {
+        isDisposed = true;
+        NotifService.OnOrderChanged -= HandleOrderChanged;
+        pollCts.Cancel();
+        pollCts.Dispose();
+    }
+}

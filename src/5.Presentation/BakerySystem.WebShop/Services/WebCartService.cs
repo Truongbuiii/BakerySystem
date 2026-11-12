@@ -1,8 +1,11 @@
 using BakerySystem.Application.Features.CustomerOrders;
 using BakerySystem.Domain.Entities;
 
-namespace BakerySystem.WebAdmin.Services;
+namespace BakerySystem.WebShop.Services;
 
+/// <summary>
+/// Đại diện cho một dòng sản phẩm trong giỏ hàng WebShop.
+/// </summary>
 public sealed class WebCartItem
 {
     public int ProductID { get; set; }
@@ -15,6 +18,9 @@ public sealed class WebCartItem
     public decimal SubTotal => UnitPrice * Quantity;
 }
 
+/// <summary>
+/// Quản lý trạng thái giỏ hàng, mã khuyến mãi và tính toán tạm tính cho khách hàng trên WebShop.
+/// </summary>
 public sealed class WebCartService
 {
     public event Action? OnChange;

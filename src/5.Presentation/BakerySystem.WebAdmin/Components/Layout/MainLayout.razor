@@ -3,7 +3,6 @@
 @using System.Security.Claims
 @inject AuthenticationStateProvider AuthStateProvider
 @inject IServiceScopeFactory ScopeFactory
-@inject WebCartService CartService
 @inject OrderNotificationService NotifService
 
 <div class="bakery-layout-root">
@@ -48,46 +47,10 @@
                         </div>
                     </Authorized>
                 </AuthorizeView>
-
-                <AuthorizeView Roles="Customer">
-                    <Authorized>
-                        <div class="hidden sm:flex items-center gap-2">
-                            <a href="/shop" class="bakery-btn bakery-btn-secondary bakery-btn-sm inline-flex items-center gap-1.5">
-                                <iconify-icon icon="solar:shop-2-bold" class="text-primary"></iconify-icon>
-                                <span>Thực đơn bánh tươi</span>
-                            </a>
-                            <a href="/my-orders" class="bakery-btn bakery-btn-outline bakery-btn-sm inline-flex items-center gap-1.5">
-                                <iconify-icon icon="solar:bag-heart-linear" class="text-primary"></iconify-icon>
-                                <span>Đơn hàng của tôi</span>
-                                @if (customerPendingConfirmCount > 0)
-                                {
-                                    <span class="bakery-badge bakery-badge-success text-[10px] py-0 px-1.5">@customerPendingConfirmCount</span>
-                                }
-                                else if (customerActiveOrdersCount > 0)
-                                {
-                                    <span class="bakery-badge bakery-badge-primary text-[10px] py-0 px-1.5">@customerActiveOrdersCount</span>
-                                }
-                            </a>
-                        </div>
-                    </Authorized>
-                </AuthorizeView>
             </div>
 
             <!-- Right: Header Actions -->
             <div class="flex items-center gap-2 sm:gap-3">
-                <AuthorizeView Roles="Customer">
-                    <Authorized>
-                        <a href="/shop" class="h-10 px-3 rounded-lg hover:bg-lightprimary text-bodytext hover:text-primary transition-colors relative inline-flex items-center gap-1.5 border border-border dark:border-darkborder bg-white dark:bg-dark text-xs font-semibold" title="Giỏ hàng của tôi">
-                            <iconify-icon icon="solar:cart-large-2-linear" class="text-lg text-primary"></iconify-icon>
-                            <span class="hidden sm:inline">Giỏ hàng</span>
-                            @if (CartService.TotalItemsCount > 0)
-                            {
-                                <span class="bakery-badge bakery-badge-primary text-[10px] py-0 px-1.5">@CartService.TotalItemsCount</span>
-                            }
-                        </a>
-                    </Authorized>
-                </AuthorizeView>
-
                 <!-- Thời gian hệ thống trực tiếp trên Header thanh điều hướng -->
                 <AuthorizeView>
                     <Authorized>
@@ -120,57 +83,31 @@
                             <span class="bakery-badge bakery-badge-primary">@notificationCount mới</span>
                         </div>
                         <div class="divide-y divide-border dark:divide-darkborder max-h-64 overflow-y-auto">
-                            @if (isCustomerRole)
+                            @if (lowStockProducts.Count == 0 && recentCompletedOrders.Count == 0)
                             {
-                                @if (customerAlertOrders.Count == 0)
-                                {
-                                    <div class="px-4 py-6 text-center text-xs text-bodytext">Chưa có cập nhật đơn hàng mới.</div>
-                                }
-                                @foreach (var order in customerAlertOrders)
-                                {
-                                    var isDelivered = order.Status == OrderStatus.Delivered;
-                                    <a href="/my-orders" class="px-4 py-3 hover:bg-lightprimary/40 cursor-pointer flex items-start gap-3 transition-colors">
-                                        <span class="p-2 rounded-lg @(isDelivered ? "bg-lightsuccess text-success" : "bg-lightprimary text-primary") shrink-0">
-                                            <iconify-icon icon="@(isDelivered ? "solar:delivery-bold" : "solar:bill-list-linear")" class="text-lg"></iconify-icon>
-                                        </span>
-                                        <div>
-                                            <p class="text-xs font-semibold text-dark dark:text-white">
-                                                @(isDelivered ? $"Đơn #HD-{order.OrderID:D4} đã giao tới nơi!" : $"Đơn #HD-{order.OrderID:D4}: {GetCustomerOrderStatusText(order.Status)}")
-                                            </p>
-                                            <p class="text-[11px] text-bodytext">@order.FinalAmount.ToString("N0")đ · @(isDelivered ? "Bấm để xác nhận đã nhận bánh" : "Đang được xử lý")</p>
-                                            <span class="text-[10px] text-bodytext/70">@order.OrderDate.ToString("dd/MM/yyyy HH:mm")</span>
-                                        </div>
-                                    </a>
-                                }
+                                <div class="px-4 py-6 text-center text-xs text-bodytext">Chưa có thông báo mới.</div>
                             }
-                            else
+                            @foreach (var product in lowStockProducts)
                             {
-                                @if (lowStockProducts.Count == 0 && recentCompletedOrders.Count == 0)
-                                {
-                                    <div class="px-4 py-6 text-center text-xs text-bodytext">Chưa có thông báo mới.</div>
-                                }
-                                @foreach (var product in lowStockProducts)
-                                {
-                                    <a href="/products" class="px-4 py-3 hover:bg-lightprimary/40 cursor-pointer flex items-start gap-3 transition-colors">
-                                        <span class="p-2 rounded-lg bg-lightwarning text-warning shrink-0"><iconify-icon icon="solar:danger-triangle-linear" class="text-lg"></iconify-icon></span>
-                                        <div>
-                                            <p class="text-xs font-semibold text-dark dark:text-white">Sắp hết hàng: @product.ProductName</p>
-                                            <p class="text-[11px] text-bodytext">Tồn kho còn @product.Quantity cái</p>
-                                            <span class="text-[10px] text-bodytext/70">Cần chú ý bổ sung</span>
-                                        </div>
-                                    </a>
-                                }
-                                @foreach (var order in recentCompletedOrders)
-                                {
-                                    <a href="/orders" class="px-4 py-3 hover:bg-lightprimary/40 cursor-pointer flex items-start gap-3 transition-colors">
-                                        <span class="p-2 rounded-lg bg-lightsuccess text-success shrink-0"><iconify-icon icon="solar:cart-check-linear" class="text-lg"></iconify-icon></span>
-                                        <div>
-                                            <p class="text-xs font-semibold text-dark dark:text-white">Đơn hàng #@order.OrderID đã giao</p>
-                                            <p class="text-[11px] text-bodytext">@order.FinalAmount.ToString("N0")đ · @(order.Customer?.FullName ?? "Khách lẻ")</p>
-                                            <span class="text-[10px] text-bodytext/70">@order.OrderDate.ToString("dd/MM/yyyy HH:mm")</span>
-                                        </div>
-                                    </a>
-                                }
+                                <a href="/products" class="px-4 py-3 hover:bg-lightprimary/40 cursor-pointer flex items-start gap-3 transition-colors">
+                                    <span class="p-2 rounded-lg bg-lightwarning text-warning shrink-0"><iconify-icon icon="solar:danger-triangle-linear" class="text-lg"></iconify-icon></span>
+                                    <div>
+                                        <p class="text-xs font-semibold text-dark dark:text-white">Sắp hết hàng: @product.ProductName</p>
+                                        <p class="text-[11px] text-bodytext">Tồn kho còn @product.Quantity cái</p>
+                                        <span class="text-[10px] text-bodytext/70">Cần chú ý bổ sung</span>
+                                    </div>
+                                </a>
+                            }
+                            @foreach (var order in recentCompletedOrders)
+                            {
+                                <a href="/orders" class="px-4 py-3 hover:bg-lightprimary/40 cursor-pointer flex items-start gap-3 transition-colors">
+                                    <span class="p-2 rounded-lg bg-lightsuccess text-success shrink-0"><iconify-icon icon="solar:cart-check-linear" class="text-lg"></iconify-icon></span>
+                                    <div>
+                                        <p class="text-xs font-semibold text-dark dark:text-white">Đơn hàng #@order.OrderID đã giao</p>
+                                        <p class="text-[11px] text-bodytext">@order.FinalAmount.ToString("N0")đ · @(order.Customer?.FullName ?? "Khách lẻ")</p>
+                                        <span class="text-[10px] text-bodytext/70">@order.OrderDate.ToString("dd/MM/yyyy HH:mm")</span>
+                                    </div>
+                                </a>
                             }
                         </div>
                     </div>
@@ -182,18 +119,8 @@
                         @{
                             var displayName = context.User.FindFirst("FullName")?.Value ?? context.User.Identity?.Name ?? "Tài khoản";
                             var roleValue = context.User.FindFirst(ClaimTypes.Role)?.Value;
-                            var userRole = roleValue switch
-                            {
-                                AccountRole.Admin => "Quản trị viên",
-                                AccountRole.Customer => "Khách hàng",
-                                _ => "Nhân viên"
-                            };
-                            var roleBadgeClass = roleValue switch
-                            {
-                                AccountRole.Admin => "bakery-badge-primary",
-                                AccountRole.Customer => "bakery-badge-warning",
-                                _ => "bakery-badge-success"
-                            };
+                            var userRole = roleValue == AccountRole.Admin ? "Quản trị viên" : "Nhân viên";
+                            var roleBadgeClass = roleValue == AccountRole.Admin ? "bakery-badge-primary" : "bakery-badge-success";
                             var username = context.User.Identity?.Name ?? "user";
                             var initials = displayName.Split(' ', StringSplitOptions.RemoveEmptyEntries) is { Length: > 1 } words
                                 ? $"{words[0][0]}{words[^1][0]}".ToUpper()
@@ -227,14 +154,6 @@
                                         <span><strong>Hồ sơ cá nhân</strong><small>Thông tin và bảo mật</small></span>
                                         <iconify-icon icon="solar:alt-arrow-right-linear" class="bakery-profile-link-arrow"></iconify-icon>
                                     </a>
-                                    @if (roleValue == AccountRole.Customer)
-                                    {
-                                        <a href="my-orders" class="bakery-profile-dropdown-link">
-                                            <span class="bakery-profile-link-icon"><iconify-icon icon="solar:bag-heart-linear"></iconify-icon></span>
-                                            <span><strong>Đơn hàng của tôi</strong><small>Theo dõi &amp; lịch sử mua bánh</small></span>
-                                            <iconify-icon icon="solar:alt-arrow-right-linear" class="bakery-profile-link-arrow"></iconify-icon>
-                                        </a>
-                                    }
                                 </div>
                                 <div class="bakery-profile-dropdown-footer">
                                     <button onclick="window.bakeryAuth.logout()" class="bakery-profile-logout">
@@ -285,10 +204,6 @@
 @code {
     private List<ProductDto> lowStockProducts = [];
     private List<Order> recentCompletedOrders = [];
-    private List<Order> customerAlertOrders = [];
-    private int customerPendingConfirmCount;
-    private int customerActiveOrdersCount;
-    private bool isCustomerRole;
     private int notificationCount;
     private readonly SemaphoreSlim notificationLoadGate = new(1, 1);
     private bool isDisposed;
@@ -297,12 +212,11 @@
     protected override async Task OnInitializedAsync()
     {
         AuthStateProvider.AuthenticationStateChanged += OnAuthenticationStateChanged;
-        CartService.OnChange += OnCartOrOrderChanged;
-        NotifService.OnOrderChanged += OnCartOrOrderChanged;
+        NotifService.OnOrderChanged += OnOrderChanged;
         await LoadNotificationsAsync();
     }
 
-    private void OnCartOrOrderChanged()
+    private void OnOrderChanged()
     {
         notificationsLoaded = false;
         _ = InvokeAsync(async () =>
@@ -320,9 +234,6 @@
         {
             lowStockProducts = [];
             recentCompletedOrders = [];
-            customerAlertOrders = [];
-            customerPendingConfirmCount = 0;
-            customerActiveOrdersCount = 0;
             notificationCount = 0;
             notificationsLoaded = false;
             await InvokeAsync(StateHasChanged);
@@ -349,38 +260,12 @@
                 return;
             }
 
-            isCustomerRole = authenticationState.User.IsInRole(AccountRole.Customer);
-
             using var scope = ScopeFactory.CreateScope();
-            if (isCustomerRole)
-            {
-                int.TryParse(authenticationState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var accountId);
-                if (accountId > 0)
-                {
-                    var authService = scope.ServiceProvider.GetRequiredService<IAuthService>();
-                    var customerOrderService = scope.ServiceProvider.GetRequiredService<CustomerOrderService>();
-                    var customer = await authService.GetCustomerByAccountIdAsync(accountId);
-                    if (customer is not null)
-                    {
-                        var orders = await customerOrderService.GetOrdersAsync(customer.CustomerId, null);
-                        customerPendingConfirmCount = orders.Count(o => o.Status == OrderStatus.Delivered);
-                        customerActiveOrdersCount = orders.Count(o => o.Status is OrderStatus.Pending or OrderStatus.Confirmed or OrderStatus.InProgress or OrderStatus.Shipping or OrderStatus.Delivered);
-                        customerAlertOrders = orders
-                            .Where(o => o.Status is OrderStatus.Delivered or OrderStatus.Confirmed or OrderStatus.Pending or OrderStatus.Shipping)
-                            .Take(5)
-                            .ToList();
-                        notificationCount = customerAlertOrders.Count;
-                    }
-                }
-            }
-            else
-            {
-                var productService = scope.ServiceProvider.GetRequiredService<IProductService>();
-                var orderManager = scope.ServiceProvider.GetRequiredService<OrderService>();
-                lowStockProducts = await productService.GetLowStockProductsAsync();
-                recentCompletedOrders = await orderManager.GetRecentCompletedAsync();
-                notificationCount = lowStockProducts.Count + recentCompletedOrders.Count;
-            }
+            var productService = scope.ServiceProvider.GetRequiredService<IProductService>();
+            var orderManager = scope.ServiceProvider.GetRequiredService<OrderService>();
+            lowStockProducts = await productService.GetLowStockProductsAsync();
+            recentCompletedOrders = await orderManager.GetRecentCompletedAsync();
+            notificationCount = lowStockProducts.Count + recentCompletedOrders.Count;
 
             notificationsLoaded = true;
             await InvokeAsync(StateHasChanged);
@@ -391,24 +276,11 @@
         }
     }
 
-    private static string GetCustomerOrderStatusText(string status) => status switch
-    {
-        OrderStatus.Pending => "Chờ tiệm duyệt",
-        OrderStatus.Confirmed => "Đã duyệt, đang chuẩn bị",
-        OrderStatus.InProgress => "Đang làm bánh",
-        OrderStatus.Shipping => "Đang giao hàng",
-        OrderStatus.Delivered => "Đã giao tới nơi",
-        OrderStatus.Completed => "Hoàn tất",
-        OrderStatus.Cancelled => "Đã hủy",
-        _ => status
-    };
-
     public void Dispose()
     {
         isDisposed = true;
         AuthStateProvider.AuthenticationStateChanged -= OnAuthenticationStateChanged;
-        CartService.OnChange -= OnCartOrOrderChanged;
-        NotifService.OnOrderChanged -= OnCartOrOrderChanged;
+        NotifService.OnOrderChanged -= OnOrderChanged;
         notificationLoadGate.Dispose();
     }
 }

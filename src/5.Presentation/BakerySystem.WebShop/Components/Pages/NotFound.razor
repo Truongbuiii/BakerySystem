@@ -1,0 +1,17 @@
+@page "/not-found"
+@layout ShopLayout
+@attribute [AllowAnonymous]
+
+<PageTitle>Không tìm thấy trang | BakerySystem Shop</PageTitle>
+
+<div class="max-w-lg mx-auto my-12 p-8 bg-white rounded-2xl border border-slate-200 shadow-sm text-center">
+    <div class="w-16 h-16 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center mx-auto mb-4">
+        <iconify-icon icon="solar:donut-bold-duotone" class="text-3xl"></iconify-icon>
+    </div>
+    <h1 class="text-xl font-bold text-slate-800 mb-2">Không tìm thấy trang bạn yêu cầu</h1>
+    <p class="text-sm text-slate-500 mb-5">Đường dẫn có thể đã thay đổi hoặc không tồn tại trên cửa hàng bánh.</p>
+    <a href="/" class="bakery-btn bakery-btn-primary bakery-btn-sm inline-flex items-center gap-1.5">
+        <iconify-icon icon="solar:shop-2-bold" class="text-base"></iconify-icon>
+        <span>Về thực đơn bánh tươi</span>
+    </a>
+</div>

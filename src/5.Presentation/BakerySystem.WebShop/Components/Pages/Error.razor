@@ -1,0 +1,31 @@
+@page "/Error"
+@using System.Diagnostics
+@attribute [AllowAnonymous]
+@attribute [ExcludeFromInteractiveRouting]
+
+<PageTitle>Đã xảy ra lỗi | BakerySystem Shop</PageTitle>
+
+<div class="max-w-lg mx-auto my-12 p-8 bg-white rounded-2xl border border-rose-200 shadow-sm text-center">
+    <h1 class="text-xl font-bold text-rose-600 mb-2">Đã xảy ra lỗi hệ thống</h1>
+    <p class="text-sm text-slate-600 mb-4">Rất tiếc, yêu cầu của bạn hiện không thể xử lý. Vui lòng thử lại sau ít phút.</p>
+    @if (ShowRequestId)
+    {
+        <p class="text-xs text-slate-400 mb-4">
+            <strong>Mã truy vết:</strong> <code>@RequestId</code>
+        </p>
+    }
+    <a href="/" class="bakery-btn bakery-btn-primary bakery-btn-sm inline-flex items-center gap-1">
+        Quay về trang chủ
+    </a>
+</div>
+
+@code {
+    [CascadingParameter]
+    private HttpContext? HttpContext { get; set; }
+
+    private string? RequestId { get; set; }
+    private bool ShowRequestId => !string.IsNullOrEmpty(RequestId);
+
+    protected override void OnInitialized() =>
+        RequestId = Activity.Current?.Id ?? HttpContext?.TraceIdentifier;
+}
