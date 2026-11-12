@@ -3759,6 +3759,24 @@ html.dark .bakery-bill-footer {
     }
 
     /* 2. In ấn toàn trang thông thường (Báo cáo, Danh sách sản phẩm, v.v.) */
+    body.print-single-order * {
+        visibility: hidden !important;
+    }
+    body.print-single-order .order-single-print-sheet,
+    body.print-single-order .order-single-print-sheet * {
+        visibility: visible !important;
+    }
+    body.print-single-order .order-single-print-sheet {
+        display: block !important;
+        position: fixed !important;
+        inset: 0 !important;
+        width: 100% !important;
+        padding: 16px !important;
+        background: #ffffff !important;
+        color: #0f172a !important;
+        z-index: 99999 !important;
+    }
+
     body:not(:has(.bakery-bill-card)) {
         background: #ffffff !important;
         color: #000000 !important;

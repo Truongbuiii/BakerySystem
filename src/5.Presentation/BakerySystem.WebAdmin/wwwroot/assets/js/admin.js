@@ -203,8 +203,6 @@
                     if (!returnUrl || returnUrl === '/' || returnUrl === 'login') {
                         if (data.role === 'Employee') {
                             target = '/pos';
-                        } else if (data.role === 'Shipper') {
-                            target = '/orders';
                         } else {
                             target = '/';
                         }
