@@ -36,7 +36,7 @@
                             <div class="flex items-center gap-1.5">
                                 <h3 class="bakery-neworder-title truncate">CÓ ĐƠN HÀNG MỚI CẦN DUYỆT!</h3>
                                 <span class="bakery-badge bakery-badge-warning text-[9px] font-bold py-0 px-1.5 shrink-0">
-                                    App Mobile
+                                    Đặt Online
                                 </span>
                             </div>
                             <p class="bakery-neworder-subtitle truncate">
@@ -280,7 +280,12 @@
             return;
         }
 
-        currentRole = user.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? AccountRole.Employee;
+        currentRole = user.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? string.Empty;
+        if (currentRole is not (AccountRole.Admin or AccountRole.Employee))
+        {
+            isAuthorized = false;
+            return;
+        }
         isAuthorized = true;
 
         var username = user.Identity?.Name;

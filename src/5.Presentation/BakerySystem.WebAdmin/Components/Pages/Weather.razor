@@ -1,5 +1,6 @@
 @page "/weather"
 @attribute [StreamRendering]
+@attribute [Authorize(Roles = "Admin,Employee")]
 
 <PageTitle>Dự Báo Thời Tiết & Giao Hàng | BakeryAdmin</PageTitle>
 

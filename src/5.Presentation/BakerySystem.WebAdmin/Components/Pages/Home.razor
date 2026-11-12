@@ -1,8 +1,9 @@
 @page "/"
-@attribute [Authorize(Roles = "Admin,Employee")]
+@attribute [Authorize(Roles = "Admin,Employee,Customer")]
 @inject IJSRuntime JS
 @inject IDashboardService DashboardService
 @inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Navigation
 
 <PageTitle>Bảng Điều Khiển | BakeryAdmin</PageTitle>
 
@@ -460,6 +461,13 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        if (authState.User.IsInRole(AccountRole.Customer))
+        {
+            Navigation.NavigateTo("/shop", replace: true);
+            return;
+        }
+
         // Lấy dữ liệu thật từ cơ sở dữ liệu backend qua IDashboardService
         stats = await DashboardService.GetDashboardStatsAsync();
     }

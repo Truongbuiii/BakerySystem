@@ -181,6 +181,25 @@
     };
 
     window.bakeryAuth = {
+        resolveTargetUrl: function (role, returnUrl) {
+            const cleanReturn = returnUrl ? ('/' + returnUrl.replace(/^\/+/, '')) : '';
+            if (role === 'Customer') {
+                if (cleanReturn && (cleanReturn.startsWith('/shop') || cleanReturn.startsWith('/my-orders') || cleanReturn.startsWith('/profile'))) {
+                    return cleanReturn;
+                }
+                return '/shop';
+            }
+            if (role === 'Employee') {
+                if (cleanReturn && cleanReturn !== '/' && !cleanReturn.startsWith('/login')) {
+                    return cleanReturn;
+                }
+                return '/pos';
+            }
+            if (cleanReturn && !cleanReturn.startsWith('/login')) {
+                return cleanReturn;
+            }
+            return '/';
+        },
         login: async function (username, password, returnUrl) {
             try {
                 const resp = await fetch('/api/auth/login', {
@@ -199,19 +218,31 @@
                 }
                 const data = await resp.json();
                 if (data.success) {
-                    let target = returnUrl && returnUrl !== 'login' ? ('/' + returnUrl.replace(/^\//, '')) : '/';
-                    if (!returnUrl || returnUrl === '/' || returnUrl === 'login') {
-                        if (data.role === 'Employee') {
-                            target = '/pos';
-                        } else {
-                            target = '/';
-                        }
-                    }
-                    window.location.href = target;
+                    window.location.href = window.bakeryAuth.resolveTargetUrl(data.role, returnUrl);
                     return { success: true };
                 } else {
                     return { success: false, errorMessage: data.errorMessage || 'Đăng nhập không thành công.' };
                 }
+            } catch (err) {
+                return { success: false, errorMessage: 'Không thể kết nối đến máy chủ: ' + (err.message || 'Lỗi mạng') };
+            }
+        },
+        register: async function (payload) {
+            try {
+                const resp = await fetch('/api/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (!resp.ok) {
+                    return { success: false, errorMessage: 'Lỗi máy chủ (' + resp.status + ')' };
+                }
+                const data = await resp.json();
+                if (data.success) {
+                    window.location.href = '/shop';
+                    return { success: true };
+                }
+                return { success: false, errorMessage: data.errorMessage || 'Đăng ký không thành công.' };
             } catch (err) {
                 return { success: false, errorMessage: 'Không thể kết nối đến máy chủ: ' + (err.message || 'Lỗi mạng') };
             }

@@ -116,7 +116,7 @@
         <div class="order-select-wrap">
             <select class="bakery-input order-select-control" @bind="selectedChannel" @bind:after="OnFilterChanged" title="Lọc theo kênh đặt hàng">
                 <option value="All">Tất cả nguồn đơn</option>
-                <option value="Online">Mua Online (Mobile App)</option>
+                <option value="Online">Mua Online (Web / App)</option>
                 <option value="Pos">Mua tại máy POS</option>
             </select>
         </div>
@@ -800,7 +800,7 @@
             <tr>
                 <td>#HD-@order.OrderID.ToString("D4")</td>
                 <td>@order.OrderDate.ToString("dd/MM/yyyy HH:mm")</td>
-                <td>@(IsOnlineDelivery(order) ? "Mobile App" : "Tại quầy POS")</td>
+                <td>@(IsOnlineDelivery(order) ? "Online (Web/App)" : "Tại quầy POS")</td>
                 <td>@GetReceiverDisplayName(order)</td>
                 <td>@GetReceiverPhone(order)</td>
                 <td>@(IsOnlineDelivery(order) ? order.ShippingAddress : "Tại quầy")</td>

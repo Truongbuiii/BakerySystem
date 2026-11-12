@@ -5,14 +5,19 @@
 @inject AuthenticationStateProvider AuthState
 @inject EmployeeService Employees
 @inject IAuthService AuthService
+@inject CustomerOrderService CustomerOrderService
 
-<PageTitle>Hồ sơ & bảo mật | BakerySystem</PageTitle>
+<PageTitle>Hồ sơ &amp; bảo mật | BakerySystem</PageTitle>
 
 <div class="profile-page">
     <div class="profile-header">
         <div>
             <h2 class="profile-title">Hồ sơ &amp; bảo mật</h2>
-            <p class="profile-subtitle">Cập nhật thông tin cá nhân và mật khẩu đăng nhập.</p>
+            <p class="profile-subtitle">
+                @(isCustomer
+                    ? "Cập nhật thông tin giao bánh mặc định, hạng thành viên VIP và mật khẩu."
+                    : "Cập nhật thông tin cá nhân và mật khẩu đăng nhập.")
+            </p>
         </div>
 
         <div class="profile-account-pill" title="Tài khoản đang đăng nhập">
@@ -27,6 +32,47 @@
         </div>
     </div>
 
+    @if (isCustomer && customerProfile is not null)
+    {
+        var vipTier = CustomerLoyaltyTier.GetTierName(customerTotalSpent);
+        var rewardPoints = (int)(customerTotalSpent / 10000m);
+
+        <div class="profile-vip-banner">
+            <div class="profile-vip-left">
+                <span class="bakery-avatar-initials-lg">@Initials</span>
+                <div>
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <strong class="text-base">@DisplayName</strong>
+                        <span class="profile-vip-badge">
+                            <iconify-icon icon="solar:crown-bold"></iconify-icon>
+                            <span>@vipTier</span>
+                        </span>
+                    </div>
+                    <div class="text-xs text-slate-300 mt-0.5">
+                        @(string.IsNullOrWhiteSpace(customerProfile.Phone) ? "Chưa cập nhật SĐT" : customerProfile.Phone)
+                        &bull;
+                        @(string.IsNullOrWhiteSpace(customerProfile.Address) ? "Chưa có địa chỉ giao bánh" : customerProfile.Address)
+                    </div>
+                </div>
+            </div>
+
+            <div class="profile-vip-stats">
+                <div class="profile-vip-stat">
+                    <span class="profile-vip-stat-label">Điểm tích lũy</span>
+                    <span class="profile-vip-stat-value" style="color: #fbbf24;">@($"{rewardPoints:N0} điểm")</span>
+                </div>
+                <div class="profile-vip-stat">
+                    <span class="profile-vip-stat-label">Tổng chi tiêu</span>
+                    <span class="profile-vip-stat-value">@($"{customerTotalSpent:N0}đ")</span>
+                </div>
+                <div class="profile-vip-stat">
+                    <span class="profile-vip-stat-label">Đơn hợp lệ</span>
+                    <span class="profile-vip-stat-value" style="color: #34d399;">@customerOrdersCount đơn</span>
+                </div>
+            </div>
+        </div>
+    }
+
     <div class="profile-grid">
         <section class="profile-card">
             <div class="profile-card-header">
@@ -35,7 +81,11 @@
                 </span>
                 <div>
                     <h3 class="profile-card-title">Thông tin hồ sơ</h3>
-                    <p class="profile-card-desc">Quản lý thông tin hiển thị và số điện thoại liên hệ.</p>
+                    <p class="profile-card-desc">
+                        @(isCustomer
+                            ? "Quản lý tên hiển thị, số điện thoại và địa chỉ giao bánh mặc định."
+                            : "Quản lý thông tin hiển thị và số điện thoại liên hệ.")
+                    </p>
                 </div>
             </div>
 
@@ -69,7 +119,7 @@
                     </div>
                 </div>
 
-                @if (employee is not null)
+                @if (employee is not null || customerProfile is not null)
                 {
                     <div class="profile-field">
                         <div class="profile-label-row">
@@ -99,12 +149,28 @@
                                @bind="phone"
                                disabled="@isSavingProfile" />
                     </div>
+
+                    @if (customerProfile is not null)
+                    {
+                        <div class="profile-field">
+                            <div class="profile-label-row">
+                                <label class="profile-label-text" for="profile-address">Địa chỉ nhận bánh mặc định</label>
+                                <span class="profile-label-hint">Tối đa 255 ký tự</span>
+                            </div>
+                            <input id="profile-address"
+                                   class="bakery-input"
+                                   maxlength="255"
+                                   placeholder="VD: 123 Lê Lợi, Phường Bến Thành, Quận 1, TP.HCM"
+                                   @bind="address"
+                                   disabled="@isSavingProfile" />
+                        </div>
+                    }
                 }
                 else
                 {
                     <div class="profile-empty-notice">
                         <iconify-icon icon="solar:info-circle-linear"></iconify-icon>
-                        <span>Tài khoản này chưa được liên kết với hồ sơ nhân viên nên không có thông tin cá nhân để chỉnh sửa.</span>
+                        <span>Tài khoản này chưa được liên kết với hồ sơ cá nhân để chỉnh sửa.</span>
                     </div>
                 }
 
@@ -116,7 +182,7 @@
                     </div>
                 }
 
-                @if (employee is not null)
+                @if (employee is not null || customerProfile is not null)
                 {
                     <div class="profile-card-footer">
                         <span class="profile-footer-note">Họ tên mới được áp dụng ngay trong phiên làm việc.</span>
@@ -247,7 +313,12 @@
     private string accountStatus = AccountStatus.Active;
     private string fullName = string.Empty;
     private string? phone;
+    private string? address;
     private Employee? employee;
+    private CustomerDto? customerProfile;
+    private bool isCustomer;
+    private decimal customerTotalSpent;
+    private int customerOrdersCount;
 
     private string oldPassword = string.Empty;
     private string newPassword = string.Empty;
@@ -267,7 +338,9 @@
 
     private string DisplayName => !string.IsNullOrWhiteSpace(employee?.FullName)
         ? employee.FullName
-        : (!string.IsNullOrWhiteSpace(fullName) ? fullName : (string.IsNullOrWhiteSpace(username) ? "Tài khoản" : username));
+        : (!string.IsNullOrWhiteSpace(customerProfile?.FullName)
+            ? customerProfile.FullName
+            : (!string.IsNullOrWhiteSpace(fullName) ? fullName : (string.IsNullOrWhiteSpace(username) ? "Tài khoản" : username)));
 
     private string Initials
     {
@@ -276,7 +349,7 @@
             var words = DisplayName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
             if (words.Length > 1)
                 return $"{words[0][0]}{words[^1][0]}".ToUpper();
-            return DisplayName.Length >= 2 ? DisplayName[..2].ToUpper() : "NV";
+            return DisplayName.Length >= 2 ? DisplayName[..2].ToUpper() : "BS";
         }
     }
 
@@ -289,25 +362,45 @@
         username = state.User.Identity?.Name ?? string.Empty;
         roleCode = state.User.FindFirst(ClaimTypes.Role)?.Value ?? AccountRole.Employee;
         fullName = state.User.FindFirst("FullName")?.Value ?? username;
+        isCustomer = roleCode == AccountRole.Customer;
 
         if (accountId > 0)
         {
-            var result = await Employees.GetProfileAsync(accountId);
-            if (result is not null)
+            if (isCustomer)
             {
-                employee = result.Value.Employee;
-                username = result.Value.Username;
-                fullName = employee.FullName;
-                phone = employee.Phone;
-                roleCode = employee.Account?.Role ?? roleCode;
-                accountStatus = employee.Account?.Status ?? AccountStatus.Active;
+                customerProfile = await AuthService.GetCustomerByAccountIdAsync(accountId);
+                if (customerProfile is not null)
+                {
+                    username = customerProfile.Username;
+                    fullName = customerProfile.FullName;
+                    phone = customerProfile.Phone;
+                    address = customerProfile.Address;
+
+                    var orders = await CustomerOrderService.GetOrdersAsync(customerProfile.CustomerId, null);
+                    var validOrders = orders.Where(o => o.Status != OrderStatus.Cancelled).ToList();
+                    customerOrdersCount = validOrders.Count;
+                    customerTotalSpent = validOrders.Sum(o => o.FinalAmount);
+                }
+            }
+            else
+            {
+                var result = await Employees.GetProfileAsync(accountId);
+                if (result is not null)
+                {
+                    employee = result.Value.Employee;
+                    username = result.Value.Username;
+                    fullName = employee.FullName;
+                    phone = employee.Phone;
+                    roleCode = employee.Account?.Role ?? roleCode;
+                    accountStatus = employee.Account?.Status ?? AccountStatus.Active;
+                }
             }
         }
     }
 
     private async Task SaveProfile()
     {
-        if (isSavingProfile || employee is null)
+        if (isSavingProfile || (employee is null && customerProfile is null))
             return;
 
         profileMessage = null;
@@ -339,12 +432,45 @@
         isSavingProfile = true;
         try
         {
-            await Employees.UpdateProfileAsync(accountId, trimmedName, normalizedPhone);
+            if (customerProfile is not null)
+            {
+                var normalizedAddress = string.IsNullOrWhiteSpace(address) ? null : address.Trim();
+                if (normalizedAddress is { Length: > 255 })
+                {
+                    profileMessage = "Địa chỉ không được vượt quá 255 ký tự.";
+                    return;
+                }
 
-            fullName = trimmedName;
-            phone = normalizedPhone;
-            employee.FullName = fullName;
-            employee.Phone = phone;
+                var updated = await AuthService.UpdateCustomerProfileAsync(new UpdateCustomerProfileRequest
+                {
+                    CustomerId = customerProfile.CustomerId,
+                    FullName = trimmedName,
+                    Phone = normalizedPhone,
+                    Address = normalizedAddress
+                });
+
+                if (!updated)
+                {
+                    profileMessage = "Không tìm thấy hồ sơ khách hàng.";
+                    return;
+                }
+
+                fullName = trimmedName;
+                phone = normalizedPhone;
+                address = normalizedAddress;
+                customerProfile.FullName = fullName;
+                customerProfile.Phone = phone;
+                customerProfile.Address = address;
+            }
+            else if (employee is not null)
+            {
+                await Employees.UpdateProfileAsync(accountId, trimmedName, normalizedPhone);
+
+                fullName = trimmedName;
+                phone = normalizedPhone;
+                employee.FullName = fullName;
+                employee.Phone = phone;
+            }
 
             await SyncDisplayNameAsync(fullName);
 
@@ -470,6 +596,7 @@
     private static string RoleLabel(string? role) => role switch
     {
         AccountRole.Admin => "Quản trị viên (Admin)",
+        AccountRole.Customer => "Khách hàng thành viên",
         _ => "Nhân viên bán hàng"
     };
 }

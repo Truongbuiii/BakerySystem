@@ -1,0 +1,159 @@
+.myorders-toast {
+    position: fixed;
+    top: 84px;
+    right: 24px;
+    z-index: 90;
+    background: #0f172a;
+    color: #ffffff;
+    padding: 0.7rem 1rem;
+    border-radius: 10px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    box-shadow: 0 10px 25px rgba(15, 23, 42, 0.25);
+}
+
+.myorders-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.myorder-card {
+    background: #ffffff;
+    border: 1px solid var(--bakery-border, #e2e8f0);
+    border-radius: 12px;
+    padding: 1.05rem 1.2rem;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.03);
+}
+
+.myorder-card-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    padding-bottom: 0.75rem;
+    margin-bottom: 0.75rem;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.myorder-items {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.myorder-item-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.5rem 0.65rem;
+    border-radius: 8px;
+    background: #f8fafc;
+}
+
+.myorder-item-img {
+    width: 40px;
+    height: 40px;
+    border-radius: 6px;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+.myorder-note {
+    padding: 0.5rem 0.75rem;
+    border-radius: 8px;
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    color: #92400e;
+    font-size: 0.78rem;
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+}
+
+.myorder-delivered-box {
+    padding: 0.7rem 0.9rem;
+    border-radius: 8px;
+    background: #ecfdf5;
+    border: 1px solid #6ee7b7;
+    color: #065f46;
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+}
+
+.myorder-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px dashed #cbd5e1;
+}
+
+.myorder-stepper {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.5rem;
+    padding: 0.9rem 0.65rem;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+}
+
+.myorder-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 0.35rem;
+    position: relative;
+}
+
+.myorder-step-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 9999px;
+    background: #e2e8f0;
+    color: #64748b;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+}
+
+.myorder-step-label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #64748b;
+}
+
+.myorder-step.is-done .myorder-step-icon {
+    background: #059669;
+    color: #ffffff;
+}
+
+.myorder-step.is-done .myorder-step-label {
+    color: #059669;
+}
+
+.myorder-step.is-active .myorder-step-icon {
+    background: #1e40af;
+    color: #ffffff;
+    box-shadow: 0 0 0 4px rgba(30, 64, 175, 0.16);
+}
+
+.myorder-step.is-active .myorder-step-label {
+    color: #1e40af;
+}

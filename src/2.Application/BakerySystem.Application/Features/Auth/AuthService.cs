@@ -25,6 +25,18 @@ public class AuthService : IAuthService
         var account = await _context.Accounts
             .FirstOrDefaultAsync(a => a.Username == normalizedUsername);
 
+        // Hỗ trợ khách hàng đăng nhập linh hoạt bằng Số điện thoại
+        if (account == null)
+        {
+            var customerByPhone = await _context.Customers
+                .Include(c => c.Account)
+                .FirstOrDefaultAsync(c => c.Phone == normalizedUsername && c.AccountID != null);
+            if (customerByPhone != null && customerByPhone.Account != null)
+            {
+                account = customerByPhone.Account;
+            }
+        }
+
         if (account == null)
         {
             return new LoginResult { Success = false, ErrorMessage = "Tên đăng nhập hoặc mật khẩu không chính xác." };
@@ -59,19 +71,44 @@ public class AuthService : IAuthService
             return new LoginResult { Success = false, ErrorMessage = "Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên." };
         }
 
-        // Chỉ Admin và Employee mới được phép đăng nhập WebAdmin
-        if (account.Role is not (AccountRole.Admin or AccountRole.Employee))
+        // Cho phép Admin, Employee và Customer đăng nhập Web
+        if (account.Role is not (AccountRole.Admin or AccountRole.Employee or AccountRole.Customer))
         {
-            return new LoginResult { Success = false, ErrorMessage = "Tài khoản không có quyền truy cập hệ thống quản trị." };
+            return new LoginResult { Success = false, ErrorMessage = "Tài khoản không có quyền truy cập hệ thống." };
         }
 
-        // Lấy tên hiển thị từ Employee nếu có
+        // Lấy tên hiển thị theo vai trò
         string? fullName = null;
-        var employee = await _context.Employees
-            .FirstOrDefaultAsync(e => e.AccountID == account.AccountID);
-        if (employee != null && !string.IsNullOrWhiteSpace(employee.FullName))
+        if (account.Role == AccountRole.Customer)
         {
-            fullName = employee.FullName;
+            var customer = await _context.Customers
+                .FirstOrDefaultAsync(c => c.AccountID == account.AccountID);
+            if (customer == null)
+            {
+                customer = new Customer
+                {
+                    AccountID = account.AccountID,
+                    FullName = account.Username,
+                    Phone = string.Empty,
+                    Address = string.Empty
+                };
+                _context.Customers.Add(customer);
+                await _context.SaveChangesAsync();
+            }
+
+            if (!string.IsNullOrWhiteSpace(customer.FullName))
+            {
+                fullName = customer.FullName;
+            }
+        }
+        else
+        {
+            var employee = await _context.Employees
+                .FirstOrDefaultAsync(e => e.AccountID == account.AccountID);
+            if (employee != null && !string.IsNullOrWhiteSpace(employee.FullName))
+            {
+                fullName = employee.FullName;
+            }
         }
 
         return new LoginResult
@@ -288,12 +325,23 @@ public class AuthService : IAuthService
         var customer = await _context.Customers.FindAsync(request.CustomerId);
         if (customer == null) return false;
 
+        var cleanPhone = string.IsNullOrWhiteSpace(request.Phone) ? null : request.Phone.Trim();
+        if (cleanPhone is not null)
+        {
+            var duplicatePhone = await _context.Customers.AnyAsync(
+                c => c.Phone == cleanPhone && c.AccountID != null && c.CustomerID != request.CustomerId);
+            if (duplicatePhone)
+            {
+                throw new InvalidOperationException($"Số điện thoại '{cleanPhone}' đã được đăng ký cho tài khoản khác.");
+            }
+        }
+
         if (!string.IsNullOrWhiteSpace(request.FullName))
         {
             customer.FullName = request.FullName.Trim();
         }
-        customer.Phone = request.Phone?.Trim();
-        customer.Address = request.Address?.Trim();
+        customer.Phone = cleanPhone;
+        customer.Address = string.IsNullOrWhiteSpace(request.Address) ? null : request.Address.Trim();
 
         await _context.SaveChangesAsync();
         return true;

@@ -48,15 +48,22 @@ public static class MobileApiEndpoints
             IAuthService authService,
             CancellationToken ct) =>
         {
-            var updated = await authService.UpdateCustomerProfileAsync(
-                new UpdateCustomerProfileRequest
-                {
-                    CustomerId = request.CustomerId,
-                    FullName = request.FullName,
-                    Phone = request.Phone,
-                    Address = request.Address
-                });
-            return updated ? Results.Ok() : Results.NotFound();
+            try
+            {
+                var updated = await authService.UpdateCustomerProfileAsync(
+                    new UpdateCustomerProfileRequest
+                    {
+                        CustomerId = request.CustomerId,
+                        FullName = request.FullName,
+                        Phone = request.Phone,
+                        Address = request.Address
+                    });
+                return updated ? Results.Ok() : Results.NotFound();
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Results.BadRequest(ex.Message);
+            }
         })
         .WithSummary("Update a customer profile");
 
