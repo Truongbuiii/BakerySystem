@@ -397,6 +397,9 @@ else
                     <div class="shop-section-box">
                         <div class="shop-section-title">
                             <span>Thông tin nhận bánh</span>
+                            <a href="/profile" class="text-xs font-bold text-primary hover:underline">
+                                Sửa hồ sơ mặc định
+                            </a>
                         </div>
                         <div class="shop-form-grid-2">
                             <div>
@@ -406,8 +409,10 @@ else
                             </div>
                             <div>
                                 <label class="text-[11px] font-semibold text-slate-600 block mb-0.5">Số điện thoại (*)</label>
-                                <input type="tel" class="bakery-input w-full" style="height: 34px;"
-                                       placeholder="SĐT liên hệ" @bind="receiverPhone" />
+                                <input type="tel" inputmode="numeric" maxlength="11" class="bakery-input w-full" style="height: 34px;"
+                                       placeholder="VD: 0912345678"
+                                       @bind="receiverPhone"
+                                       @bind:event="oninput" />
                             </div>
                             <div>
                                 <label class="text-[11px] font-semibold text-slate-600 block mb-0.5">Địa chỉ giao bánh (*)</label>
@@ -991,9 +996,23 @@ else
             return;
         }
 
-        if (string.IsNullOrWhiteSpace(receiverName) || string.IsNullOrWhiteSpace(receiverPhone) || string.IsNullOrWhiteSpace(receiverAddress))
+        var trimmedReceiver = receiverName.Trim();
+        if (trimmedReceiver.Length < 2 || trimmedReceiver.Length > 100 || trimmedReceiver.Count(char.IsLetter) < 2)
         {
-            checkoutError = "Vui lòng nhập đầy đủ họ tên, số điện thoại và địa chỉ giao bánh.";
+            checkoutError = "Họ tên người nhận phải từ 2 đến 100 ký tự và chứa ít nhất 2 chữ cái.";
+            return;
+        }
+
+        if (!System.Text.RegularExpressions.Regex.IsMatch(receiverPhone.Trim(), @"^0\d{8,10}$"))
+        {
+            checkoutError = "Số điện thoại nhận bánh phải bắt đầu bằng số 0 và gồm 9 đến 11 chữ số (không chứa chữ cái).";
+            return;
+        }
+
+        var trimmedAddress = receiverAddress.Trim();
+        if (trimmedAddress.Length < 5 || trimmedAddress.Length > 255 || !trimmedAddress.Any(char.IsLetter))
+        {
+            checkoutError = "Địa chỉ giao bánh phải từ 5 đến 255 ký tự và chứa tên đường/khu vực hợp lệ.";
             return;
         }
 

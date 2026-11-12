@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using BakerySystem.Application.Common.Interfaces;
 using BakerySystem.Domain.Entities;
 using BakerySystem.Domain.Enums;
@@ -249,19 +250,28 @@ public class AuthService : IAuthService
 
     public async Task<CustomerAuthResult> RegisterCustomerAsync(CustomerRegisterRequest request)
     {
-        if (string.IsNullOrWhiteSpace(request.FullName))
-            return new CustomerAuthResult { Success = false, ErrorMessage = "Vui lòng nhập họ và tên của bạn." };
+        var cleanFullName = request.FullName?.Trim() ?? string.Empty;
+        if (cleanFullName.Length < 2 || cleanFullName.Length > 100 || cleanFullName.Count(char.IsLetter) < 2)
+            return new CustomerAuthResult { Success = false, ErrorMessage = "Họ và tên phải từ 2 đến 100 ký tự và chứa ít nhất 2 chữ cái." };
 
-        if (string.IsNullOrWhiteSpace(request.Username) || request.Username.Trim().Length < 3)
-            return new CustomerAuthResult { Success = false, ErrorMessage = "Tên đăng nhập phải có ít nhất 3 ký tự." };
+        var normalizedUsername = request.Username?.Trim() ?? string.Empty;
+        if (!Regex.IsMatch(normalizedUsername, @"^[a-zA-Z0-9_.-]{3,50}$"))
+            return new CustomerAuthResult { Success = false, ErrorMessage = "Tên đăng nhập từ 3–50 ký tự, chỉ gồm chữ không dấu, số và ký tự (_, ., -), không chứa khoảng trắng." };
 
-        if (string.IsNullOrWhiteSpace(request.Password) || request.Password.Length < 6)
-            return new CustomerAuthResult { Success = false, ErrorMessage = "Mật khẩu phải có ít nhất 6 ký tự." };
+        var (isPhoneValid, cleanPhone, phoneError) = NormalizeAndValidatePhone(request.Phone, required: true);
+        if (!isPhoneValid)
+            return new CustomerAuthResult { Success = false, ErrorMessage = phoneError };
+
+        var cleanAddress = string.IsNullOrWhiteSpace(request.Address) ? null : request.Address.Trim();
+        if (cleanAddress is not null && (cleanAddress.Length < 5 || cleanAddress.Length > 255 || !cleanAddress.Any(char.IsLetter)))
+            return new CustomerAuthResult { Success = false, ErrorMessage = "Địa chỉ giao bánh phải từ 5 đến 255 ký tự và chứa tên đường/khu vực hợp lệ." };
+
+        if (string.IsNullOrWhiteSpace(request.Password) || request.Password.Length < 6 || request.Password.Length > 100)
+            return new CustomerAuthResult { Success = false, ErrorMessage = "Mật khẩu phải có từ 6 đến 100 ký tự." };
 
         if (request.Password != request.ConfirmPassword)
             return new CustomerAuthResult { Success = false, ErrorMessage = "Xác nhận mật khẩu không trùng khớp." };
 
-        var normalizedUsername = request.Username.Trim();
         var existingAccount = await _context.Accounts
             .AnyAsync(a => a.Username == normalizedUsername);
 
@@ -270,7 +280,6 @@ public class AuthService : IAuthService
             return new CustomerAuthResult { Success = false, ErrorMessage = "Tên đăng nhập này đã được sử dụng. Vui lòng chọn tên khác." };
         }
 
-        var cleanPhone = request.Phone?.Trim();
         if (!string.IsNullOrWhiteSpace(cleanPhone))
         {
             var existingPhone = await _context.Customers
@@ -295,9 +304,9 @@ public class AuthService : IAuthService
         var customer = new Customer
         {
             AccountID = account.AccountID,
-            FullName = request.FullName.Trim(),
+            FullName = cleanFullName,
             Phone = cleanPhone,
-            Address = request.Address?.Trim()
+            Address = cleanAddress
         };
 
         _context.Customers.Add(customer);
@@ -325,7 +334,14 @@ public class AuthService : IAuthService
         var customer = await _context.Customers.FindAsync(request.CustomerId);
         if (customer == null) return false;
 
-        var cleanPhone = string.IsNullOrWhiteSpace(request.Phone) ? null : request.Phone.Trim();
+        var cleanFullName = request.FullName?.Trim() ?? string.Empty;
+        if (cleanFullName.Length < 2 || cleanFullName.Length > 100 || cleanFullName.Count(char.IsLetter) < 2)
+            throw new InvalidOperationException("Họ và tên phải từ 2 đến 100 ký tự và chứa ít nhất 2 chữ cái.");
+
+        var (isPhoneValid, cleanPhone, phoneError) = NormalizeAndValidatePhone(request.Phone, required: true);
+        if (!isPhoneValid)
+            throw new InvalidOperationException(phoneError);
+
         if (cleanPhone is not null)
         {
             var duplicatePhone = await _context.Customers.AnyAsync(
@@ -336,15 +352,34 @@ public class AuthService : IAuthService
             }
         }
 
-        if (!string.IsNullOrWhiteSpace(request.FullName))
-        {
-            customer.FullName = request.FullName.Trim();
-        }
+        var cleanAddress = string.IsNullOrWhiteSpace(request.Address) ? null : request.Address.Trim();
+        if (cleanAddress is not null && (cleanAddress.Length < 5 || cleanAddress.Length > 255 || !cleanAddress.Any(char.IsLetter)))
+            throw new InvalidOperationException("Địa chỉ giao bánh phải từ 5 đến 255 ký tự và chứa tên đường/khu vực hợp lệ.");
+
+        customer.FullName = cleanFullName;
         customer.Phone = cleanPhone;
-        customer.Address = string.IsNullOrWhiteSpace(request.Address) ? null : request.Address.Trim();
+        customer.Address = cleanAddress;
 
         await _context.SaveChangesAsync();
         return true;
+    }
+
+    private static (bool IsValid, string? NormalizedPhone, string? ErrorMessage) NormalizeAndValidatePhone(string? rawPhone, bool required)
+    {
+        if (string.IsNullOrWhiteSpace(rawPhone))
+        {
+            return required
+                ? (false, null, "Vui lòng nhập số điện thoại liên hệ.")
+                : (true, null, null);
+        }
+
+        var trimmed = rawPhone.Trim();
+        if (!Regex.IsMatch(trimmed, @"^0\d{8,10}$"))
+        {
+            return (false, null, "Số điện thoại không hợp lệ (chỉ nhập 9–11 chữ số, bắt đầu bằng số 0, VD: 0912345678).");
+        }
+
+        return (true, trimmed, null);
     }
 
     public async Task<CustomerDto?> GetCustomerProfileAsync(int customerId)

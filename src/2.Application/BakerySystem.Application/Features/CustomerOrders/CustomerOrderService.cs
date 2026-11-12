@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using BakerySystem.Application.Common.Interfaces;
 using BakerySystem.Domain.Entities;
 using BakerySystem.Domain.Enums;
@@ -104,14 +105,17 @@ public sealed class CustomerOrderService(IBakeryDbContext db)
         if (input.Lines.Count == 0)
             throw new InvalidOperationException("Giỏ hàng đang trống. Vui lòng chọn ít nhất một món bánh.");
 
-        if (string.IsNullOrWhiteSpace(input.ReceiverName))
-            throw new InvalidOperationException("Vui lòng nhập họ tên người nhận bánh.");
+        var cleanReceiverName = input.ReceiverName?.Trim() ?? string.Empty;
+        if (cleanReceiverName.Length < 2 || cleanReceiverName.Length > 100 || cleanReceiverName.Count(char.IsLetter) < 2)
+            throw new InvalidOperationException("Họ tên người nhận phải từ 2 đến 100 ký tự và chứa ít nhất 2 chữ cái.");
 
-        if (string.IsNullOrWhiteSpace(input.ReceiverPhone))
-            throw new InvalidOperationException("Vui lòng nhập số điện thoại liên hệ.");
+        var compactPhone = input.ReceiverPhone?.Trim() ?? string.Empty;
+        if (!Regex.IsMatch(compactPhone, @"^0\d{8,10}$"))
+            throw new InvalidOperationException("Số điện thoại nhận bánh không hợp lệ (chỉ nhập 9–11 chữ số, bắt đầu bằng số 0).");
 
-        if (string.IsNullOrWhiteSpace(input.ShippingAddress))
-            throw new InvalidOperationException("Vui lòng nhập địa chỉ giao bánh.");
+        var cleanAddress = input.ShippingAddress?.Trim() ?? string.Empty;
+        if (cleanAddress.Length < 5 || cleanAddress.Length > 255 || !cleanAddress.Any(char.IsLetter))
+            throw new InvalidOperationException("Địa chỉ giao bánh phải từ 5 đến 255 ký tự và hợp lệ.");
 
         var customer = await db.Customers.FirstOrDefaultAsync(c => c.CustomerID == input.CustomerId, ct)
             ?? throw new InvalidOperationException("Không tìm thấy hồ sơ khách hàng. Vui lòng đăng nhập lại.");
@@ -227,9 +231,9 @@ public sealed class CustomerOrderService(IBakeryDbContext db)
             TotalAmount = totalAmount,
             DiscountAmount = discountAmount,
             FinalAmount = totalAmount - discountAmount,
-            ReceiverName = input.ReceiverName.Trim(),
-            ReceiverPhone = input.ReceiverPhone.Trim(),
-            ShippingAddress = input.ShippingAddress.Trim(),
+            ReceiverName = cleanReceiverName,
+            ReceiverPhone = compactPhone,
+            ShippingAddress = cleanAddress,
             Note = string.IsNullOrWhiteSpace(input.Note) ? null : input.Note.Trim(),
             PaymentMethod = paymentMethod,
             PaymentStatus = paymentMethod == PaymentMethod.COD

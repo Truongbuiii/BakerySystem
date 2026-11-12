@@ -15,8 +15,8 @@
             <h2 class="profile-title">Hồ sơ &amp; bảo mật</h2>
             <p class="profile-subtitle">
                 @(isCustomer
-                    ? "Cập nhật thông tin giao bánh mặc định, hạng thành viên VIP và mật khẩu."
-                    : "Cập nhật thông tin cá nhân và mật khẩu đăng nhập.")
+                    ? "Xem hạng thành viên VIP, chỉnh sửa thông tin cá nhân và bảo mật tài khoản."
+                    : "Xem và cập nhật thông tin cá nhân, mật khẩu đăng nhập.")
             </p>
         </div>
 
@@ -36,38 +36,55 @@
     {
         var vipTier = CustomerLoyaltyTier.GetTierName(customerTotalSpent);
         var rewardPoints = (int)(customerTotalSpent / 10000m);
+        var nextTierHint = GetNextTierHint(customerTotalSpent);
 
         <div class="profile-vip-banner">
             <div class="profile-vip-left">
-                <span class="bakery-avatar-initials-lg">@Initials</span>
-                <div>
+                <span class="profile-vip-avatar">@Initials</span>
+                <div class="min-w-0">
                     <div class="flex items-center gap-2 flex-wrap">
-                        <strong class="text-base">@DisplayName</strong>
+                        <strong class="text-base text-slate-900">@DisplayName</strong>
                         <span class="profile-vip-badge">
                             <iconify-icon icon="solar:crown-bold"></iconify-icon>
                             <span>@vipTier</span>
                         </span>
                     </div>
-                    <div class="text-xs text-slate-300 mt-0.5">
-                        @(string.IsNullOrWhiteSpace(customerProfile.Phone) ? "Chưa cập nhật SĐT" : customerProfile.Phone)
-                        &bull;
-                        @(string.IsNullOrWhiteSpace(customerProfile.Address) ? "Chưa có địa chỉ giao bánh" : customerProfile.Address)
+                    <div class="profile-vip-meta">
+                        <span class="profile-vip-meta-item">
+                            <iconify-icon icon="solar:phone-bold" class="text-primary"></iconify-icon>
+                            <span>@(string.IsNullOrWhiteSpace(customerProfile.Phone) ? "Chưa cập nhật SĐT" : customerProfile.Phone)</span>
+                        </span>
+                        <span class="profile-vip-meta-item">
+                            <iconify-icon icon="solar:map-point-bold" class="text-primary"></iconify-icon>
+                            <span>@(string.IsNullOrWhiteSpace(customerProfile.Address) ? "Chưa có địa chỉ giao bánh" : customerProfile.Address)</span>
+                        </span>
                     </div>
+                    @if (!string.IsNullOrEmpty(nextTierHint))
+                    {
+                        <div class="profile-vip-progress-hint">@nextTierHint</div>
+                    }
+                    @if (!isEditingProfile)
+                    {
+                        <button type="button" class="profile-vip-edit-btn" @onclick="OpenEditProfileForm">
+                            <iconify-icon icon="solar:pen-new-square-linear"></iconify-icon>
+                            <span>Chỉnh sửa thông tin cá nhân</span>
+                        </button>
+                    }
                 </div>
             </div>
 
             <div class="profile-vip-stats">
                 <div class="profile-vip-stat">
                     <span class="profile-vip-stat-label">Điểm tích lũy</span>
-                    <span class="profile-vip-stat-value" style="color: #fbbf24;">@($"{rewardPoints:N0} điểm")</span>
+                    <span class="profile-vip-stat-value" style="color: #d97706;">@($"{rewardPoints:N0} điểm")</span>
                 </div>
                 <div class="profile-vip-stat">
                     <span class="profile-vip-stat-label">Tổng chi tiêu</span>
-                    <span class="profile-vip-stat-value">@($"{customerTotalSpent:N0}đ")</span>
+                    <span class="profile-vip-stat-value" style="color: #1e40af;">@($"{customerTotalSpent:N0}đ")</span>
                 </div>
                 <div class="profile-vip-stat">
                     <span class="profile-vip-stat-label">Đơn hợp lệ</span>
-                    <span class="profile-vip-stat-value" style="color: #34d399;">@customerOrdersCount đơn</span>
+                    <span class="profile-vip-stat-value" style="color: #059669;">@customerOrdersCount đơn</span>
                 </div>
             </div>
         </div>
@@ -82,117 +99,180 @@
                 <div>
                     <h3 class="profile-card-title">Thông tin hồ sơ</h3>
                     <p class="profile-card-desc">
-                        @(isCustomer
-                            ? "Quản lý tên hiển thị, số điện thoại và địa chỉ giao bánh mặc định."
-                            : "Quản lý thông tin hiển thị và số điện thoại liên hệ.")
+                        @(isEditingProfile
+                            ? "Cập nhật thông tin hiển thị, số điện thoại và địa chỉ nhận bánh."
+                            : "Thông tin tài khoản và địa chỉ nhận bánh mặc định.")
                     </p>
                 </div>
             </div>
 
-            <form class="profile-card-form" @onsubmit="SaveProfile" @onsubmit:preventDefault>
-                <div class="profile-meta-row">
-                    <div class="profile-field">
-                        <div class="profile-label-row">
-                            <label class="profile-label-text" for="profile-username">Tên đăng nhập</label>
-                            <span class="profile-label-hint">Cố định</span>
+            @if (!isEditingProfile)
+            {
+                <div class="profile-card-form">
+                    <div class="profile-info-list">
+                        <div class="profile-info-row">
+                            <span class="profile-info-key">Tên đăng nhập</span>
+                            <span class="profile-info-val font-mono">@@@username</span>
                         </div>
-                        <div class="profile-input-wrap" title="Tên đăng nhập không thể tự thay đổi">
-                            <input id="profile-username"
-                                   class="bakery-input profile-input-readonly"
-                                   value="@username"
-                                   disabled
-                                   readonly />
-                            <span class="profile-input-lock" aria-hidden="true">
-                                <iconify-icon icon="solar:lock-keyhole-linear"></iconify-icon>
-                            </span>
+                        <div class="profile-info-row">
+                            <span class="profile-info-key">Quyền truy cập</span>
+                            <span class="profile-info-val">@RoleLabel(roleCode)</span>
                         </div>
+                        @if (employee is not null || customerProfile is not null)
+                        {
+                            <div class="profile-info-row">
+                                <span class="profile-info-key">Họ và tên</span>
+                                <span class="profile-info-val">@DisplayName</span>
+                            </div>
+                            <div class="profile-info-row">
+                                <span class="profile-info-key">Số điện thoại</span>
+                                <span class="profile-info-val">@(string.IsNullOrWhiteSpace(phone) ? "Chưa cập nhật" : phone)</span>
+                            </div>
+                            @if (customerProfile is not null)
+                            {
+                                <div class="profile-info-row">
+                                    <span class="profile-info-key">Địa chỉ nhận bánh</span>
+                                    <span class="profile-info-val">@(string.IsNullOrWhiteSpace(address) ? "Chưa cập nhật" : address)</span>
+                                </div>
+                            }
+                        }
                     </div>
 
-                    <div class="profile-field">
-                        <div class="profile-label-row">
-                            <span class="profile-label-text">Quyền truy cập</span>
+                    @if (!string.IsNullOrEmpty(profileMessage) && profileSaved)
+                    {
+                        <div class="profile-alert is-success" role="status">
+                            <iconify-icon icon="solar:check-circle-bold"></iconify-icon>
+                            <span>@profileMessage</span>
                         </div>
-                        <div class="profile-readonly-box" title="Quyền truy cập tài khoản">
-                            <iconify-icon icon="solar:shield-check-bold"></iconify-icon>
-                            <span>@RoleLabel(roleCode)</span>
+                    }
+
+                    @if (employee is not null || customerProfile is not null)
+                    {
+                        <div class="profile-card-footer">
+                            <span class="profile-footer-note">Bấm nút bên cạnh để sửa thông tin của bạn.</span>
+                            <button type="button" class="bakery-btn bakery-btn-primary" @onclick="OpenEditProfileForm">
+                                <iconify-icon icon="solar:pen-new-square-linear"></iconify-icon>
+                                <span>Chỉnh sửa thông tin</span>
+                            </button>
                         </div>
-                    </div>
+                    }
+                    else
+                    {
+                        <div class="profile-empty-notice">
+                            <iconify-icon icon="solar:info-circle-linear"></iconify-icon>
+                            <span>Tài khoản này chưa được liên kết với hồ sơ cá nhân để chỉnh sửa.</span>
+                        </div>
+                    }
                 </div>
+            }
+            else
+            {
+                <form class="profile-card-form" @onsubmit="SaveProfile" @onsubmit:preventDefault>
+                    <div class="profile-meta-row">
+                        <div class="profile-field">
+                            <div class="profile-label-row">
+                                <label class="profile-label-text" for="profile-username">Tên đăng nhập</label>
+                                <span class="profile-label-hint">Cố định</span>
+                            </div>
+                            <div class="profile-input-wrap" title="Tên đăng nhập không thể tự thay đổi">
+                                <input id="profile-username"
+                                       class="bakery-input profile-input-readonly"
+                                       value="@username"
+                                       disabled
+                                       readonly />
+                                <span class="profile-input-lock" aria-hidden="true">
+                                    <iconify-icon icon="solar:lock-keyhole-linear"></iconify-icon>
+                                </span>
+                            </div>
+                        </div>
 
-                @if (employee is not null || customerProfile is not null)
-                {
+                        <div class="profile-field">
+                            <div class="profile-label-row">
+                                <span class="profile-label-text">Quyền truy cập</span>
+                            </div>
+                            <div class="profile-readonly-box" title="Quyền truy cập tài khoản">
+                                <iconify-icon icon="solar:shield-check-bold"></iconify-icon>
+                                <span>@RoleLabel(roleCode)</span>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="profile-field">
                         <div class="profile-label-row">
                             <label class="profile-label-text" for="profile-fullname">
                                 Họ và tên<span class="profile-required">*</span>
                             </label>
-                            <span class="profile-label-hint">Tối đa 100 ký tự</span>
+                            <span class="profile-label-hint">2–100 ký tự</span>
                         </div>
                         <input id="profile-fullname"
                                class="bakery-input"
                                maxlength="100"
                                placeholder="Nhập họ và tên..."
                                @bind="fullName"
+                               @bind:event="oninput"
                                disabled="@isSavingProfile" />
                     </div>
 
                     <div class="profile-field">
                         <div class="profile-label-row">
-                            <label class="profile-label-text" for="profile-phone">Số điện thoại</label>
-                            <span class="profile-label-hint">Không bắt buộc · 8–15 chữ số</span>
+                            <label class="profile-label-text" for="profile-phone">
+                                Số điện thoại@if (isCustomer) { <span class="profile-required">*</span> }
+                            </label>
+                            <span class="profile-label-hint">Chỉ nhập chữ số · 9–11 số</span>
                         </div>
                         <input id="profile-phone"
                                class="bakery-input"
                                type="tel"
-                               maxlength="20"
+                               inputmode="numeric"
+                               maxlength="11"
                                placeholder="VD: 0901234567"
                                @bind="phone"
+                               @bind:event="oninput"
                                disabled="@isSavingProfile" />
+                        @if (!string.IsNullOrWhiteSpace(phone) && !System.Text.RegularExpressions.Regex.IsMatch(phone.Trim(), @"^0\d{8,10}$"))
+                        {
+                            <small class="text-xs text-rose-600 mt-1 block">Số điện thoại phải bắt đầu bằng 0 và gồm 9–11 chữ số (không chứa chữ cái).</small>
+                        }
                     </div>
 
                     @if (customerProfile is not null)
                     {
                         <div class="profile-field">
                             <div class="profile-label-row">
-                                <label class="profile-label-text" for="profile-address">Địa chỉ nhận bánh mặc định</label>
-                                <span class="profile-label-hint">Tối đa 255 ký tự</span>
+                                <label class="profile-label-text" for="profile-address">
+                                    Địa chỉ nhận bánh mặc định
+                                </label>
+                                <span class="profile-label-hint">5–255 ký tự</span>
                             </div>
                             <input id="profile-address"
                                    class="bakery-input"
                                    maxlength="255"
                                    placeholder="VD: 123 Lê Lợi, Phường Bến Thành, Quận 1, TP.HCM"
                                    @bind="address"
+                                   @bind:event="oninput"
                                    disabled="@isSavingProfile" />
                         </div>
                     }
-                }
-                else
-                {
-                    <div class="profile-empty-notice">
-                        <iconify-icon icon="solar:info-circle-linear"></iconify-icon>
-                        <span>Tài khoản này chưa được liên kết với hồ sơ cá nhân để chỉnh sửa.</span>
-                    </div>
-                }
 
-                @if (!string.IsNullOrEmpty(profileMessage))
-                {
-                    <div class="profile-alert @(profileSaved ? "is-success" : "is-error")" role="status">
-                        <iconify-icon icon="@(profileSaved ? "solar:check-circle-bold" : "solar:danger-circle-bold")"></iconify-icon>
-                        <span>@profileMessage</span>
-                    </div>
-                }
+                    @if (!string.IsNullOrEmpty(profileMessage))
+                    {
+                        <div class="profile-alert @(profileSaved ? "is-success" : "is-error")" role="status">
+                            <iconify-icon icon="@(profileSaved ? "solar:check-circle-bold" : "solar:danger-circle-bold")"></iconify-icon>
+                            <span>@profileMessage</span>
+                        </div>
+                    }
 
-                @if (employee is not null || customerProfile is not null)
-                {
                     <div class="profile-card-footer">
-                        <span class="profile-footer-note">Họ tên mới được áp dụng ngay trong phiên làm việc.</span>
+                        <button type="button" class="bakery-btn bakery-btn-outline" @onclick="CancelEditProfileForm" disabled="@isSavingProfile">
+                            Hủy
+                        </button>
                         <button type="submit" class="bakery-btn bakery-btn-primary" disabled="@isSavingProfile">
                             <iconify-icon icon="solar:disk-bold"></iconify-icon>
-                            <span>@(isSavingProfile ? "Đang lưu..." : "Lưu hồ sơ")</span>
+                            <span>@(isSavingProfile ? "Đang lưu..." : "Lưu thay đổi")</span>
                         </button>
                     </div>
-                }
-            </form>
+                </form>
+            }
         </section>
 
         <section class="profile-card">
@@ -201,107 +281,145 @@
                     <iconify-icon icon="solar:lock-keyhole-linear"></iconify-icon>
                 </span>
                 <div>
-                    <h3 class="profile-card-title">Đổi mật khẩu</h3>
-                    <p class="profile-card-desc">Nên dùng mật khẩu mạnh từ 6 ký tự trở lên để bảo vệ tài khoản.</p>
+                    <h3 class="profile-card-title">Bảo mật &amp; Mật khẩu</h3>
+                    <p class="profile-card-desc">
+                        @(isChangePasswordOpen
+                            ? "Nhập mật khẩu hiện tại và mật khẩu mới để cập nhật."
+                            : "Quản lý bảo mật đăng nhập cho tài khoản Web & Mobile App.")
+                    </p>
                 </div>
             </div>
 
-            <form class="profile-card-form" @onsubmit="ChangePassword" @onsubmit:preventDefault>
-                <div class="profile-field">
-                    <div class="profile-label-row">
-                        <label class="profile-label-text" for="profile-old-pw">
-                            Mật khẩu hiện tại<span class="profile-required">*</span>
-                        </label>
+            @if (!isChangePasswordOpen)
+            {
+                <div class="profile-card-form">
+                    <div class="profile-security-summary">
+                        <div class="profile-security-status">
+                            <iconify-icon icon="solar:shield-check-bold" class="text-base"></iconify-icon>
+                            <span>Tài khoản đang được bảo vệ bằng mật khẩu</span>
+                        </div>
+                        <ul class="profile-security-tips">
+                            <li>Sử dụng mật khẩu tối thiểu 6 ký tự, kết hợp chữ và số.</li>
+                            <li>Không chia sẻ mật khẩu với người khác để bảo vệ điểm thành viên.</li>
+                            <li>Mật khẩu mới áp dụng đồng bộ trên cả Web và App Mobile.</li>
+                        </ul>
                     </div>
-                    <div class="profile-input-wrap">
-                        <input id="profile-old-pw"
-                               class="bakery-input profile-password-input"
-                               type="@(showOldPassword ? "text" : "password")"
-                               autocomplete="current-password"
-                               maxlength="100"
-                               placeholder="Nhập mật khẩu hiện tại"
-                               @bind="oldPassword"
-                               disabled="@isChangingPassword" />
-                        <button type="button"
-                                class="profile-password-toggle"
-                                @onclick="() => showOldPassword = !showOldPassword"
-                                tabindex="-1"
-                                title="@(showOldPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu")"
-                                aria-label="@(showOldPassword ? "Ẩn mật khẩu hiện tại" : "Hiện mật khẩu hiện tại")">
-                            <iconify-icon icon="@(showOldPassword ? "solar:eye-closed-linear" : "solar:eye-linear")"></iconify-icon>
+
+                    @if (!string.IsNullOrEmpty(passwordMessage) && passwordSaved)
+                    {
+                        <div class="profile-alert is-success" role="status">
+                            <iconify-icon icon="solar:check-circle-bold"></iconify-icon>
+                            <span>@passwordMessage</span>
+                        </div>
+                    }
+
+                    <div class="profile-card-footer">
+                        <span class="profile-footer-note">Bấm nút bên cạnh khi bạn cần đổi mật khẩu.</span>
+                        <button type="button" class="bakery-btn bakery-btn-primary" @onclick="OpenChangePasswordForm">
+                            <iconify-icon icon="solar:key-linear"></iconify-icon>
+                            <span>Đổi mật khẩu</span>
                         </button>
                     </div>
                 </div>
-
-                <div class="profile-field">
-                    <div class="profile-label-row">
-                        <label class="profile-label-text" for="profile-new-pw">
-                            Mật khẩu mới<span class="profile-required">*</span>
-                        </label>
-                        <span class="profile-label-hint">Tối thiểu 6 ký tự</span>
+            }
+            else
+            {
+                <form class="profile-card-form" @onsubmit="ChangePassword" @onsubmit:preventDefault>
+                    <div class="profile-field">
+                        <div class="profile-label-row">
+                            <label class="profile-label-text" for="profile-old-pw">
+                                Mật khẩu hiện tại<span class="profile-required">*</span>
+                            </label>
+                        </div>
+                        <div class="profile-input-wrap">
+                            <input id="profile-old-pw"
+                                   class="bakery-input profile-password-input"
+                                   type="@(showOldPassword ? "text" : "password")"
+                                   autocomplete="current-password"
+                                   maxlength="100"
+                                   placeholder="Nhập mật khẩu hiện tại"
+                                   @bind="oldPassword"
+                                   disabled="@isChangingPassword" />
+                            <button type="button"
+                                    class="profile-password-toggle"
+                                    @onclick="() => showOldPassword = !showOldPassword"
+                                    tabindex="-1"
+                                    title="@(showOldPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu")">
+                                <iconify-icon icon="@(showOldPassword ? "solar:eye-closed-linear" : "solar:eye-linear")"></iconify-icon>
+                            </button>
+                        </div>
                     </div>
-                    <div class="profile-input-wrap">
-                        <input id="profile-new-pw"
-                               class="bakery-input profile-password-input"
-                               type="@(showNewPassword ? "text" : "password")"
-                               autocomplete="new-password"
-                               maxlength="100"
-                               placeholder="Nhập mật khẩu mới"
-                               @bind="newPassword"
-                               disabled="@isChangingPassword" />
-                        <button type="button"
-                                class="profile-password-toggle"
-                                @onclick="() => showNewPassword = !showNewPassword"
-                                tabindex="-1"
-                                title="@(showNewPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu")"
-                                aria-label="@(showNewPassword ? "Ẩn mật khẩu mới" : "Hiện mật khẩu mới")">
-                            <iconify-icon icon="@(showNewPassword ? "solar:eye-closed-linear" : "solar:eye-linear")"></iconify-icon>
+
+                    <div class="profile-field">
+                        <div class="profile-label-row">
+                            <label class="profile-label-text" for="profile-new-pw">
+                                Mật khẩu mới<span class="profile-required">*</span>
+                            </label>
+                            <span class="profile-label-hint">Tối thiểu 6 ký tự</span>
+                        </div>
+                        <div class="profile-input-wrap">
+                            <input id="profile-new-pw"
+                                   class="bakery-input profile-password-input"
+                                   type="@(showNewPassword ? "text" : "password")"
+                                   autocomplete="new-password"
+                                   maxlength="100"
+                                   placeholder="Nhập mật khẩu mới"
+                                   @bind="newPassword"
+                                   disabled="@isChangingPassword" />
+                            <button type="button"
+                                    class="profile-password-toggle"
+                                    @onclick="() => showNewPassword = !showNewPassword"
+                                    tabindex="-1"
+                                    title="@(showNewPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu")">
+                                <iconify-icon icon="@(showNewPassword ? "solar:eye-closed-linear" : "solar:eye-linear")"></iconify-icon>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="profile-field">
+                        <div class="profile-label-row">
+                            <label class="profile-label-text" for="profile-confirm-pw">
+                                Xác nhận mật khẩu mới<span class="profile-required">*</span>
+                            </label>
+                        </div>
+                        <div class="profile-input-wrap">
+                            <input id="profile-confirm-pw"
+                                   class="bakery-input profile-password-input"
+                                   type="@(showConfirmPassword ? "text" : "password")"
+                                   autocomplete="new-password"
+                                   maxlength="100"
+                                   placeholder="Nhập lại mật khẩu mới"
+                                   @bind="confirmPassword"
+                                   disabled="@isChangingPassword" />
+                            <button type="button"
+                                    class="profile-password-toggle"
+                                    @onclick="() => showConfirmPassword = !showConfirmPassword"
+                                    tabindex="-1"
+                                    title="@(showConfirmPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu")">
+                                <iconify-icon icon="@(showConfirmPassword ? "solar:eye-closed-linear" : "solar:eye-linear")"></iconify-icon>
+                            </button>
+                        </div>
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(passwordMessage))
+                    {
+                        <div class="profile-alert @(passwordSaved ? "is-success" : "is-error")" role="status">
+                            <iconify-icon icon="@(passwordSaved ? "solar:check-circle-bold" : "solar:danger-circle-bold")"></iconify-icon>
+                            <span>@passwordMessage</span>
+                        </div>
+                    }
+
+                    <div class="profile-card-footer">
+                        <button type="button" class="bakery-btn bakery-btn-outline" @onclick="CloseChangePasswordForm" disabled="@isChangingPassword">
+                            Hủy
+                        </button>
+                        <button type="submit" class="bakery-btn bakery-btn-primary" disabled="@isChangingPassword">
+                            <iconify-icon icon="solar:shield-check-bold"></iconify-icon>
+                            <span>@(isChangingPassword ? "Đang cập nhật..." : "Lưu mật khẩu mới")</span>
                         </button>
                     </div>
-                </div>
-
-                <div class="profile-field">
-                    <div class="profile-label-row">
-                        <label class="profile-label-text" for="profile-confirm-pw">
-                            Xác nhận mật khẩu mới<span class="profile-required">*</span>
-                        </label>
-                    </div>
-                    <div class="profile-input-wrap">
-                        <input id="profile-confirm-pw"
-                               class="bakery-input profile-password-input"
-                               type="@(showConfirmPassword ? "text" : "password")"
-                               autocomplete="new-password"
-                               maxlength="100"
-                               placeholder="Nhập lại mật khẩu mới"
-                               @bind="confirmPassword"
-                               disabled="@isChangingPassword" />
-                        <button type="button"
-                                class="profile-password-toggle"
-                                @onclick="() => showConfirmPassword = !showConfirmPassword"
-                                tabindex="-1"
-                                title="@(showConfirmPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu")"
-                                aria-label="@(showConfirmPassword ? "Ẩn xác nhận mật khẩu" : "Hiện xác nhận mật khẩu")">
-                            <iconify-icon icon="@(showConfirmPassword ? "solar:eye-closed-linear" : "solar:eye-linear")"></iconify-icon>
-                        </button>
-                    </div>
-                </div>
-
-                @if (!string.IsNullOrEmpty(passwordMessage))
-                {
-                    <div class="profile-alert @(passwordSaved ? "is-success" : "is-error")" role="status">
-                        <iconify-icon icon="@(passwordSaved ? "solar:check-circle-bold" : "solar:danger-circle-bold")"></iconify-icon>
-                        <span>@passwordMessage</span>
-                    </div>
-                }
-
-                <div class="profile-card-footer">
-                    <span class="profile-footer-note">Mật khẩu mới phải khác mật khẩu hiện tại.</span>
-                    <button type="submit" class="bakery-btn bakery-btn-primary" disabled="@isChangingPassword">
-                        <iconify-icon icon="solar:shield-check-bold"></iconify-icon>
-                        <span>@(isChangingPassword ? "Đang cập nhật..." : "Đổi mật khẩu")</span>
-                    </button>
-                </div>
-            </form>
+                </form>
+            }
         </section>
     </div>
 </div>
@@ -320,6 +438,8 @@
     private decimal customerTotalSpent;
     private int customerOrdersCount;
 
+    private bool isEditingProfile;
+    private bool isChangePasswordOpen;
     private string oldPassword = string.Empty;
     private string newPassword = string.Empty;
     private string confirmPassword = string.Empty;
@@ -349,7 +469,9 @@
             var words = DisplayName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
             if (words.Length > 1)
                 return $"{words[0][0]}{words[^1][0]}".ToUpper();
-            return DisplayName.Length >= 2 ? DisplayName[..2].ToUpper() : "BS";
+            if (DisplayName.Length >= 2)
+                return DisplayName[..2].ToUpper();
+            return string.IsNullOrWhiteSpace(DisplayName) ? "BS" : DisplayName.ToUpper();
         }
     }
 
@@ -398,6 +520,62 @@
         }
     }
 
+    private void OpenEditProfileForm()
+    {
+        profileMessage = null;
+        profileSaved = false;
+        if (customerProfile is not null)
+        {
+            fullName = customerProfile.FullName;
+            phone = customerProfile.Phone;
+            address = customerProfile.Address;
+        }
+        else if (employee is not null)
+        {
+            fullName = employee.FullName;
+            phone = employee.Phone;
+        }
+        isEditingProfile = true;
+    }
+
+    private void CancelEditProfileForm()
+    {
+        if (customerProfile is not null)
+        {
+            fullName = customerProfile.FullName;
+            phone = customerProfile.Phone;
+            address = customerProfile.Address;
+        }
+        else if (employee is not null)
+        {
+            fullName = employee.FullName;
+            phone = employee.Phone;
+        }
+        profileMessage = null;
+        profileSaved = false;
+        isEditingProfile = false;
+    }
+
+    private void OpenChangePasswordForm()
+    {
+        passwordMessage = null;
+        passwordSaved = false;
+        oldPassword = string.Empty;
+        newPassword = string.Empty;
+        confirmPassword = string.Empty;
+        isChangePasswordOpen = true;
+    }
+
+    private void CloseChangePasswordForm()
+    {
+        isChangePasswordOpen = false;
+        passwordMessage = null;
+        passwordSaved = false;
+        oldPassword = string.Empty;
+        newPassword = string.Empty;
+        confirmPassword = string.Empty;
+    }
+
     private async Task SaveProfile()
     {
         if (isSavingProfile || (employee is null && customerProfile is null))
@@ -407,26 +585,33 @@
         profileSaved = false;
 
         var trimmedName = fullName.Trim();
-        if (trimmedName.Length == 0)
+        if (trimmedName.Length < 2 || trimmedName.Length > 100 || trimmedName.Count(char.IsLetter) < 2)
         {
-            profileMessage = "Họ và tên không được để trống.";
-            return;
-        }
-
-        if (trimmedName.Length > 100)
-        {
-            profileMessage = "Họ và tên không được vượt quá 100 ký tự.";
+            profileMessage = "Họ và tên phải từ 2 đến 100 ký tự và chứa ít nhất 2 chữ cái.";
             return;
         }
 
         var normalizedPhone = string.IsNullOrWhiteSpace(phone) ? null : phone.Trim();
-        if (normalizedPhone is not null &&
-            (normalizedPhone.Length > 20 ||
-             normalizedPhone.Any(character => !char.IsAsciiDigit(character) && !"+()-. ".Contains(character)) ||
-             normalizedPhone.Count(char.IsAsciiDigit) is < 8 or > 15))
+        if (isCustomer && normalizedPhone is null)
         {
-            profileMessage = "Số điện thoại cần có từ 8 đến 15 chữ số; chỉ dùng số và các ký tự + ( ) - hoặc khoảng trắng, tối đa 20 ký tự.";
+            profileMessage = "Vui lòng nhập số điện thoại liên hệ.";
             return;
+        }
+
+        if (normalizedPhone is not null && !System.Text.RegularExpressions.Regex.IsMatch(normalizedPhone, @"^0\d{8,10}$"))
+        {
+            profileMessage = "Số điện thoại phải bắt đầu bằng số 0 và gồm 9 đến 11 chữ số (không chứa chữ cái hay ký tự đặc biệt).";
+            return;
+        }
+
+        if (customerProfile is not null)
+        {
+            var normalizedAddrCheck = string.IsNullOrWhiteSpace(address) ? null : address.Trim();
+            if (normalizedAddrCheck is not null && (normalizedAddrCheck.Length < 5 || normalizedAddrCheck.Length > 255 || !normalizedAddrCheck.Any(char.IsLetter)))
+            {
+                profileMessage = "Địa chỉ giao bánh phải từ 5 đến 255 ký tự và chứa tên đường/khu vực hợp lệ.";
+                return;
+            }
         }
 
         isSavingProfile = true;
@@ -476,6 +661,7 @@
 
             profileSaved = true;
             profileMessage = "Đã cập nhật hồ sơ cá nhân.";
+            isEditingProfile = false;
         }
         catch (InvalidOperationException ex)
         {
@@ -576,6 +762,7 @@
                 showNewPassword = false;
                 showConfirmPassword = false;
                 passwordMessage = "Đã đổi mật khẩu thành công.";
+                isChangePasswordOpen = false;
             }
             else
             {
@@ -591,6 +778,17 @@
         {
             isChangingPassword = false;
         }
+    }
+
+    private static string? GetNextTierHint(decimal totalSpent)
+    {
+        if (totalSpent < CustomerLoyaltyTier.SilverThreshold)
+            return $"Mua thêm {(CustomerLoyaltyTier.SilverThreshold - totalSpent):N0}đ để lên hạng {CustomerLoyaltyTier.Silver}";
+        if (totalSpent < CustomerLoyaltyTier.GoldThreshold)
+            return $"Mua thêm {(CustomerLoyaltyTier.GoldThreshold - totalSpent):N0}đ để lên hạng {CustomerLoyaltyTier.Gold}";
+        if (totalSpent < CustomerLoyaltyTier.DiamondThreshold)
+            return $"Mua thêm {(CustomerLoyaltyTier.DiamondThreshold - totalSpent):N0}đ để lên hạng {CustomerLoyaltyTier.Diamond}";
+        return "Bạn đang ở hạng thành viên cao nhất!";
     }
 
     private static string RoleLabel(string? role) => role switch

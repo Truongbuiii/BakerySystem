@@ -163,6 +163,7 @@
                     <input id="reg-fullname"
                            type="text"
                            class="bakery-login-input"
+                           maxlength="100"
                            placeholder="VD: Nguyễn Văn An"
                            @bind="regFullName"
                            @bind:event="oninput"
@@ -178,7 +179,8 @@
                         <input id="reg-username"
                                type="text"
                                class="bakery-login-input"
-                               placeholder="Tối thiểu 3 ký tự"
+                               maxlength="50"
+                               placeholder="3–50 ký tự, không dấu"
                                @bind="regUsername"
                                @bind:event="oninput"
                                disabled="@isLoading"
@@ -192,6 +194,8 @@
                         <iconify-icon icon="solar:phone-linear" class="bakery-login-input-icon"></iconify-icon>
                         <input id="reg-phone"
                                type="tel"
+                               inputmode="numeric"
+                               maxlength="11"
                                class="bakery-login-input"
                                placeholder="VD: 0912345678"
                                @bind="regPhone"
@@ -208,6 +212,7 @@
                     <input id="reg-address"
                            type="text"
                            class="bakery-login-input"
+                           maxlength="255"
                            placeholder="VD: 123 Lê Lợi, Q.1, TP.HCM"
                            @bind="regAddress"
                            @bind:event="oninput"
@@ -223,6 +228,7 @@
                         <input id="reg-password"
                                type="@(showRegisterPassword ? "text" : "password")"
                                class="bakery-login-input"
+                               maxlength="100"
                                placeholder="Ít nhất 6 ký tự"
                                @bind="regPassword"
                                @bind:event="oninput"
@@ -244,6 +250,7 @@
                         <input id="reg-confirm"
                                type="@(showRegisterPassword ? "text" : "password")"
                                class="bakery-login-input"
+                               maxlength="100"
                                placeholder="Nhập lại mật khẩu"
                                @bind="regConfirmPassword"
                                @bind:event="oninput"
@@ -442,27 +449,37 @@
     {
         registerError = null;
 
-        if (string.IsNullOrWhiteSpace(regFullName))
+        var trimmedName = regFullName.Trim();
+        if (trimmedName.Length < 2 || trimmedName.Length > 100 || trimmedName.Count(char.IsLetter) < 2)
         {
-            registerError = "Vui lòng nhập họ và tên của bạn.";
+            registerError = "Họ và tên phải từ 2 đến 100 ký tự và chứa ít nhất 2 chữ cái.";
             return;
         }
 
-        if (string.IsNullOrWhiteSpace(regUsername) || regUsername.Trim().Length < 3)
+        var trimmedUsername = regUsername.Trim();
+        if (!System.Text.RegularExpressions.Regex.IsMatch(trimmedUsername, @"^[a-zA-Z0-9_.-]{3,50}$"))
         {
-            registerError = "Tên đăng nhập phải có ít nhất 3 ký tự.";
+            registerError = "Tên đăng nhập từ 3–50 ký tự, chỉ gồm chữ không dấu, số và ký tự (_, ., -), không chứa khoảng trắng.";
             return;
         }
 
-        if (string.IsNullOrWhiteSpace(regPhone))
+        var trimmedPhone = regPhone.Trim();
+        if (!System.Text.RegularExpressions.Regex.IsMatch(trimmedPhone, @"^0\d{8,10}$"))
         {
-            registerError = "Vui lòng nhập số điện thoại liên hệ nhận bánh.";
+            registerError = "Số điện thoại phải bắt đầu bằng số 0 và gồm 9 đến 11 chữ số (VD: 0912345678).";
             return;
         }
 
-        if (string.IsNullOrWhiteSpace(regPassword) || regPassword.Length < 6)
+        var trimmedAddress = regAddress.Trim();
+        if (!string.IsNullOrEmpty(trimmedAddress) && (trimmedAddress.Length < 5 || trimmedAddress.Length > 255 || !trimmedAddress.Any(char.IsLetter)))
         {
-            registerError = "Mật khẩu phải có ít nhất 6 ký tự.";
+            registerError = "Địa chỉ giao bánh phải từ 5 đến 255 ký tự và chứa tên đường/khu vực hợp lệ.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(regPassword) || regPassword.Length < 6 || regPassword.Length > 100)
+        {
+            registerError = "Mật khẩu phải có từ 6 đến 100 ký tự.";
             return;
         }
 
@@ -479,9 +496,9 @@
         {
             var payload = new CustomerRegisterRequest
             {
-                FullName = regFullName.Trim(),
-                Username = regUsername.Trim(),
-                Phone = regPhone.Trim(),
+                FullName = trimmedName,
+                Username = trimmedUsername,
+                Phone = trimmedPhone,
                 Address = regAddress.Trim(),
                 Password = regPassword,
                 ConfirmPassword = regConfirmPassword
