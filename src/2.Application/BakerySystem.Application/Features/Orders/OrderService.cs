@@ -28,27 +28,6 @@ public sealed class OrderService(IBakeryDbContext db)
             .ToListAsync(ct);
     }
 
-    public Task<List<Order>> GetShipperOnlineOrdersAsync(CancellationToken ct = default)
-    {
-        var statuses = new[] { OrderStatus.Confirmed, OrderStatus.Shipping, OrderStatus.Delivered, OrderStatus.Completed };
-
-        return db.Orders
-            .Include(o => o.Customer)
-            .Include(o => o.Employee)
-            .Include(o => o.OrderDetails)
-                .ThenInclude(d => d.Product)
-                    .ThenInclude(p => p.Category)
-            .Where(o => statuses.Contains(o.Status))
-            // Chỉ lấy đơn mua online từ Mobile App giao tận nơi (loại bỏ hoàn toàn đơn bán trực tiếp tại quầy POS)
-            .Where(o => o.ShippingAddress != null 
-                     && o.ShippingAddress != ""
-                     && !o.ShippingAddress.Contains("tại quầy")
-                     && !o.ShippingAddress.Contains("Nhận tại quầy")
-                     && (o.EmployeeID == null || !o.ShippingAddress.Contains("BakerySystem")))
-            .OrderByDescending(o => o.OrderDate)
-            .ToListAsync(ct);
-    }
-
     public Task<List<Order>> GetRecentCompletedAsync(int count = 3, CancellationToken ct = default) =>
         db.Orders
             .AsNoTracking()
@@ -62,30 +41,15 @@ public sealed class OrderService(IBakeryDbContext db)
         if (order.Status is OrderStatus.Cancelled or OrderStatus.Completed)
             return false;
 
-        if (actorRole == AccountRole.Shipper)
-        {
-            var shipperTransitionAllowed =
-                (order.Status == OrderStatus.Confirmed && newStatus == OrderStatus.Shipping) ||
-                (order.Status == OrderStatus.Shipping && newStatus == OrderStatus.Delivered) ||
-                (order.Status == OrderStatus.Shipping && newStatus == OrderStatus.Completed) ||
-                (order.Status == OrderStatus.Delivered && newStatus == OrderStatus.Completed);
+        // Luồng đơn hàng rút gọn cho Admin / Nhân viên:
+        // Pending (Chờ duyệt) -> Confirmed (Đã duyệt) -> Delivered (Giao hàng / Chờ khách xác nhận) -> Khách bấm Đã nhận -> Completed (Hoàn tất)
+        var allowedTransition =
+            (order.Status == OrderStatus.Pending && newStatus == OrderStatus.Confirmed) ||
+            (order.Status == OrderStatus.Confirmed && newStatus == OrderStatus.Delivered) ||
+            (order.Status == OrderStatus.Shipping && newStatus == OrderStatus.Delivered);
 
-            if (!shipperTransitionAllowed)
-                return false;
-
-            // Shipper là nhân viên giao hàng nội bộ của tiệm, ghi nhận nhân viên phụ trách vận chuyển đơn hàng
-            if (newStatus == OrderStatus.Shipping && actorEmployeeId.HasValue)
-            {
-                order.EmployeeID = actorEmployeeId.Value;
-            }
-        }
-
-        if (actorRole is AccountRole.Admin or AccountRole.Employee)
-        {
-            // Admin/Employee không được tự ý bấm hoàn tất khi đơn đang giao ngoài đường hoặc chờ khách nhận
-            if ((order.Status == OrderStatus.Shipping || order.Status == OrderStatus.Delivered) && newStatus == OrderStatus.Completed)
-                return false;
-        }
+        if (!allowedTransition)
+            return false;
 
         if (order.Status == OrderStatus.Pending && newStatus == OrderStatus.Confirmed)
         {
@@ -101,6 +65,11 @@ public sealed class OrderService(IBakeryDbContext db)
                 var product = await db.Products.FirstAsync(p => p.ProductID == detail.ProductID, ct);
                 product.Quantity -= detail.Quantity;
             }
+        }
+
+        if (actorEmployeeId.HasValue && order.EmployeeID == null)
+        {
+            order.EmployeeID = actorEmployeeId.Value;
         }
 
         order.Status = newStatus;

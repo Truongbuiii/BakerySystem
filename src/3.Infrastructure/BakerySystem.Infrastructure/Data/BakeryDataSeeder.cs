@@ -227,12 +227,37 @@ public static class BakeryDataSeeder
                 ALTER TABLE [Orders] ADD CONSTRAINT [CK_Orders_Status]
                     CHECK ([Status] IN ('Pending', 'Confirmed', 'InProgress', 'Shipping', 'Delivered', 'Completed', 'Cancelled'));
 
+                -- Đồng bộ đơn hàng đang ở trạng thái Shipping cũ sang Delivered để khách có thể bấm Đã nhận đơn
+                UPDATE [Orders] SET [Status] = 'Delivered' WHERE [Status] = 'Shipping';
+
+                -- Gỡ bỏ tài khoản mẫu shipperbakery và chuyển các tài khoản Role='Shipper' (nếu có) về 'Employee' trước khi cập nhật CK_Account_Role
                 IF OBJECT_ID(N'[CK_Account_Role]', N'C') IS NOT NULL
                 BEGIN
                     ALTER TABLE [Account] DROP CONSTRAINT [CK_Account_Role];
                 END;
+
+                UPDATE o
+                SET o.[EmployeeID] = NULL
+                FROM [Orders] o
+                INNER JOIN [Employee] e ON e.[EmployeeID] = o.[EmployeeID]
+                INNER JOIN [Account] a ON a.[AccountID] = e.[AccountID]
+                WHERE a.[Username] = 'shipperbakery';
+
+                DELETE e
+                FROM [Employee] e
+                INNER JOIN [Account] a ON a.[AccountID] = e.[AccountID]
+                WHERE a.[Username] = 'shipperbakery'
+                  AND NOT EXISTS (SELECT 1 FROM [ImportReceipt] ir WHERE ir.[EmployeeID] = e.[EmployeeID]);
+
+                DELETE FROM [Account]
+                WHERE [Username] = 'shipperbakery'
+                  AND NOT EXISTS (SELECT 1 FROM [Employee] e WHERE e.[AccountID] = [Account].[AccountID]);
+
+                UPDATE [Account] SET [Role] = 'Employee' WHERE [Role] = 'Shipper';
+                UPDATE [Employee] SET [Position] = N'Nhân viên' WHERE [Position] = N'Giao hàng';
+
                 ALTER TABLE [Account] ADD CONSTRAINT [CK_Account_Role]
-                    CHECK ([Role] IN ('Admin', 'Employee', 'Shipper', 'Customer'));
+                    CHECK ([Role] IN ('Admin', 'Employee', 'Customer'));
             ");
         }
         catch { }
@@ -270,14 +295,6 @@ public static class BakeryDataSeeder
                 Status = AccountStatus.Active
             };
 
-            var shipperAccount = new Account
-            {
-                Username = "shipperbakery",
-                Password = BCrypt.Net.BCrypt.HashPassword("staff123"),
-                Role = AccountRole.Shipper,
-                Status = AccountStatus.Active
-            };
-
             var customerAccount1 = new Account
             {
                 Username = "hoanganh",
@@ -294,7 +311,7 @@ public static class BakeryDataSeeder
                 Status = AccountStatus.Active
             };
 
-            context.Accounts.AddRange(adminAccount, chefAccount, staffAccount, shipperAccount, customerAccount1, customerAccount2);
+            context.Accounts.AddRange(adminAccount, chefAccount, staffAccount, customerAccount1, customerAccount2);
             await context.SaveChangesAsync();
 
             // 2. Seed Employees
@@ -302,25 +319,19 @@ public static class BakeryDataSeeder
             {
                 AccountID = chefAccount.AccountID,
                 FullName = "Nguyễn Văn Bách",
-                Phone = "0908123456"
+                Phone = "0908123456",
+                Position = "Nhân viên"
             };
 
             var staff = new Employee
             {
                 AccountID = staffAccount.AccountID,
                 FullName = "Lê Thị Mai",
-                Phone = "0908654321"
+                Phone = "0908654321",
+                Position = "Nhân viên"
             };
 
-            var shipper = new Employee
-            {
-                AccountID = shipperAccount.AccountID,
-                FullName = "Trần Minh Giao",
-                Phone = "0909123456",
-                Position = "Giao hàng"
-            };
-
-            context.Employees.AddRange(chef, staff, shipper);
+            context.Employees.AddRange(chef, staff);
 
             // 3. Seed Customers
             var cust1 = new Customer
@@ -399,35 +410,6 @@ public static class BakeryDataSeeder
 
         if (adminAccountsWithoutEmployee.Count > 0)
             await context.SaveChangesAsync();
-
-        var shipperAccountExisting = await context.Accounts
-            .FirstOrDefaultAsync(account => account.Username == "shipperbakery");
-        if (shipperAccountExisting == null)
-        {
-            shipperAccountExisting = new Account
-            {
-                Username = "shipperbakery",
-                Password = BCrypt.Net.BCrypt.HashPassword("staff123"),
-                Role = AccountRole.Shipper,
-                Status = AccountStatus.Active
-            };
-            context.Accounts.Add(shipperAccountExisting);
-            await context.SaveChangesAsync();
-        }
-
-        var shipperHasEmployee = await context.Employees
-            .AnyAsync(employee => employee.AccountID == shipperAccountExisting.AccountID);
-        if (!shipperHasEmployee)
-        {
-            context.Employees.Add(new Employee
-            {
-                AccountID = shipperAccountExisting.AccountID,
-                FullName = "Trần Minh Giao",
-                Phone = "0909123456",
-                Position = "Giao hàng"
-            });
-            await context.SaveChangesAsync();
-        }
 
         // 4. Seed Categories if empty
         if (!await context.Categories.AnyAsync())
@@ -839,7 +821,7 @@ public static class BakeryDataSeeder
                     SubTotal = 540000m
                 });
 
-                // Order 3: Đang giao hàng
+                // Order 3: Đang giao / Chờ khách nhận
                 var order3 = new Order
                 {
                     CustomerID = customer.CustomerID,
@@ -854,7 +836,7 @@ public static class BakeryDataSeeder
                     Note = "Bánh kem bắp giữ lạnh cẩn thận khi giao",
                     PaymentMethod = PaymentMethod.VNPAY,
                     PaymentStatus = PaymentStatus.Paid,
-                    Status = OrderStatus.Shipping
+                    Status = OrderStatus.Delivered
                 };
 
                 order3.OrderDetails.Add(new OrderDetail

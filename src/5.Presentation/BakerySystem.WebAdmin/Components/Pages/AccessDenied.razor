@@ -10,19 +10,17 @@
     </div>
     <h3 class="text-lg font-bold text-slate-800 dark:text-white mb-1">Không có quyền truy cập</h3>
     <p class="text-sm text-slate-500 mb-4">Tài khoản của bạn không có quyền truy cập phần này.</p>
-    <a href="@(isAuthenticated ? (isShipper ? "/orders" : "/") : "/login")" class="bakery-btn bakery-btn-primary bakery-btn-sm inline-flex items-center gap-1">
-        @(isAuthenticated ? (isShipper ? "Về đơn giao hàng" : "Về bảng điều khiển") : "Đăng nhập")
+    <a href="@(isAuthenticated ? "/" : "/login")" class="bakery-btn bakery-btn-primary bakery-btn-sm inline-flex items-center gap-1">
+        @(isAuthenticated ? "Về bảng điều khiển" : "Đăng nhập")
     </a>
 </div>
 
 @code {
     private bool isAuthenticated;
-    private bool isShipper;
 
     protected override async Task OnInitializedAsync()
     {
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
         isAuthenticated = authState.User.Identity?.IsAuthenticated == true;
-        isShipper = authState.User.IsInRole(AccountRole.Shipper);
     }
 }

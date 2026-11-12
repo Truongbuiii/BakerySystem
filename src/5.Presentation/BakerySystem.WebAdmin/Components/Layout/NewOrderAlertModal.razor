@@ -281,12 +281,6 @@
         }
 
         currentRole = user.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? AccountRole.Employee;
-        if (currentRole == AccountRole.Shipper)
-        {
-            isAuthorized = false;
-            return;
-        }
-
         isAuthorized = true;
 
         var username = user.Identity?.Name;

@@ -26,7 +26,7 @@
             </span>
             <span class="text-[10px] text-slate-500 font-mono">dev mode</span>
         </div>
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <button type="button" 
                     class="bakery-dev-chip @(username == "admin" ? "active" : "")"
                     @onclick='() => SelectDevAccount("admin", "admin123")'
@@ -40,13 +40,6 @@
                     title="Nhân viên cửa hàng">
                 <span class="font-bold block">Nhân viên</span>
                 <span class="text-[10px] opacity-75">staffbakery</span>
-            </button>
-            <button type="button" 
-                    class="bakery-dev-chip @(username == "shipperbakery" ? "active" : "")"
-                    @onclick='() => SelectDevAccount("shipperbakery", "staff123")'
-                    title="Nhân viên giao hàng">
-                <span class="font-bold block">Shipper</span>
-                <span class="text-[10px] opacity-75">shipperbakery</span>
             </button>
         </div>
     </div>
@@ -148,8 +141,6 @@
                 if (!returnUrl || returnUrl === '/' || returnUrl === 'login') {
                     if (data.role === 'Employee') {
                         target = '/pos';
-                    } else if (data.role === 'Shipper') {
-                        target = '/orders';
                     } else {
                         target = '/';
                     }

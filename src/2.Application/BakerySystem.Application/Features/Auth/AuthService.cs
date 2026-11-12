@@ -59,10 +59,10 @@ public class AuthService : IAuthService
             return new LoginResult { Success = false, ErrorMessage = "Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên." };
         }
 
-        // Chỉ Admin, Employee và Shipper mới được phép đăng nhập WebAdmin
-        if (account.Role == AccountRole.Customer)
+        // Chỉ Admin và Employee mới được phép đăng nhập WebAdmin
+        if (account.Role is not (AccountRole.Admin or AccountRole.Employee))
         {
-            return new LoginResult { Success = false, ErrorMessage = "Tài khoản khách hàng không có quyền truy cập hệ thống quản trị." };
+            return new LoginResult { Success = false, ErrorMessage = "Tài khoản không có quyền truy cập hệ thống quản trị." };
         }
 
         // Lấy tên hiển thị từ Employee nếu có

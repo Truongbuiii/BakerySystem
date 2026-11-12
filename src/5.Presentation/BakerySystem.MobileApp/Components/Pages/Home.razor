@@ -563,14 +563,9 @@ else
                     <span>Đã duyệt</span>
                     <span style="opacity: 0.8; font-size: 10px;">(@customerOrders.Count(o => o.Status == OrderStatus.Confirmed))</span>
                 </button>
-                <button class="order-filter-pill @(currentOrderStatusFilter == OrderStatus.Shipping ? "active" : "")" @onclick='() => SetOrderStatusFilter(OrderStatus.Shipping)'>
-                    <iconify-icon icon="solar:scooter-bold" style="color: #0284C7;"></iconify-icon>
-                    <span>Đang giao</span>
-                    <span style="opacity: 0.8; font-size: 10px;">(@customerOrders.Count(o => o.Status == OrderStatus.Shipping))</span>
-                </button>
                 <button class="order-filter-pill @(currentOrderStatusFilter == OrderStatus.Delivered ? "active" : "")" @onclick='() => SetOrderStatusFilter(OrderStatus.Delivered)'>
-                    <iconify-icon icon="solar:box-minimalistic-bold" style="color: #D97706;"></iconify-icon>
-                    <span>Chờ nhận bánh</span>
+                    <iconify-icon icon="solar:delivery-bold" style="color: #0284C7;"></iconify-icon>
+                    <span>Giao hàng</span>
                     <span style="opacity: 0.8; font-size: 10px;">(@customerOrders.Count(o => o.Status == OrderStatus.Delivered))</span>
                 </button>
                 <button class="order-filter-pill @(currentOrderStatusFilter == OrderStatus.Completed ? "active" : "")" @onclick='() => SetOrderStatusFilter(OrderStatus.Completed)'>
@@ -1551,18 +1546,11 @@ else
                                 <span class="timeline-step-title">Đã duyệt</span>
                             </div>
 
-                            <div class="timeline-step @(IsStepActiveOrCompleted(selectedOrderForDetail.Status, OrderStatus.Shipping))">
-                                <div class="timeline-step-icon">
-                                    <iconify-icon icon="solar:scooter-bold"></iconify-icon>
-                                </div>
-                                <span class="timeline-step-title">Đang giao</span>
-                            </div>
-
                             <div class="timeline-step @(IsStepActiveOrCompleted(selectedOrderForDetail.Status, OrderStatus.Delivered))">
                                 <div class="timeline-step-icon">
-                                    <iconify-icon icon="solar:box-minimalistic-bold"></iconify-icon>
+                                    <iconify-icon icon="solar:delivery-bold"></iconify-icon>
                                 </div>
-                                <span class="timeline-step-title">Đã tới nơi</span>
+                                <span class="timeline-step-title">Giao hàng</span>
                             </div>
 
                             <div class="timeline-step @(IsStepActiveOrCompleted(selectedOrderForDetail.Status, OrderStatus.Completed))">
