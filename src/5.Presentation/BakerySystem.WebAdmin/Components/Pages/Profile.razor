@@ -15,7 +15,7 @@
             <h2 class="profile-title">Hồ sơ &amp; bảo mật</h2>
             <p class="profile-subtitle">
                 @(isCustomer
-                    ? "Xem hạng thành viên VIP, chỉnh sửa thông tin cá nhân và bảo mật tài khoản."
+                    ? "Xem, chỉnh sửa thông tin cá nhân, địa chỉ nhận bánh và bảo mật tài khoản."
                     : "Xem và cập nhật thông tin cá nhân, mật khẩu đăng nhập.")
             </p>
         </div>
@@ -34,20 +34,13 @@
 
     @if (isCustomer && customerProfile is not null)
     {
-        var vipTier = CustomerLoyaltyTier.GetTierName(customerTotalSpent);
-        var rewardPoints = (int)(customerTotalSpent / 10000m);
-        var nextTierHint = GetNextTierHint(customerTotalSpent);
-
         <div class="profile-vip-banner">
             <div class="profile-vip-left">
                 <span class="profile-vip-avatar">@Initials</span>
                 <div class="min-w-0">
                     <div class="flex items-center gap-2 flex-wrap">
                         <strong class="text-base text-slate-900">@DisplayName</strong>
-                        <span class="profile-vip-badge">
-                            <iconify-icon icon="solar:crown-bold"></iconify-icon>
-                            <span>@vipTier</span>
-                        </span>
+                        <span class="bakery-badge bakery-badge-primary text-[11px]">Khách hàng thành viên</span>
                     </div>
                     <div class="profile-vip-meta">
                         <span class="profile-vip-meta-item">
@@ -59,10 +52,6 @@
                             <span>@(string.IsNullOrWhiteSpace(customerProfile.Address) ? "Chưa có địa chỉ giao bánh" : customerProfile.Address)</span>
                         </span>
                     </div>
-                    @if (!string.IsNullOrEmpty(nextTierHint))
-                    {
-                        <div class="profile-vip-progress-hint">@nextTierHint</div>
-                    }
                     @if (!isEditingProfile)
                     {
                         <button type="button" class="profile-vip-edit-btn" @onclick="OpenEditProfileForm">
@@ -75,15 +64,11 @@
 
             <div class="profile-vip-stats">
                 <div class="profile-vip-stat">
-                    <span class="profile-vip-stat-label">Điểm tích lũy</span>
-                    <span class="profile-vip-stat-value" style="color: #d97706;">@($"{rewardPoints:N0} điểm")</span>
-                </div>
-                <div class="profile-vip-stat">
                     <span class="profile-vip-stat-label">Tổng chi tiêu</span>
                     <span class="profile-vip-stat-value" style="color: #1e40af;">@($"{customerTotalSpent:N0}đ")</span>
                 </div>
                 <div class="profile-vip-stat">
-                    <span class="profile-vip-stat-label">Đơn hợp lệ</span>
+                    <span class="profile-vip-stat-label">Đơn đã hoàn tất</span>
                     <span class="profile-vip-stat-value" style="color: #059669;">@customerOrdersCount đơn</span>
                 </div>
             </div>
@@ -499,9 +484,9 @@
                     address = customerProfile.Address;
 
                     var orders = await CustomerOrderService.GetOrdersAsync(customerProfile.CustomerId, null);
-                    var validOrders = orders.Where(o => o.Status != OrderStatus.Cancelled).ToList();
-                    customerOrdersCount = validOrders.Count;
-                    customerTotalSpent = validOrders.Sum(o => o.FinalAmount);
+                    var completedOrders = orders.Where(o => o.Status == OrderStatus.Completed).ToList();
+                    customerOrdersCount = completedOrders.Count;
+                    customerTotalSpent = completedOrders.Sum(o => o.FinalAmount);
                 }
             }
             else
@@ -778,17 +763,6 @@
         {
             isChangingPassword = false;
         }
-    }
-
-    private static string? GetNextTierHint(decimal totalSpent)
-    {
-        if (totalSpent < CustomerLoyaltyTier.SilverThreshold)
-            return $"Mua thêm {(CustomerLoyaltyTier.SilverThreshold - totalSpent):N0}đ để lên hạng {CustomerLoyaltyTier.Silver}";
-        if (totalSpent < CustomerLoyaltyTier.GoldThreshold)
-            return $"Mua thêm {(CustomerLoyaltyTier.GoldThreshold - totalSpent):N0}đ để lên hạng {CustomerLoyaltyTier.Gold}";
-        if (totalSpent < CustomerLoyaltyTier.DiamondThreshold)
-            return $"Mua thêm {(CustomerLoyaltyTier.DiamondThreshold - totalSpent):N0}đ để lên hạng {CustomerLoyaltyTier.Diamond}";
-        return "Bạn đang ở hạng thành viên cao nhất!";
     }
 
     private static string RoleLabel(string? role) => role switch

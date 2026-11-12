@@ -448,7 +448,7 @@
 
 .profile-vip-stats {
     display: grid;
-    grid-template-columns: repeat(3, minmax(110px, 1fr));
+    grid-template-columns: repeat(2, minmax(130px, 1fr));
     gap: 0.65rem;
     flex: 0 1 auto;
 }
@@ -456,7 +456,7 @@
 @media (max-width: 640px) {
     .profile-vip-stats {
         width: 100%;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }
 

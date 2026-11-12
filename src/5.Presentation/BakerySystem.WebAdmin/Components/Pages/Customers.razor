@@ -754,10 +754,6 @@
         _ => "solar:wallet-money-linear"
     };
 
-    private static string GetLoyaltyTierName(decimal totalSpent) => CustomerLoyaltyTier.GetTierName(totalSpent);
-
-    private static string GetLoyaltyBadgeClass(decimal totalSpent) => CustomerLoyaltyTier.GetBadgeClass(totalSpent);
-
     private static string GetLastOrderText(CustomerDetailDto customer)
     {
         var latest = customer.RecentOrders?.FirstOrDefault();

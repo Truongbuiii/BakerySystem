@@ -96,7 +96,7 @@
                         <div style="display: flex; flex-direction: column; gap: 6px;">
                             <button type="button" class="auth-demo-badge" style="justify-content: flex-start; padding: 8px 10px; font-size: 12px;" @onclick='() => QuickDemoLogin("hoanganh", "customer123")'>
                                 <iconify-icon icon="solar:user-bold"></iconify-icon>
-                                <span><strong>hoanganh</strong> (Nguyễn Hoàng Anh - VIP Bạc)</span>
+                                <span><strong>hoanganh</strong> (Nguyễn Hoàng Anh)</span>
                             </button>
                             <button type="button" class="auth-demo-badge" style="justify-content: flex-start; padding: 8px 10px; font-size: 12px;" @onclick='() => QuickDemoLogin("thuha", "customer123")'>
                                 <iconify-icon icon="solar:user-bold"></iconify-icon>
@@ -738,12 +738,10 @@ else
         <div style="padding: 14px 18px 24px;">
             @{
                 var customer = CustomerSession.CurrentCustomer;
-                var totalSpent = customerOrders.Where(o => o.Status != OrderStatus.Cancelled).Sum(o => o.FinalAmount);
-                var rewardPoints = (int)(totalSpent / 10000m);
-                var vipTier = GetVipTier(totalSpent);
+                var totalSpent = customerOrders.Where(o => o.Status == OrderStatus.Completed).Sum(o => o.FinalAmount);
             }
 
-                <!-- VIP Member Profile Card -->
+                <!-- Member Profile Card -->
                 <div style="background: linear-gradient(135deg, #2B2118 0%, #463428 100%); border-radius: 20px; padding: 20px; color: white; margin-bottom: 16px; box-shadow: 0 10px 25px rgba(43,33,24,0.25);">
                     <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 14px;">
                         <div style="width: 54px; height: 54px; border-radius: 50%; background: #F4A261; color: #2B2118; font-weight: 800; font-size: 19px; display: flex; align-items: center; justify-content: center; border: 2.5px solid rgba(255,255,255,0.25); box-shadow: 0 4px 10px rgba(0,0,0,0.2);">
@@ -754,9 +752,6 @@ else
                                 <h5 style="margin: 0; font-size: 17px; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                                     @customer?.FullName
                                 </h5>
-                                <span style="background: #F4A261; color: #2B2118; font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 10px; letter-spacing: 0.3px;">
-                                    @vipTier
-                                </span>
                             </div>
                             <p style="margin: 3px 0 0; font-size: 12px; color: #D5C8BD;">
                                 @(string.IsNullOrEmpty(customer?.Phone) ? "Chưa cập nhật SĐT" : customer.Phone) • @customer?.Username
@@ -771,8 +766,8 @@ else
                     <!-- 3 Stats metrics -->
                     <div style="display: flex; justify-content: space-around; background: rgba(255,255,255,0.08); border-radius: 14px; padding: 12px 10px;">
                         <div style="text-align: center;">
-                            <span style="font-size: 11px; color: #C0B4A9;">Điểm tích lũy</span>
-                            <div style="font-size: 16px; font-weight: 800; color: #F4A261;">@($"{rewardPoints:N0} đ")</div>
+                            <span style="font-size: 11px; color: #C0B4A9;">Tổng chi tiêu</span>
+                            <div style="font-size: 16px; font-weight: 800; color: #F4A261;">@($"{totalSpent:N0}đ")</div>
                         </div>
                         <div style="width: 1px; background: rgba(255,255,255,0.15);"></div>
                         <div style="text-align: center; cursor: pointer;" @onclick='() => OpenVouchersTab("profile")'>
@@ -2747,8 +2742,6 @@ else
         OrderStatus.Completed => 5,
         _ => 0
     };
-
-    private string GetVipTier(decimal totalSpent) => CustomerLoyaltyTier.GetTierName(totalSpent).ToUpper();
 
     private string GetCustomerInitials(string? fullName)
     {
