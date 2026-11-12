@@ -1,11 +1,475 @@
 @page "/profile"
 @rendermode InteractiveServer
 @attribute [Authorize]
+@using System.Security.Claims
 @inject AuthenticationStateProvider AuthState
 @inject EmployeeService Employees
 @inject IAuthService AuthService
+
 <PageTitle>Hồ sơ & bảo mật | BakerySystem</PageTitle>
-<div class="bakery-page-header"><div><h2 class="text-2xl font-bold">Hồ sơ & bảo mật</h2><p class="text-bodytext">Cập nhật thông tin cá nhân và mật khẩu đăng nhập.</p></div></div>
-<div class="grid lg:grid-cols-2 gap-5"><section class="bakery-filter-card"><h3 class="font-bold mb-4">Thông tin hồ sơ</h3><label class="block mb-3">Tên đăng nhập<input class="bakery-input w-full" value="@username" disabled /></label>@if(employee is not null){<label class="block mb-3">Họ và tên<input class="bakery-input w-full" @bind="fullName" /></label><label class="block mb-3">Số điện thoại<input class="bakery-input w-full" @bind="phone" /></label><p class="text-sm text-slate-500 mb-3">Quyền truy cập: @(employee.Account?.Role == "Admin" ? "Quản trị viên (Admin)" : "Nhân viên bán hàng")</p><button class="bakery-btn bakery-btn-primary" @onclick="SaveProfile">Lưu hồ sơ</button>}@if(!string.IsNullOrEmpty(profileMessage)){<p class="mt-3 text-sm @(profileSaved ? "text-emerald-600" : "text-rose-600")">@profileMessage</p>}</section>
-<section class="bakery-filter-card"><h3 class="font-bold mb-4">Đổi mật khẩu</h3><label class="block mb-3">Mật khẩu hiện tại<input class="bakery-input w-full" type="password" autocomplete="current-password" @bind="oldPassword" /></label><label class="block mb-3">Mật khẩu mới<input class="bakery-input w-full" type="password" autocomplete="new-password" @bind="newPassword" /></label><label class="block mb-4">Xác nhận mật khẩu mới<input class="bakery-input w-full" type="password" autocomplete="new-password" @bind="confirmPassword" /></label><button class="bakery-btn bakery-btn-primary" @onclick="ChangePassword">Đổi mật khẩu</button>@if(!string.IsNullOrEmpty(passwordMessage)){<p class="mt-3 text-sm @(passwordSaved ? "text-emerald-600" : "text-rose-600")">@passwordMessage</p>}</section></div>
-@code {int accountId;string username="",fullName="";string? phone;Employee? employee;string oldPassword="",newPassword="",confirmPassword="";string? profileMessage,passwordMessage;bool profileSaved,passwordSaved;protected override async Task OnInitializedAsync(){var state=await AuthState.GetAuthenticationStateAsync();int.TryParse(state.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value,out accountId);username=state.User.Identity?.Name??"";var result=await Employees.GetProfileAsync(accountId);if(result is not null){employee=result.Value.Employee;fullName=employee.FullName;phone=employee.Phone;}}async Task SaveProfile(){try{await Employees.UpdateProfileAsync(accountId,fullName,phone);profileMessage="Đã cập nhật hồ sơ.";profileSaved=true;}catch(Exception ex){profileMessage=ex.Message;profileSaved=false;}}async Task ChangePassword(){var ok=await AuthService.ChangePasswordAsync(new(){AccountId=accountId,OldPassword=oldPassword,NewPassword=newPassword,ConfirmPassword=confirmPassword});passwordSaved=ok;passwordMessage=ok?"Đã đổi mật khẩu thành công.":"Không thể đổi mật khẩu. Kiểm tra mật khẩu hiện tại và đảm bảo mật khẩu mới có ít nhất 6 ký tự.";if(ok){oldPassword="";newPassword="";confirmPassword="";}} }
+
+<div class="profile-page">
+    <div class="profile-header">
+        <div>
+            <h2 class="profile-title">Hồ sơ &amp; bảo mật</h2>
+            <p class="profile-subtitle">Cập nhật thông tin cá nhân và mật khẩu đăng nhập.</p>
+        </div>
+
+        <div class="profile-account-pill" title="Tài khoản đang đăng nhập">
+            <span class="bakery-avatar-initials-lg">@Initials</span>
+            <div class="profile-account-meta">
+                <span class="profile-account-name">@DisplayName</span>
+                <span class="profile-account-handle">@@@username</span>
+            </div>
+            <span class="bakery-badge @(IsAccountActive ? "bakery-badge-success" : "bakery-badge-error")">
+                @(IsAccountActive ? "Đang hoạt động" : "Đã khóa")
+            </span>
+        </div>
+    </div>
+
+    <div class="profile-grid">
+        <section class="profile-card">
+            <div class="profile-card-header">
+                <span class="profile-card-icon is-profile">
+                    <iconify-icon icon="solar:user-id-linear"></iconify-icon>
+                </span>
+                <div>
+                    <h3 class="profile-card-title">Thông tin hồ sơ</h3>
+                    <p class="profile-card-desc">Quản lý thông tin hiển thị và số điện thoại liên hệ.</p>
+                </div>
+            </div>
+
+            <form class="profile-card-form" @onsubmit="SaveProfile" @onsubmit:preventDefault>
+                <div class="profile-meta-row">
+                    <div class="profile-field">
+                        <div class="profile-label-row">
+                            <label class="profile-label-text" for="profile-username">Tên đăng nhập</label>
+                            <span class="profile-label-hint">Cố định</span>
+                        </div>
+                        <div class="profile-input-wrap" title="Tên đăng nhập không thể tự thay đổi">
+                            <input id="profile-username"
+                                   class="bakery-input profile-input-readonly"
+                                   value="@username"
+                                   disabled
+                                   readonly />
+                            <span class="profile-input-lock" aria-hidden="true">
+                                <iconify-icon icon="solar:lock-keyhole-linear"></iconify-icon>
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="profile-field">
+                        <div class="profile-label-row">
+                            <span class="profile-label-text">Quyền truy cập</span>
+                        </div>
+                        <div class="profile-readonly-box" title="Quyền truy cập tài khoản">
+                            <iconify-icon icon="solar:shield-check-bold"></iconify-icon>
+                            <span>@RoleLabel(roleCode)</span>
+                        </div>
+                    </div>
+                </div>
+
+                @if (employee is not null)
+                {
+                    <div class="profile-field">
+                        <div class="profile-label-row">
+                            <label class="profile-label-text" for="profile-fullname">
+                                Họ và tên<span class="profile-required">*</span>
+                            </label>
+                            <span class="profile-label-hint">Tối đa 100 ký tự</span>
+                        </div>
+                        <input id="profile-fullname"
+                               class="bakery-input"
+                               maxlength="100"
+                               placeholder="Nhập họ và tên..."
+                               @bind="fullName"
+                               disabled="@isSavingProfile" />
+                    </div>
+
+                    <div class="profile-field">
+                        <div class="profile-label-row">
+                            <label class="profile-label-text" for="profile-phone">Số điện thoại</label>
+                            <span class="profile-label-hint">Không bắt buộc · 8–15 chữ số</span>
+                        </div>
+                        <input id="profile-phone"
+                               class="bakery-input"
+                               type="tel"
+                               maxlength="20"
+                               placeholder="VD: 0901234567"
+                               @bind="phone"
+                               disabled="@isSavingProfile" />
+                    </div>
+                }
+                else
+                {
+                    <div class="profile-empty-notice">
+                        <iconify-icon icon="solar:info-circle-linear"></iconify-icon>
+                        <span>Tài khoản này chưa được liên kết với hồ sơ nhân viên nên không có thông tin cá nhân để chỉnh sửa.</span>
+                    </div>
+                }
+
+                @if (!string.IsNullOrEmpty(profileMessage))
+                {
+                    <div class="profile-alert @(profileSaved ? "is-success" : "is-error")" role="status">
+                        <iconify-icon icon="@(profileSaved ? "solar:check-circle-bold" : "solar:danger-circle-bold")"></iconify-icon>
+                        <span>@profileMessage</span>
+                    </div>
+                }
+
+                @if (employee is not null)
+                {
+                    <div class="profile-card-footer">
+                        <span class="profile-footer-note">Họ tên mới được áp dụng ngay trong phiên làm việc.</span>
+                        <button type="submit" class="bakery-btn bakery-btn-primary" disabled="@isSavingProfile">
+                            <iconify-icon icon="solar:disk-bold"></iconify-icon>
+                            <span>@(isSavingProfile ? "Đang lưu..." : "Lưu hồ sơ")</span>
+                        </button>
+                    </div>
+                }
+            </form>
+        </section>
+
+        <section class="profile-card">
+            <div class="profile-card-header">
+                <span class="profile-card-icon is-security">
+                    <iconify-icon icon="solar:lock-keyhole-linear"></iconify-icon>
+                </span>
+                <div>
+                    <h3 class="profile-card-title">Đổi mật khẩu</h3>
+                    <p class="profile-card-desc">Nên dùng mật khẩu mạnh từ 6 ký tự trở lên để bảo vệ tài khoản.</p>
+                </div>
+            </div>
+
+            <form class="profile-card-form" @onsubmit="ChangePassword" @onsubmit:preventDefault>
+                <div class="profile-field">
+                    <div class="profile-label-row">
+                        <label class="profile-label-text" for="profile-old-pw">
+                            Mật khẩu hiện tại<span class="profile-required">*</span>
+                        </label>
+                    </div>
+                    <div class="profile-input-wrap">
+                        <input id="profile-old-pw"
+                               class="bakery-input profile-password-input"
+                               type="@(showOldPassword ? "text" : "password")"
+                               autocomplete="current-password"
+                               maxlength="100"
+                               placeholder="Nhập mật khẩu hiện tại"
+                               @bind="oldPassword"
+                               disabled="@isChangingPassword" />
+                        <button type="button"
+                                class="profile-password-toggle"
+                                @onclick="() => showOldPassword = !showOldPassword"
+                                tabindex="-1"
+                                title="@(showOldPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu")"
+                                aria-label="@(showOldPassword ? "Ẩn mật khẩu hiện tại" : "Hiện mật khẩu hiện tại")">
+                            <iconify-icon icon="@(showOldPassword ? "solar:eye-closed-linear" : "solar:eye-linear")"></iconify-icon>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="profile-field">
+                    <div class="profile-label-row">
+                        <label class="profile-label-text" for="profile-new-pw">
+                            Mật khẩu mới<span class="profile-required">*</span>
+                        </label>
+                        <span class="profile-label-hint">Tối thiểu 6 ký tự</span>
+                    </div>
+                    <div class="profile-input-wrap">
+                        <input id="profile-new-pw"
+                               class="bakery-input profile-password-input"
+                               type="@(showNewPassword ? "text" : "password")"
+                               autocomplete="new-password"
+                               maxlength="100"
+                               placeholder="Nhập mật khẩu mới"
+                               @bind="newPassword"
+                               disabled="@isChangingPassword" />
+                        <button type="button"
+                                class="profile-password-toggle"
+                                @onclick="() => showNewPassword = !showNewPassword"
+                                tabindex="-1"
+                                title="@(showNewPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu")"
+                                aria-label="@(showNewPassword ? "Ẩn mật khẩu mới" : "Hiện mật khẩu mới")">
+                            <iconify-icon icon="@(showNewPassword ? "solar:eye-closed-linear" : "solar:eye-linear")"></iconify-icon>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="profile-field">
+                    <div class="profile-label-row">
+                        <label class="profile-label-text" for="profile-confirm-pw">
+                            Xác nhận mật khẩu mới<span class="profile-required">*</span>
+                        </label>
+                    </div>
+                    <div class="profile-input-wrap">
+                        <input id="profile-confirm-pw"
+                               class="bakery-input profile-password-input"
+                               type="@(showConfirmPassword ? "text" : "password")"
+                               autocomplete="new-password"
+                               maxlength="100"
+                               placeholder="Nhập lại mật khẩu mới"
+                               @bind="confirmPassword"
+                               disabled="@isChangingPassword" />
+                        <button type="button"
+                                class="profile-password-toggle"
+                                @onclick="() => showConfirmPassword = !showConfirmPassword"
+                                tabindex="-1"
+                                title="@(showConfirmPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu")"
+                                aria-label="@(showConfirmPassword ? "Ẩn xác nhận mật khẩu" : "Hiện xác nhận mật khẩu")">
+                            <iconify-icon icon="@(showConfirmPassword ? "solar:eye-closed-linear" : "solar:eye-linear")"></iconify-icon>
+                        </button>
+                    </div>
+                </div>
+
+                @if (!string.IsNullOrEmpty(passwordMessage))
+                {
+                    <div class="profile-alert @(passwordSaved ? "is-success" : "is-error")" role="status">
+                        <iconify-icon icon="@(passwordSaved ? "solar:check-circle-bold" : "solar:danger-circle-bold")"></iconify-icon>
+                        <span>@passwordMessage</span>
+                    </div>
+                }
+
+                <div class="profile-card-footer">
+                    <span class="profile-footer-note">Mật khẩu mới phải khác mật khẩu hiện tại.</span>
+                    <button type="submit" class="bakery-btn bakery-btn-primary" disabled="@isChangingPassword">
+                        <iconify-icon icon="solar:shield-check-bold"></iconify-icon>
+                        <span>@(isChangingPassword ? "Đang cập nhật..." : "Đổi mật khẩu")</span>
+                    </button>
+                </div>
+            </form>
+        </section>
+    </div>
+</div>
+
+@code {
+    private int accountId;
+    private string username = string.Empty;
+    private string roleCode = AccountRole.Employee;
+    private string accountStatus = AccountStatus.Active;
+    private string fullName = string.Empty;
+    private string? phone;
+    private Employee? employee;
+
+    private string oldPassword = string.Empty;
+    private string newPassword = string.Empty;
+    private string confirmPassword = string.Empty;
+
+    private bool showOldPassword;
+    private bool showNewPassword;
+    private bool showConfirmPassword;
+
+    private bool isSavingProfile;
+    private bool isChangingPassword;
+
+    private string? profileMessage;
+    private string? passwordMessage;
+    private bool profileSaved;
+    private bool passwordSaved;
+
+    private string DisplayName => !string.IsNullOrWhiteSpace(employee?.FullName)
+        ? employee.FullName
+        : (!string.IsNullOrWhiteSpace(fullName) ? fullName : (string.IsNullOrWhiteSpace(username) ? "Tài khoản" : username));
+
+    private string Initials
+    {
+        get
+        {
+            var words = DisplayName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (words.Length > 1)
+                return $"{words[0][0]}{words[^1][0]}".ToUpper();
+            return DisplayName.Length >= 2 ? DisplayName[..2].ToUpper() : "NV";
+        }
+    }
+
+    private bool IsAccountActive => accountStatus != AccountStatus.Inactive;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthState.GetAuthenticationStateAsync();
+        int.TryParse(state.User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out accountId);
+        username = state.User.Identity?.Name ?? string.Empty;
+        roleCode = state.User.FindFirst(ClaimTypes.Role)?.Value ?? AccountRole.Employee;
+        fullName = state.User.FindFirst("FullName")?.Value ?? username;
+
+        if (accountId > 0)
+        {
+            var result = await Employees.GetProfileAsync(accountId);
+            if (result is not null)
+            {
+                employee = result.Value.Employee;
+                username = result.Value.Username;
+                fullName = employee.FullName;
+                phone = employee.Phone;
+                roleCode = employee.Account?.Role ?? roleCode;
+                accountStatus = employee.Account?.Status ?? AccountStatus.Active;
+            }
+        }
+    }
+
+    private async Task SaveProfile()
+    {
+        if (isSavingProfile || employee is null)
+            return;
+
+        profileMessage = null;
+        profileSaved = false;
+
+        var trimmedName = fullName.Trim();
+        if (trimmedName.Length == 0)
+        {
+            profileMessage = "Họ và tên không được để trống.";
+            return;
+        }
+
+        if (trimmedName.Length > 100)
+        {
+            profileMessage = "Họ và tên không được vượt quá 100 ký tự.";
+            return;
+        }
+
+        var normalizedPhone = string.IsNullOrWhiteSpace(phone) ? null : phone.Trim();
+        if (normalizedPhone is not null &&
+            (normalizedPhone.Length > 20 ||
+             normalizedPhone.Any(character => !char.IsAsciiDigit(character) && !"+()-. ".Contains(character)) ||
+             normalizedPhone.Count(char.IsAsciiDigit) is < 8 or > 15))
+        {
+            profileMessage = "Số điện thoại cần có từ 8 đến 15 chữ số; chỉ dùng số và các ký tự + ( ) - hoặc khoảng trắng, tối đa 20 ký tự.";
+            return;
+        }
+
+        isSavingProfile = true;
+        try
+        {
+            await Employees.UpdateProfileAsync(accountId, trimmedName, normalizedPhone);
+
+            fullName = trimmedName;
+            phone = normalizedPhone;
+            employee.FullName = fullName;
+            employee.Phone = phone;
+
+            await SyncDisplayNameAsync(fullName);
+
+            profileSaved = true;
+            profileMessage = "Đã cập nhật hồ sơ cá nhân.";
+        }
+        catch (InvalidOperationException ex)
+        {
+            profileSaved = false;
+            profileMessage = ex.Message;
+        }
+        catch
+        {
+            profileSaved = false;
+            profileMessage = "Không thể lưu hồ sơ lúc này. Vui lòng thử lại.";
+        }
+        finally
+        {
+            isSavingProfile = false;
+        }
+    }
+
+    private async Task SyncDisplayNameAsync(string updatedFullName)
+    {
+        try
+        {
+            if (AuthState is IHostEnvironmentAuthenticationStateProvider hostAuth)
+            {
+                var state = await AuthState.GetAuthenticationStateAsync();
+                if (state.User.Identity is ClaimsIdentity existingIdentity)
+                {
+                    var updatedClaims = existingIdentity.Claims
+                        .Where(claim => claim.Type != "FullName")
+                        .Append(new Claim("FullName", updatedFullName));
+                    var updatedPrincipal = new ClaimsPrincipal(
+                        new ClaimsIdentity(updatedClaims, existingIdentity.AuthenticationType, existingIdentity.NameClaimType, existingIdentity.RoleClaimType));
+                    hostAuth.SetAuthenticationState(Task.FromResult(new AuthenticationState(updatedPrincipal)));
+                }
+            }
+        }
+        catch
+        {
+            // Keep save flow successful even if circuit auth state cannot be updated in-place.
+        }
+    }
+
+    private async Task ChangePassword()
+    {
+        if (isChangingPassword)
+            return;
+
+        passwordMessage = null;
+        passwordSaved = false;
+
+        if (string.IsNullOrEmpty(oldPassword))
+        {
+            passwordMessage = "Vui lòng nhập mật khẩu hiện tại.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(newPassword) || newPassword.Length < 6)
+        {
+            passwordMessage = "Mật khẩu mới cần có ít nhất 6 ký tự.";
+            return;
+        }
+
+        if (newPassword.Length > 100)
+        {
+            passwordMessage = "Mật khẩu mới không được vượt quá 100 ký tự.";
+            return;
+        }
+
+        if (newPassword != confirmPassword)
+        {
+            passwordMessage = "Xác nhận mật khẩu mới không khớp.";
+            return;
+        }
+
+        if (newPassword == oldPassword)
+        {
+            passwordMessage = "Mật khẩu mới phải khác mật khẩu hiện tại.";
+            return;
+        }
+
+        isChangingPassword = true;
+        try
+        {
+            var ok = await AuthService.ChangePasswordAsync(new ChangePasswordRequest
+            {
+                AccountId = accountId,
+                OldPassword = oldPassword,
+                NewPassword = newPassword,
+                ConfirmPassword = confirmPassword
+            });
+
+            passwordSaved = ok;
+            if (ok)
+            {
+                oldPassword = string.Empty;
+                newPassword = string.Empty;
+                confirmPassword = string.Empty;
+                showOldPassword = false;
+                showNewPassword = false;
+                showConfirmPassword = false;
+                passwordMessage = "Đã đổi mật khẩu thành công.";
+            }
+            else
+            {
+                passwordMessage = "Mật khẩu hiện tại không chính xác.";
+            }
+        }
+        catch
+        {
+            passwordSaved = false;
+            passwordMessage = "Không thể đổi mật khẩu lúc này. Vui lòng thử lại.";
+        }
+        finally
+        {
+            isChangingPassword = false;
+        }
+    }
+
+    private static string RoleLabel(string? role) => role switch
+    {
+        AccountRole.Admin => "Quản trị viên (Admin)",
+        _ => "Nhân viên bán hàng"
+    };
+}
