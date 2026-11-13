@@ -71,6 +71,14 @@
 
         <!-- Login Form -->
         <div class="bakery-login-form">
+            @if (string.Equals(Reason, "timeout", StringComparison.OrdinalIgnoreCase))
+            {
+                <div class="bakery-login-error" style="background: #fffbeb; border-color: #fde68a; color: #92400e;">
+                    <iconify-icon icon="solar:clock-circle-linear" class="text-base shrink-0"></iconify-icon>
+                    <span>Phiên đăng nhập đã hết hạn do không hoạt động hoặc quá thời hạn bảo mật. Vui lòng đăng nhập lại.</span>
+                </div>
+            }
+
             @if (!string.IsNullOrEmpty(errorMessage))
             {
                 <div class="bakery-login-error">
@@ -274,6 +282,9 @@
 
 <script>
     window.bakeryShopAuth = window.bakeryShopAuth || {};
+    if (window.bakeryShopLayout && window.bakeryShopLayout.stopIdleTimer) {
+        window.bakeryShopLayout.stopIdleTimer();
+    }
     window.bakeryShopAuth.resolveTargetUrl = function (returnUrl) {
         if (!returnUrl) return '/';
         const cleanReturn = '/' + returnUrl.replace(/^\/+/, '');
@@ -337,6 +348,9 @@
 
     [SupplyParameterFromQuery(Name = "mode")]
     public string? Mode { get; set; }
+
+    [SupplyParameterFromQuery(Name = "reason")]
+    public string? Reason { get; set; }
 
     private string authMode = "login";
 

@@ -8,6 +8,7 @@ using BakerySystem.WebShop.Components;
 using BakerySystem.WebShop.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
@@ -23,7 +24,7 @@ builder.Services.AddInfrastructureServices(builder.Configuration);
 builder.Services.AddScoped<WebCartService>();
 
 // Cookie riêng biệt hoàn toàn với WebAdmin (.BakerySystem.ShopAuth)
-// Cho phép mở đồng thời 2 tab WebAdmin (localhost:5149) và WebShop (localhost:5150) trên cùng trình duyệt
+// Không lưu cookie bền vững qua lần đóng trình duyệt, hết hạn sau 60 phút không hoạt động (tối đa 4 giờ)
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
@@ -31,13 +32,36 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.LoginPath = "/login";
         options.LogoutPath = "/api/shop/auth/logout";
         options.AccessDeniedPath = "/access-denied";
-        options.ExpireTimeSpan = TimeSpan.FromHours(12);
+        options.ExpireTimeSpan = TimeSpan.FromMinutes(60);
         options.SlidingExpiration = true;
         options.Cookie.HttpOnly = true;
         options.Cookie.SameSite = SameSiteMode.Lax;
+        options.Cookie.IsEssential = true;
+        options.Cookie.SecurePolicy = builder.Environment.IsDevelopment()
+            ? CookieSecurePolicy.SameAsRequest
+            : CookieSecurePolicy.Always;
+        options.Events = new CookieAuthenticationEvents
+        {
+            OnValidatePrincipal = async context =>
+            {
+                var authService = context.HttpContext.RequestServices.GetRequiredService<IAuthService>();
+                var isValid = await SessionClaimHelper.ValidatePrincipalAsync(
+                    context.Principal,
+                    authService,
+                    RevalidatingAuthStateProvider.MaxSessionLifetime,
+                    context.HttpContext.RequestAborted);
+
+                if (!isValid)
+                {
+                    context.RejectPrincipal();
+                    await context.HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+                }
+            }
+        };
     });
 builder.Services.AddAuthorization();
 builder.Services.AddCascadingAuthenticationState();
+builder.Services.AddScoped<AuthenticationStateProvider, RevalidatingAuthStateProvider>();
 
 var app = builder.Build();
 
@@ -124,7 +148,7 @@ app.MapPost("/api/shop/auth/login", async (LoginRequest request, [FromServices] 
         });
     }
 
-    await SignInCustomerCookieAsync(httpContext, result.AccountId, result.Username, result.FullName);
+    await SignInCustomerCookieAsync(httpContext, authService, result.AccountId, result.Username, result.FullName);
     return Results.Json(result);
 }).DisableAntiforgery();
 
@@ -134,7 +158,7 @@ app.MapPost("/api/shop/auth/register", async (CustomerRegisterRequest request, [
     if (!result.Success || result.Customer is null || result.Customer.AccountId is null)
         return Results.Json(new { success = false, errorMessage = result.ErrorMessage ?? "Đăng ký không thành công." });
 
-    await SignInCustomerCookieAsync(httpContext, result.Customer.AccountId.Value, result.Customer.Username, result.Customer.FullName);
+    await SignInCustomerCookieAsync(httpContext, authService, result.Customer.AccountId.Value, result.Customer.Username, result.Customer.FullName);
 
     return Results.Json(new
     {
@@ -162,15 +186,15 @@ app.MapRazorComponents<App>()
 
 app.Run();
 
-static async Task SignInCustomerCookieAsync(HttpContext httpContext, int accountId, string username, string? fullName)
+static async Task SignInCustomerCookieAsync(HttpContext httpContext, IAuthService authService, int accountId, string username, string? fullName)
 {
-    var claims = new List<Claim>
-    {
-        new(ClaimTypes.NameIdentifier, accountId.ToString()),
-        new(ClaimTypes.Name, username),
-        new(ClaimTypes.Role, AccountRole.Customer),
-        new("FullName", string.IsNullOrWhiteSpace(fullName) ? username : fullName)
-    };
+    var sessionStamp = await authService.GetSessionStampAsync(accountId);
+    var claims = SessionClaimHelper.BuildSessionClaims(
+        accountId,
+        username,
+        AccountRole.Customer,
+        fullName,
+        sessionStamp);
 
     var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
     await httpContext.SignInAsync(
@@ -178,7 +202,6 @@ static async Task SignInCustomerCookieAsync(HttpContext httpContext, int account
         new ClaimsPrincipal(identity),
         new AuthenticationProperties
         {
-            IsPersistent = true,
-            ExpiresUtc = DateTimeOffset.UtcNow.AddHours(12)
+            IsPersistent = false
         });
 }

@@ -248,10 +248,61 @@
             }
         },
         logout: async function () {
+            if (window.bakeryAuth && window.bakeryAuth.stopIdleTimer) {
+                window.bakeryAuth.stopIdleTimer();
+            }
             try {
                 await fetch('/api/auth/logout', { method: 'POST' });
             } finally {
                 window.location.href = '/login';
+            }
+        },
+        startIdleTimer: function (timeoutMs) {
+            const limit = Number(timeoutMs) > 0 ? Number(timeoutMs) : (30 * 60 * 1000);
+            if (window.__bakeryIdleState && window.__bakeryIdleState.active) {
+                return;
+            }
+
+            let timerId = null;
+            let lastReset = 0;
+
+            const triggerTimeout = async function () {
+                window.bakeryAuth.stopIdleTimer();
+                try {
+                    await fetch('/api/auth/logout', { method: 'POST' });
+                } catch (_) { }
+                window.location.href = '/login?reason=timeout';
+            };
+
+            const resetTimer = function (force) {
+                const now = Date.now();
+                if (!force && (now - lastReset) < 3000) {
+                    return;
+                }
+                lastReset = now;
+                if (timerId) {
+                    clearTimeout(timerId);
+                }
+                timerId = setTimeout(triggerTimeout, limit);
+            };
+
+            const events = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll'];
+            const onActivity = function () { resetTimer(false); };
+            events.forEach(ev => document.addEventListener(ev, onActivity, { passive: true }));
+
+            window.__bakeryIdleState = {
+                active: true,
+                cleanup: function () {
+                    if (timerId) clearTimeout(timerId);
+                    events.forEach(ev => document.removeEventListener(ev, onActivity));
+                }
+            };
+            resetTimer(true);
+        },
+        stopIdleTimer: function () {
+            if (window.__bakeryIdleState) {
+                try { window.__bakeryIdleState.cleanup(); } catch (_) { }
+                window.__bakeryIdleState = null;
             }
         }
     };

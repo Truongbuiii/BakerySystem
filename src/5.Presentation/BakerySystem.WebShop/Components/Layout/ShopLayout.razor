@@ -187,12 +187,30 @@
     private int customerPendingConfirmCount;
     private List<Order> customerAlertOrders = [];
     private CancellationTokenSource? _pollCts;
+    private bool _idleTimerStarted;
 
     protected override async Task OnInitializedAsync()
     {
         CartService.OnChange += HandleCartChanged;
         await LoadCustomerSummaryAsync();
         StartCustomerPolling();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!_idleTimerStarted)
+        {
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            if (authState.User.Identity?.IsAuthenticated == true)
+            {
+                _idleTimerStarted = true;
+                try
+                {
+                    await JS.InvokeVoidAsync("bakeryShopLayout.startIdleTimer", 60 * 60 * 1000);
+                }
+                catch { }
+            }
+        }
     }
 
     private void StartCustomerPolling()

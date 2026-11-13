@@ -4,6 +4,7 @@
 @inject AuthenticationStateProvider AuthStateProvider
 @inject IServiceScopeFactory ScopeFactory
 @inject OrderNotificationService NotifService
+@inject IJSRuntime JS
 
 <div class="bakery-layout-root">
     <!-- Backdrop for mobile drawer -->
@@ -208,12 +209,30 @@
     private readonly SemaphoreSlim notificationLoadGate = new(1, 1);
     private bool isDisposed;
     private bool notificationsLoaded;
+    private bool idleTimerStarted;
 
     protected override async Task OnInitializedAsync()
     {
         AuthStateProvider.AuthenticationStateChanged += OnAuthenticationStateChanged;
         NotifService.OnOrderChanged += OnOrderChanged;
         await LoadNotificationsAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!idleTimerStarted)
+        {
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            if (authState.User.Identity?.IsAuthenticated == true)
+            {
+                idleTimerStarted = true;
+                try
+                {
+                    await JS.InvokeVoidAsync("bakeryAuth.startIdleTimer", 30 * 60 * 1000);
+                }
+                catch { }
+            }
+        }
     }
 
     private void OnOrderChanged()

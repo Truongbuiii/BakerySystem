@@ -4,8 +4,10 @@ using BakerySystem.Application.Features.Auth;
 using BakerySystem.Infrastructure;
 using BakerySystem.Infrastructure.Data;
 using BakerySystem.WebAdmin.Components;
+using BakerySystem.WebAdmin.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -19,7 +21,7 @@ builder.Services.AddRazorComponents()
 builder.Services.AddApplicationServices();
 builder.Services.AddInfrastructureServices(builder.Configuration);
 
-// === Authentication: Cookie-based (tách riêng cookie với WebShop) ===
+// === Authentication: Cookie-based (tách riêng cookie với WebShop, session ngắn + xác thực DB) ===
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
@@ -27,13 +29,36 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.LoginPath = "/login";
         options.LogoutPath = "/api/auth/logout";
         options.AccessDeniedPath = "/access-denied";
-        options.ExpireTimeSpan = TimeSpan.FromHours(8);
+        options.ExpireTimeSpan = TimeSpan.FromMinutes(30);
         options.SlidingExpiration = true;
         options.Cookie.HttpOnly = true;
         options.Cookie.SameSite = SameSiteMode.Lax;
+        options.Cookie.IsEssential = true;
+        options.Cookie.SecurePolicy = builder.Environment.IsDevelopment()
+            ? CookieSecurePolicy.SameAsRequest
+            : CookieSecurePolicy.Always;
+        options.Events = new CookieAuthenticationEvents
+        {
+            OnValidatePrincipal = async context =>
+            {
+                var authService = context.HttpContext.RequestServices.GetRequiredService<IAuthService>();
+                var isValid = await SessionClaimHelper.ValidatePrincipalAsync(
+                    context.Principal,
+                    authService,
+                    RevalidatingAuthStateProvider.MaxSessionLifetime,
+                    context.HttpContext.RequestAborted);
+
+                if (!isValid)
+                {
+                    context.RejectPrincipal();
+                    await context.HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+                }
+            }
+        };
     });
 builder.Services.AddAuthorization();
 builder.Services.AddCascadingAuthenticationState();
+builder.Services.AddScoped<AuthenticationStateProvider, RevalidatingAuthStateProvider>();
 
 var app = builder.Build();
 
@@ -140,21 +165,20 @@ app.MapPost("/api/auth/login", async (LoginRequest request, [FromServices] IAuth
         });
     }
 
-    var claims = new List<Claim>
-    {
-        new(ClaimTypes.NameIdentifier, result.AccountId.ToString()),
-        new(ClaimTypes.Name, result.Username),
-        new(ClaimTypes.Role, result.Role),
-        new("FullName", result.FullName ?? result.Username)
-    };
+    var sessionStamp = await authService.GetSessionStampAsync(result.AccountId);
+    var claims = SessionClaimHelper.BuildSessionClaims(
+        result.AccountId,
+        result.Username,
+        result.Role,
+        result.FullName,
+        sessionStamp);
     var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
     await httpContext.SignInAsync(
         CookieAuthenticationDefaults.AuthenticationScheme,
         new ClaimsPrincipal(identity),
         new AuthenticationProperties
         {
-            IsPersistent = true,
-            ExpiresUtc = DateTimeOffset.UtcNow.AddHours(8)
+            IsPersistent = false
         });
 
     return Results.Json(result);

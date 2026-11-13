@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.RegularExpressions;
 using BakerySystem.Application.Common.Interfaces;
 using BakerySystem.Domain.Entities;
@@ -422,6 +424,57 @@ public class AuthService : IAuthService
             Phone = customer.Phone,
             Address = customer.Address
         };
+    }
+
+    public async Task<string?> GetSessionStampAsync(int accountId, CancellationToken ct = default)
+    {
+        var account = await _context.Accounts
+            .AsNoTracking()
+            .Where(a => a.AccountID == accountId)
+            .Select(a => new { a.AccountID, a.Role, a.Status, a.Password })
+            .FirstOrDefaultAsync(ct);
+
+        if (account == null || account.Status == AccountStatus.Inactive)
+        {
+            return null;
+        }
+
+        return ComputeSessionStamp(account.AccountID, account.Role, account.Status, account.Password);
+    }
+
+    public async Task<bool> IsSessionValidAsync(
+        int accountId,
+        string? expectedRole,
+        string? expectedStamp,
+        CancellationToken ct = default)
+    {
+        if (accountId <= 0 || string.IsNullOrWhiteSpace(expectedRole) || string.IsNullOrWhiteSpace(expectedStamp))
+        {
+            return false;
+        }
+
+        var account = await _context.Accounts
+            .AsNoTracking()
+            .Where(a => a.AccountID == accountId)
+            .Select(a => new { a.AccountID, a.Role, a.Status, a.Password })
+            .FirstOrDefaultAsync(ct);
+
+        if (account == null || account.Status == AccountStatus.Inactive || account.Role != expectedRole)
+        {
+            return false;
+        }
+
+        var currentStamp = ComputeSessionStamp(account.AccountID, account.Role, account.Status, account.Password);
+        return CryptographicOperations.FixedTimeEquals(
+            Encoding.UTF8.GetBytes(currentStamp),
+            Encoding.UTF8.GetBytes(expectedStamp));
+    }
+
+    private static string ComputeSessionStamp(int accountId, string role, string status, string passwordHash)
+    {
+        var payload = $"{accountId}:{role}:{status}:{passwordHash}";
+        var hash = SHA256.HashData(Encoding.UTF8.GetBytes(payload));
+        return Convert.ToHexString(hash)[..24];
     }
 }
 
