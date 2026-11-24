@@ -5,7 +5,7 @@ using BakerySystem.MobileApp.Api;
 
 namespace BakerySystem.MobileApp.Services;
 
-public sealed class MobileApiClient(HttpClient httpClient)
+public sealed class MobileApiClient(HttpClient httpClient, MobileTokenStore tokenStore)
 {
     public async Task<List<Category>> GetCategoriesAsync(CancellationToken ct = default) =>
         await httpClient.GetFromJsonAsync<List<Category>>("api/mobile/categories", ct) ?? [];
@@ -71,8 +71,23 @@ public sealed class MobileApiClient(HttpClient httpClient)
     {
         using var response = await httpClient.PostAsJsonAsync(
             "api/mobile/customers/change-password", request, ct);
-        return response.IsSuccessStatusCode;
+        if (!response.IsSuccessStatusCode)
+            return false;
+
+        try
+        {
+            var payload = await response.Content.ReadFromJsonAsync<ChangePasswordTokenResponse>(cancellationToken: ct);
+            if (!string.IsNullOrWhiteSpace(payload?.AccessToken))
+            {
+                tokenStore.SetToken(payload.AccessToken);
+            }
+        }
+        catch { }
+
+        return true;
     }
+
+    private sealed record ChangePasswordTokenResponse(string? AccessToken);
 
     public async Task<Order?> CreateOrderAsync(
         CreateMobileOrderRequest request,

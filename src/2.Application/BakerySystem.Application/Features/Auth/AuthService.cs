@@ -216,6 +216,15 @@ public class AuthService : IAuthService
             return new CustomerAuthResult { Success = false, ErrorMessage = "Tài khoản của bạn đã bị khóa. Vui lòng liên hệ hỗ trợ." };
         }
 
+        if (account.Role != AccountRole.Customer)
+        {
+            return new CustomerAuthResult
+            {
+                Success = false,
+                ErrorMessage = "Tài khoản quản trị / nhân viên vui lòng đăng nhập tại cổng WebAdmin."
+            };
+        }
+
         // Lấy thông tin khách hàng tương ứng
         var customer = await _context.Customers
             .FirstOrDefaultAsync(c => c.AccountID == account.AccountID);

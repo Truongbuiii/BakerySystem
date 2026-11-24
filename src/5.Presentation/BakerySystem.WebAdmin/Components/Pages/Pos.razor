@@ -790,7 +790,7 @@
     {
         if (string.IsNullOrWhiteSpace(searchPhoneInput))
         {
-            customerSearchMessage = "Vui l?ng nh?p s? ?i?n tho?i ?? t?m.";
+            customerSearchMessage = "Vui lòng nhập số điện thoại để tìm.";
             showQuickCreateCustomer = false;
             return;
         }
@@ -809,13 +809,13 @@
             else
             {
                 selectedCustomer = null;
-                customerSearchMessage = $"S? ?i?n tho?i {searchPhoneInput.Trim()} ch?a c? trong h? th?ng.";
+                customerSearchMessage = $"Số điện thoại {searchPhoneInput.Trim()} chưa có trong hệ thống.";
                 showQuickCreateCustomer = true;
             }
         }
         catch (Exception ex)
         {
-            customerSearchMessage = "L?i khi tra c?u: " + ex.Message;
+            customerSearchMessage = "Lỗi khi tra cứu: " + ex.Message;
         }
         finally
         {
@@ -1091,7 +1091,7 @@
 
             lastCreatedOrderId = order.OrderID;
             lastFinalAmount = order.FinalAmount;
-            lastCustomerName = order.ReceiverName ?? "Kh?ch v?ng lai";
+            lastCustomerName = order.ReceiverName ?? "Khách vãng lai";
             lastCustomerPhone = order.ReceiverPhone;
             isSuccessModalOpen = true;
             ClearCart();
@@ -1109,7 +1109,7 @@
         catch (Exception ex)
         {
             var msg = ex.InnerException != null ? $"{ex.Message} -> {ex.InnerException.Message}" : ex.Message;
-            await JS.InvokeVoidAsync("alert", "L?i trong qu? tr?nh thanh to?n: " + msg);
+            await JS.InvokeVoidAsync("alert", "Lỗi trong quá trình thanh toán: " + msg);
         }
         finally
         {

@@ -222,10 +222,14 @@ public sealed class CustomerService(IBakeryDbContext db)
                 if (userExists)
                     throw new InvalidOperationException($"Tên đăng nhập '{userClean}' đã tồn tại.");
 
+                var rawPassword = string.IsNullOrWhiteSpace(input.Password) ? "123456" : input.Password;
+                if (rawPassword.Length < 6)
+                    throw new InvalidOperationException("Mật khẩu tài khoản khách hàng phải có ít nhất 6 ký tự.");
+
                 var account = new Account
                 {
                     Username = userClean,
-                    Password = string.IsNullOrWhiteSpace(input.Password) ? "123456" : input.Password,
+                    Password = BCrypt.Net.BCrypt.HashPassword(rawPassword),
                     Role = "Customer",
                     Status = input.AccountStatus
                 };
@@ -262,7 +266,9 @@ public sealed class CustomerService(IBakeryDbContext db)
                 customer.Account.Status = input.AccountStatus;
                 if (!string.IsNullOrWhiteSpace(input.Password))
                 {
-                    customer.Account.Password = input.Password;
+                    if (input.Password.Length < 6)
+                        throw new InvalidOperationException("Mật khẩu mới phải có ít nhất 6 ký tự.");
+                    customer.Account.Password = BCrypt.Net.BCrypt.HashPassword(input.Password);
                 }
             }
             else if (input.CreateAccount && !string.IsNullOrWhiteSpace(input.Username))
@@ -272,10 +278,14 @@ public sealed class CustomerService(IBakeryDbContext db)
                 if (userExists)
                     throw new InvalidOperationException($"Tên đăng nhập '{userClean}' đã tồn tại.");
 
+                var rawPassword = string.IsNullOrWhiteSpace(input.Password) ? "123456" : input.Password;
+                if (rawPassword.Length < 6)
+                    throw new InvalidOperationException("Mật khẩu tài khoản khách hàng phải có ít nhất 6 ký tự.");
+
                 var account = new Account
                 {
                     Username = userClean,
-                    Password = string.IsNullOrWhiteSpace(input.Password) ? "123456" : input.Password,
+                    Password = BCrypt.Net.BCrypt.HashPassword(rawPassword),
                     Role = "Customer",
                     Status = input.AccountStatus
                 };

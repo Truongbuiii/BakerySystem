@@ -926,7 +926,7 @@ else
                                 Đang chọn: <span style="color: #E76F51;">@CartService.AppliedVoucherCode</span>
                             </div>
                             <div style="font-size: 11px; color: #6E6259;">
-                                Giảm @($"{CartService.DiscountPercent:0}%") @(CartService.MaxDiscountAmount > 0 ? $"(tối đa {CartService.MaxDiscountAmount:N0}đ)" : "")
+                                Giảm @CartService.DiscountDisplayLabel @(CartService.FixedDiscountAmount is not > 0 && CartService.MaxDiscountAmount > 0 ? $"(tối đa {CartService.MaxDiscountAmount:N0}đ)" : "")
                             </div>
                         </div>
                     </div>
@@ -957,9 +957,13 @@ else
                     @foreach (var promo in promotions)
                     {
                         var isApplied = CartService.AppliedVoucherCode.Equals(promo.PromotionCode, StringComparison.OrdinalIgnoreCase);
+                        var fixedAmount = promo.PromotionInvoice?.DiscountAmount;
                         var discountPct = promo.PromotionInvoice?.DiscountPercent
                             ?? promo.PromotionProducts.FirstOrDefault()?.DiscountPercent
                             ?? 0;
+                        var stubValue = fixedAmount is > 0
+                            ? (fixedAmount.Value >= 1000m ? $"{fixedAmount.Value / 1000m:0.##}K" : $"{fixedAmount.Value:N0}đ")
+                            : $"{discountPct:0}%";
                         var minOrder = promo.PromotionInvoice?.MinOrderAmount ?? 0;
                         var invoiceCap = promo.PromotionInvoice?.MaxDiscountAmount;
                         var productCap = promo.PromotionProducts.FirstOrDefault()?.MaxDiscountAmount;
@@ -969,7 +973,7 @@ else
 
                         <div class="voucher-ticket @(isApplied ? "active-applied" : "")">
                             <div class="voucher-stub">
-                                <span class="voucher-stub-percent">@($"{discountPct:0}%")</span>
+                                <span class="voucher-stub-percent">@stubValue</span>
                                 <span class="voucher-stub-label">GIẢM</span>
                             </div>
                             <div class="voucher-details">
@@ -2273,8 +2277,8 @@ else
         bool ok = await CartService.ApplyVoucherAsync(promo.PromotionCode);
         if (ok)
         {
-            voucherMessage = $"Áp dụng thành công mã {promo.PromotionCode}: Giảm {CartService.DiscountPercent:0}%!";
-            ShowToast($"Đã áp dụng mã {promo.PromotionCode} (-{CartService.DiscountPercent:0}%)!");
+            voucherMessage = $"Áp dụng thành công mã {promo.PromotionCode}: Giảm {CartService.DiscountDisplayLabel}!";
+            ShowToast($"Đã áp dụng mã {promo.PromotionCode} (-{CartService.DiscountDisplayLabel})!");
 
             // Chuyển về tab phù hợp và mở ngay Giỏ hàng để khách đặt bánh giống Shopee
             if (previousTab == "cart" || previousTab == "vouchers")
@@ -2316,8 +2320,8 @@ else
         bool ok = await CartService.ApplyVoucherAsync(quickVoucherCode);
         if (ok)
         {
-            voucherMessage = $"Áp dụng thành công mã {quickVoucherCode.ToUpper()}: Giảm {CartService.DiscountPercent:0}%!";
-            ShowToast($"Đã áp dụng mã {quickVoucherCode.ToUpper()} (-{CartService.DiscountPercent:0}%)!");
+            voucherMessage = $"Áp dụng thành công mã {quickVoucherCode.ToUpper()}: Giảm {CartService.DiscountDisplayLabel}!";
+            ShowToast($"Đã áp dụng mã {quickVoucherCode.ToUpper()} (-{CartService.DiscountDisplayLabel})!");
             quickVoucherCode = string.Empty;
         }
         else
@@ -2342,7 +2346,7 @@ else
         bool success = await CartService.ApplyVoucherAsync(voucherInput);
         if (success)
         {
-            voucherMessage = $"Áp dụng thành công mã {voucherInput}: Giảm {CartService.DiscountPercent:0}%!";
+            voucherMessage = $"Áp dụng thành công mã {voucherInput}: Giảm {CartService.DiscountDisplayLabel}!";
             ShowToast($"Đã áp dụng mã {voucherInput}!");
         }
         else

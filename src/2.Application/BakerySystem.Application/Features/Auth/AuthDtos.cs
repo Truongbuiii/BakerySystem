@@ -51,6 +51,7 @@ public class CustomerAuthResult
     public bool Success { get; set; }
     public string? ErrorMessage { get; set; }
     public CustomerDto? Customer { get; set; }
+    public string? AccessToken { get; set; }
 }
 
 public class UpdateCustomerProfileRequest

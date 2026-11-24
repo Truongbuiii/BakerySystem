@@ -6,16 +6,19 @@ namespace BakerySystem.MobileApp.Services;
 public class CustomerSessionService
 {
     private readonly MobileApiClient _apiClient;
+    private readonly MobileTokenStore _tokenStore;
 
     public event Action? OnAuthChanged;
 
     public CustomerDto? CurrentCustomer { get; private set; }
     public bool IsLoggedIn => CurrentCustomer != null;
 
-    public CustomerSessionService(MobileApiClient apiClient)
+    public CustomerSessionService(MobileApiClient apiClient, MobileTokenStore tokenStore)
     {
         _apiClient = apiClient;
+        _tokenStore = tokenStore;
         CurrentCustomer = null;
+        _tokenStore.Clear();
         ClearSavedSession();
     }
 
@@ -94,6 +97,7 @@ public class CustomerSessionService
 
         if (result.Success && result.Customer != null)
         {
+            _tokenStore.SetToken(result.AccessToken);
             CurrentCustomer = result.Customer;
             SaveToPreferences(result.Customer);
             OnAuthChanged?.Invoke();
@@ -148,6 +152,7 @@ public class CustomerSessionService
     public void Logout()
     {
         CurrentCustomer = null;
+        _tokenStore.Clear();
         try
         {
             Preferences.Default.Remove("Customer_IsLoggedIn");

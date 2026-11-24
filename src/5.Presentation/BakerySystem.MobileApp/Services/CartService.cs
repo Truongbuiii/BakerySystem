@@ -27,8 +27,13 @@ public class CartService
     private int? AppliedPromotionId { get; set; }
     private Promotion? appliedPromotion;
     public decimal DiscountPercent { get; private set; } = 0;
+    public decimal? FixedDiscountAmount { get; private set; }
     public decimal MaxDiscountAmount { get; private set; } = 0;
     public decimal MinOrderAmount { get; private set; } = 0;
+
+    public string DiscountDisplayLabel => FixedDiscountAmount is > 0
+        ? $"{FixedDiscountAmount.Value:N0}đ"
+        : $"{DiscountPercent:0.##}%";
 
     public CartService(MobileApiClient apiClient)
     {
@@ -50,10 +55,19 @@ public class CartService
             if (invoicePromotion is null || SubTotalAmount < invoicePromotion.MinOrderAmount)
                 return 0;
 
-            var discount = SubTotalAmount * (invoicePromotion.DiscountPercent / 100m);
-            if (invoicePromotion.MaxDiscountAmount is > 0 && discount > invoicePromotion.MaxDiscountAmount.Value)
-                discount = invoicePromotion.MaxDiscountAmount.Value;
-            return Math.Min(SubTotalAmount, discount);
+            decimal discount;
+            if (invoicePromotion.DiscountAmount is > 0)
+            {
+                discount = invoicePromotion.DiscountAmount.Value;
+            }
+            else
+            {
+                discount = SubTotalAmount * (invoicePromotion.DiscountPercent / 100m);
+                if (invoicePromotion.MaxDiscountAmount is > 0 && discount > invoicePromotion.MaxDiscountAmount.Value)
+                    discount = invoicePromotion.MaxDiscountAmount.Value;
+            }
+
+            return Math.Min(SubTotalAmount, Math.Round(discount, 0));
         }
     }
 
@@ -112,10 +126,17 @@ public class CartService
             var summaries = new List<string>();
             if (appliedPromotion.PromotionInvoice is { } invoice)
             {
-                var cap = invoice.MaxDiscountAmount is > 0
-                    ? $" (tối đa {invoice.MaxDiscountAmount.Value:N0}đ)"
-                    : string.Empty;
-                summaries.Add($"giảm {invoice.DiscountPercent:0.##}% đơn từ {invoice.MinOrderAmount:N0}đ{cap}");
+                if (invoice.DiscountAmount is > 0)
+                {
+                    summaries.Add($"giảm {invoice.DiscountAmount.Value:N0}đ đơn từ {invoice.MinOrderAmount:N0}đ");
+                }
+                else
+                {
+                    var cap = invoice.MaxDiscountAmount is > 0
+                        ? $" (tối đa {invoice.MaxDiscountAmount.Value:N0}đ)"
+                        : string.Empty;
+                    summaries.Add($"giảm {invoice.DiscountPercent:0.##}% đơn từ {invoice.MinOrderAmount:N0}đ{cap}");
+                }
             }
 
             if (appliedPromotion.PromotionProducts.Count > 0)
@@ -208,6 +229,7 @@ public class CartService
         AppliedPromotionId = null;
         appliedPromotion = null;
         DiscountPercent = 0;
+        FixedDiscountAmount = null;
         MaxDiscountAmount = 0;
         MinOrderAmount = 0;
         NotifyStateChanged();
@@ -219,6 +241,7 @@ public class CartService
         AppliedPromotionId = null;
         appliedPromotion = null;
         DiscountPercent = 0;
+        FixedDiscountAmount = null;
         MaxDiscountAmount = 0;
         MinOrderAmount = 0;
         NotifyStateChanged();
@@ -238,6 +261,9 @@ public class CartService
         DiscountPercent = promo.PromotionInvoice?.DiscountPercent
             ?? promo.PromotionProducts.FirstOrDefault()?.DiscountPercent
             ?? 0;
+        FixedDiscountAmount = promo.PromotionInvoice?.DiscountAmount is > 0
+            ? promo.PromotionInvoice.DiscountAmount.Value
+            : null;
         MaxDiscountAmount = promo.PromotionInvoice?.MaxDiscountAmount
             ?? promo.PromotionProducts.FirstOrDefault()?.MaxDiscountAmount
             ?? 0;

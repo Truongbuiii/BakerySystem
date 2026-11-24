@@ -1,3 +1,5 @@
+using System.Globalization;
+using System.Security.Claims;
 using BakerySystem.Application.Common.Interfaces;
 using BakerySystem.Application.Features.Auth;
 using BakerySystem.Domain.Entities;
@@ -8,6 +10,20 @@ namespace BakerySystem.API;
 
 public static class MobileApiEndpoints
 {
+    private static bool TryGetAuthenticatedCustomer(ClaimsPrincipal user, out int customerId, out int accountId)
+    {
+        customerId = 0;
+        accountId = 0;
+
+        var customerClaim = user.FindFirst(JwtTokenService.CustomerIdClaim)?.Value;
+        var accountClaim = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        return int.TryParse(customerClaim, NumberStyles.Integer, CultureInfo.InvariantCulture, out customerId)
+            && customerId > 0
+            && int.TryParse(accountClaim, NumberStyles.Integer, CultureInfo.InvariantCulture, out accountId)
+            && accountId > 0;
+    }
+
     public static IEndpointRouteBuilder MapMobileApi(this IEndpointRouteBuilder endpoints)
     {
         var group = endpoints.MapGroup("/api/mobile")
@@ -16,11 +32,18 @@ public static class MobileApiEndpoints
         group.MapPost("/auth/login", async (
             LoginRequest request,
             IAuthService authService,
+            JwtTokenService tokenService,
             CancellationToken ct) =>
         {
             var result = await authService.CustomerLoginAsync(request);
+            if (result.Success && result.Customer?.AccountId is int accountId)
+            {
+                var sessionStamp = await authService.GetSessionStampAsync(accountId, ct);
+                result.AccessToken = tokenService.CreateCustomerToken(result.Customer, sessionStamp);
+            }
             return Results.Ok(result);
         })
+        .AllowAnonymous()
         .WithSummary("Authenticate a mobile customer");
 
         group.MapPost("/auth/register", async (
@@ -31,29 +54,45 @@ public static class MobileApiEndpoints
             var result = await authService.RegisterCustomerAsync(request);
             return Results.Ok(result);
         })
+        .AllowAnonymous()
         .WithSummary("Register a mobile customer");
 
         group.MapGet("/customers/{customerId:int}", async (
             int customerId,
+            ClaimsPrincipal user,
             IAuthService authService,
             CancellationToken ct) =>
         {
-            var customer = await authService.GetCustomerProfileAsync(customerId);
+            if (!TryGetAuthenticatedCustomer(user, out var authCustomerId, out _))
+                return Results.Unauthorized();
+
+            if (customerId != authCustomerId)
+                return Results.Forbid();
+
+            var customer = await authService.GetCustomerProfileAsync(authCustomerId);
             return customer is null ? Results.NotFound() : Results.Ok(customer);
         })
+        .RequireAuthorization("MobileCustomer")
         .WithSummary("Get a customer profile");
 
         group.MapPut("/customers/profile", async (
             MobileProfileRequest request,
+            ClaimsPrincipal user,
             IAuthService authService,
             CancellationToken ct) =>
         {
+            if (!TryGetAuthenticatedCustomer(user, out var authCustomerId, out _))
+                return Results.Unauthorized();
+
+            if (request.CustomerId > 0 && request.CustomerId != authCustomerId)
+                return Results.Forbid();
+
             try
             {
                 var updated = await authService.UpdateCustomerProfileAsync(
                     new UpdateCustomerProfileRequest
                     {
-                        CustomerId = request.CustomerId,
+                        CustomerId = authCustomerId,
                         FullName = request.FullName,
                         Phone = request.Phone,
                         Address = request.Address
@@ -65,16 +104,41 @@ public static class MobileApiEndpoints
                 return Results.BadRequest(ex.Message);
             }
         })
+        .RequireAuthorization("MobileCustomer")
         .WithSummary("Update a customer profile");
 
         group.MapPost("/customers/change-password", async (
             ChangePasswordRequest request,
+            ClaimsPrincipal user,
             IAuthService authService,
+            JwtTokenService tokenService,
             CancellationToken ct) =>
         {
-            var changed = await authService.ChangePasswordAsync(request);
-            return changed ? Results.Ok() : Results.BadRequest();
+            if (!TryGetAuthenticatedCustomer(user, out var authCustomerId, out var authAccountId))
+                return Results.Unauthorized();
+
+            if (request.AccountId > 0 && request.AccountId != authAccountId)
+                return Results.Forbid();
+
+            var changed = await authService.ChangePasswordAsync(new ChangePasswordRequest
+            {
+                AccountId = authAccountId,
+                OldPassword = request.OldPassword,
+                NewPassword = request.NewPassword,
+                ConfirmPassword = request.ConfirmPassword
+            });
+            if (!changed)
+                return Results.BadRequest();
+
+            var customer = await authService.GetCustomerProfileAsync(authCustomerId);
+            if (customer is null || customer.AccountId is null)
+                return Results.Ok();
+
+            var newStamp = await authService.GetSessionStampAsync(customer.AccountId.Value, ct);
+            var newToken = tokenService.CreateCustomerToken(customer, newStamp);
+            return Results.Ok(new { accessToken = newToken });
         })
+        .RequireAuthorization("MobileCustomer")
         .WithSummary("Change a customer password");
 
         group.MapGet("/categories", async (
@@ -84,6 +148,7 @@ public static class MobileApiEndpoints
                 .AsNoTracking()
                 .OrderBy(c => c.CategoryName)
                 .ToListAsync(ct)))
+        .AllowAnonymous()
         .WithSummary("Get product categories");
 
         group.MapGet("/products", async (
@@ -95,6 +160,7 @@ public static class MobileApiEndpoints
                 .Where(p => p.IsActive)
                 .OrderBy(p => p.ProductName)
                 .ToListAsync(ct)))
+        .AllowAnonymous()
         .WithSummary("Get active products");
 
         group.MapGet("/promotions", async (
@@ -119,6 +185,7 @@ public static class MobileApiEndpoints
                 .ToListAsync(ct);
             return Results.Ok(promotions);
         })
+        .AllowAnonymous()
         .WithSummary("Get active promotions");
 
         group.MapGet("/promotions/{code}", async (
@@ -140,43 +207,51 @@ public static class MobileApiEndpoints
                         || p.PromotionInvoice.UsedCount < p.PromotionInvoice.UsageLimit), ct);
             return promotion is null ? Results.NotFound() : Results.Ok(promotion);
         })
+        .AllowAnonymous()
         .WithSummary("Find a promotion by code");
 
         group.MapGet("/orders", async (
-            int customerId,
+            int? customerId,
+            ClaimsPrincipal user,
             IBakeryDbContext db,
             CancellationToken ct) =>
         {
+            if (!TryGetAuthenticatedCustomer(user, out var authCustomerId, out _))
+                return Results.Unauthorized();
+
+            if (customerId is > 0 && customerId.Value != authCustomerId)
+                return Results.Forbid();
+
             var query = db.Orders
                 .AsNoTracking()
                 .Include(o => o.OrderDetails)
                     .ThenInclude(d => d.Product)
-                .AsQueryable();
-
-            if (customerId <= 0)
-                return Results.Ok(Array.Empty<Order>());
-
-            query = query.Where(o => o.CustomerID == customerId);
+                .Where(o => o.CustomerID == authCustomerId);
 
             return Results.Ok(await query
                 .OrderByDescending(o => o.OrderDate)
                 .ToListAsync(ct));
         })
+        .RequireAuthorization("MobileCustomer")
         .WithSummary("Get mobile customer orders");
 
         group.MapPost("/orders", async (
             CreateMobileOrderRequest request,
+            ClaimsPrincipal user,
             IBakeryDbContext db,
             CancellationToken ct) =>
         {
+            if (!TryGetAuthenticatedCustomer(user, out var authCustomerId, out _))
+                return Results.Unauthorized();
+
+            if (request.CustomerId is > 0 && request.CustomerId.Value != authCustomerId)
+                return Results.Forbid();
+
             if (request.Lines.Count == 0)
                 return Results.BadRequest("Order must contain at least one line.");
 
-            var customer = request.CustomerId is > 0
-                ? await db.Customers.FirstOrDefaultAsync(
-                    c => c.CustomerID == request.CustomerId.Value, ct)
-                : await db.Customers.FirstOrDefaultAsync(
-                    c => c.Phone == request.Phone, ct);
+            var customer = await db.Customers.FirstOrDefaultAsync(
+                c => c.CustomerID == authCustomerId, ct);
 
             if (customer is null)
                 return Results.BadRequest("Customer was not found. Please sign in or register before ordering.");
@@ -306,39 +381,62 @@ public static class MobileApiEndpoints
             await db.SaveChangesAsync(ct);
             return Results.Ok(order);
         })
+        .RequireAuthorization("MobileCustomer")
         .WithSummary("Create a mobile order");
 
         group.MapPost("/orders/{orderId:int}/cancel", async (
             int orderId,
-            CancelMobileOrderRequest request,
+            CancelMobileOrderRequest? request,
+            ClaimsPrincipal user,
             IBakeryDbContext db,
             CancellationToken ct) =>
         {
+            if (!TryGetAuthenticatedCustomer(user, out var authCustomerId, out _))
+                return Results.Unauthorized();
+
+            if (request?.CustomerId is > 0 && request.CustomerId.Value != authCustomerId)
+                return Results.Forbid();
+
             var order = await db.Orders.FirstOrDefaultAsync(
                 o => o.OrderID == orderId, ct);
-            if (order is null
-                || request.CustomerId is null or <= 0
-                || order.CustomerID != request.CustomerId
-                || order.Status != OrderStatus.Pending)
-                return Results.BadRequest();
+            if (order is null)
+                return Results.NotFound();
+
+            if (order.CustomerID != authCustomerId)
+                return Results.Forbid();
+
+            if (order.Status != OrderStatus.Pending)
+                return Results.BadRequest("Only pending orders can be cancelled.");
 
             order.Status = OrderStatus.Cancelled;
             await db.SaveChangesAsync(ct);
             return Results.Ok();
         })
+        .RequireAuthorization("MobileCustomer")
         .WithSummary("Cancel a pending mobile order");
 
         group.MapPost("/orders/{orderId:int}/confirm-received", async (
             int orderId,
-            ConfirmReceivedMobileOrderRequest request,
+            ConfirmReceivedMobileOrderRequest? request,
+            ClaimsPrincipal user,
             IBakeryDbContext db,
             CancellationToken ct) =>
         {
+            if (!TryGetAuthenticatedCustomer(user, out var authCustomerId, out _))
+                return Results.Unauthorized();
+
+            if (request?.CustomerId is > 0 && request.CustomerId.Value != authCustomerId)
+                return Results.Forbid();
+
             var order = await db.Orders.FirstOrDefaultAsync(
                 o => o.OrderID == orderId, ct);
-            if (order is null
-                || (request.CustomerId.HasValue && request.CustomerId.Value > 0 && order.CustomerID != request.CustomerId.Value)
-                || (order.Status != OrderStatus.Delivered && order.Status != OrderStatus.Shipping))
+            if (order is null)
+                return Results.NotFound();
+
+            if (order.CustomerID != authCustomerId)
+                return Results.Forbid();
+
+            if (order.Status != OrderStatus.Delivered && order.Status != OrderStatus.Shipping)
                 return Results.BadRequest("Order cannot be confirmed at current status.");
 
             order.Status = OrderStatus.Completed;
@@ -346,6 +444,7 @@ public static class MobileApiEndpoints
             await db.SaveChangesAsync(ct);
             return Results.Ok();
         })
+        .RequireAuthorization("MobileCustomer")
         .WithSummary("Confirm that customer received the order");
 
         return endpoints;

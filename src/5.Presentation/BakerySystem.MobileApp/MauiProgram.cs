@@ -24,13 +24,16 @@ public static class MauiProgram
         builder.AddMauiDevFlowAgent();
         builder.AddMauiBlazorDevFlowTools();
 #endif
+        builder.Services.AddSingleton<MobileTokenStore>();
+        builder.Services.AddTransient<MobileAuthHeaderHandler>();
         builder.Services.AddHttpClient<MobileApiClient>(client =>
         {
             client.BaseAddress = new Uri(ApiConfiguration.BaseUrl);
             client.Timeout = TimeSpan.FromSeconds(30);
             client.DefaultRequestHeaders.TryAddWithoutValidation(
                 "ngrok-skip-browser-warning", "true");
-        });
+        })
+        .AddHttpMessageHandler<MobileAuthHeaderHandler>();
         builder.Services.AddScoped<CartService>();
         builder.Services.AddScoped<CustomerSessionService>();
 

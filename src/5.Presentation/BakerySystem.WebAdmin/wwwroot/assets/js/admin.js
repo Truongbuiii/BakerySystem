@@ -421,3 +421,141 @@ window.bakeryPdf = {
         setTimeout(cleanup, 5000);
     }
 };
+
+(function () {
+    function formatNow() {
+        const d = new Date();
+        const pad = n => String(n).padStart(2, '0');
+        return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} · ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    }
+
+    function updateHeaderClock() {
+        const el = document.getElementById('bakery-header-clock');
+        if (el) el.textContent = formatNow();
+    }
+
+    updateHeaderClock();
+    setInterval(updateHeaderClock, 10000);
+
+    function escapeHtml(str) {
+        return String(str ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    let searchTimer = null;
+    let searchController = null;
+
+    function renderQuickSearch(container, data, query) {
+        const sections = [];
+
+        if (data.orders && data.orders.length > 0) {
+            sections.push(
+                '<div class="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">Đơn hàng</div>' +
+                data.orders.map(o =>
+                    `<a href="${o.url}" class="flex items-center justify-between gap-2 px-3 py-2 text-xs hover:bg-slate-50 transition-colors">` +
+                    `<div class="min-w-0"><div class="font-semibold text-slate-800 truncate">${escapeHtml(o.code)} · ${escapeHtml(o.title)}</div>` +
+                    `<div class="text-[11px] text-slate-500">${escapeHtml(o.subtitle)}</div></div>` +
+                    `<span class="text-[10px] font-semibold text-primary shrink-0">Xem</span></a>`
+                ).join('')
+            );
+        }
+
+        if (data.products && data.products.length > 0) {
+            sections.push(
+                '<div class="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 border-t border-slate-100 mt-1 pt-1.5">Sản phẩm</div>' +
+                data.products.map(p =>
+                    `<a href="${p.url}" class="flex items-center justify-between gap-2 px-3 py-2 text-xs hover:bg-slate-50 transition-colors">` +
+                    `<div class="min-w-0"><div class="font-semibold text-slate-800 truncate">${escapeHtml(p.title)}</div>` +
+                    `<div class="text-[11px] text-slate-500">${escapeHtml(p.subtitle)}</div></div>` +
+                    `<span class="text-[10px] font-semibold text-primary shrink-0">Menu</span></a>`
+                ).join('')
+            );
+        }
+
+        if (data.customers && data.customers.length > 0) {
+            sections.push(
+                '<div class="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 border-t border-slate-100 mt-1 pt-1.5">Khách hàng</div>' +
+                data.customers.map(c =>
+                    `<a href="${c.url}" class="flex items-center justify-between gap-2 px-3 py-2 text-xs hover:bg-slate-50 transition-colors">` +
+                    `<div class="min-w-0"><div class="font-semibold text-slate-800 truncate">${escapeHtml(c.title)} (${escapeHtml(c.code)})</div>` +
+                    `<div class="text-[11px] text-slate-500">${escapeHtml(c.subtitle)}</div></div>` +
+                    `<span class="text-[10px] font-semibold text-primary shrink-0">Hồ sơ</span></a>`
+                ).join('')
+            );
+        }
+
+        if (sections.length === 0) {
+            container.innerHTML = `<div class="px-4 py-4 text-center text-xs text-slate-500">Không tìm thấy kết quả cho "<strong>${escapeHtml(query)}</strong>".</div>`;
+        } else {
+            container.innerHTML = sections.join('');
+        }
+        container.classList.remove('hidden');
+    }
+
+    document.addEventListener('input', function (event) {
+        if (!event.target || event.target.id !== 'admin-global-search') return;
+        const input = event.target;
+        const container = document.getElementById('admin-global-search-results');
+        if (!container) return;
+
+        const q = input.value.trim();
+        if (searchTimer) clearTimeout(searchTimer);
+
+        if (!q) {
+            container.classList.add('hidden');
+            container.innerHTML = '';
+            return;
+        }
+
+        searchTimer = setTimeout(async function () {
+            if (searchController) searchController.abort();
+            searchController = new AbortController();
+            try {
+                const resp = await fetch('/api/admin/quick-search?q=' + encodeURIComponent(q), {
+                    signal: searchController.signal
+                });
+                if (!resp.ok) return;
+                const data = await resp.json();
+                renderQuickSearch(container, data, q);
+            } catch (_) {
+                // Ignore aborted or network errors while typing
+            }
+        }, 220);
+    });
+
+    document.addEventListener('keydown', function (event) {
+        if (!event.target || event.target.id !== 'admin-global-search') return;
+        const container = document.getElementById('admin-global-search-results');
+        if (event.key === 'Escape' && container) {
+            container.classList.add('hidden');
+            event.target.blur();
+            return;
+        }
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            const firstLink = container ? container.querySelector('a[href]') : null;
+            if (firstLink) {
+                window.location.href = firstLink.getAttribute('href');
+            } else {
+                const q = event.target.value.trim();
+                if (/^#?hd/i.test(q) || /^\d+$/.test(q)) {
+                    window.location.href = '/orders';
+                } else if (q) {
+                    window.location.href = '/products';
+                }
+            }
+        }
+    });
+
+    document.addEventListener('click', function (event) {
+        const wrap = document.getElementById('admin-global-search-wrap');
+        const container = document.getElementById('admin-global-search-results');
+        if (wrap && container && !wrap.contains(event.target)) {
+            container.classList.add('hidden');
+        }
+    });
+})();

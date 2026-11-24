@@ -217,6 +217,89 @@ app.MapGet("/api/auth/logout", async (HttpContext httpContext) =>
     return Results.Redirect("/login");
 });
 
+app.MapGet("/api/admin/quick-search", async (
+    string? q,
+    HttpContext httpContext,
+    BakeryDbContext context,
+    CancellationToken ct) =>
+{
+    if (httpContext.User.Identity?.IsAuthenticated != true
+        || !(httpContext.User.IsInRole(BakerySystem.Domain.Enums.AccountRole.Admin)
+             || httpContext.User.IsInRole(BakerySystem.Domain.Enums.AccountRole.Employee)))
+    {
+        return Results.Unauthorized();
+    }
+
+    var term = (q ?? string.Empty).Trim();
+    if (term.Length < 1)
+    {
+        return Results.Ok(new { orders = Array.Empty<object>(), products = Array.Empty<object>(), customers = Array.Empty<object>() });
+    }
+
+    var numericTerm = term.Replace("#HD-", "", StringComparison.OrdinalIgnoreCase)
+                          .Replace("#KH-", "", StringComparison.OrdinalIgnoreCase)
+                          .TrimStart('#');
+    int.TryParse(numericTerm, out var parsedId);
+
+    var orders = await context.Orders
+        .AsNoTracking()
+        .Include(o => o.Customer)
+        .Where(o => (parsedId > 0 && o.OrderID == parsedId)
+            || (o.ReceiverName != null && o.ReceiverName.Contains(term))
+            || (o.ReceiverPhone != null && o.ReceiverPhone.Contains(term))
+            || (o.Customer != null && ((o.Customer.FirstName != null && o.Customer.FirstName.Contains(term))
+                || (o.Customer.LastName != null && o.Customer.LastName.Contains(term))
+                || (o.Customer.Phone != null && o.Customer.Phone.Contains(term)))))
+        .OrderByDescending(o => o.OrderDate)
+        .Take(4)
+        .Select(o => new
+        {
+            id = o.OrderID,
+            code = $"#HD-{o.OrderID:D4}",
+            title = !string.IsNullOrWhiteSpace(o.ReceiverName) ? o.ReceiverName : (o.Customer != null ? (o.Customer.LastName + " " + o.Customer.FirstName).Trim() : "Khách lẻ"),
+            subtitle = $"{o.FinalAmount:N0}đ · {o.Status}",
+            url = "/orders"
+        })
+        .ToListAsync(ct);
+
+    var products = await context.Products
+        .AsNoTracking()
+        .Include(p => p.Category)
+        .Where(p => p.IsActive && (p.ProductName.Contains(term)
+            || (p.Category != null && p.Category.CategoryName.Contains(term))))
+        .OrderBy(p => p.ProductName)
+        .Take(4)
+        .Select(p => new
+        {
+            id = p.ProductID,
+            title = p.ProductName,
+            subtitle = $"{p.Price:N0}đ · Tồn: {p.Quantity}",
+            url = "/products"
+        })
+        .ToListAsync(ct);
+
+    var customers = await context.Customers
+        .AsNoTracking()
+        .Where(c => (c.AccountID != null || (c.Phone != null && c.Phone != ""))
+            && ((parsedId > 0 && c.CustomerID == parsedId)
+                || (c.FirstName != null && c.FirstName.Contains(term))
+                || (c.LastName != null && c.LastName.Contains(term))
+                || (c.Phone != null && c.Phone.Contains(term))))
+        .OrderByDescending(c => c.CustomerID)
+        .Take(4)
+        .Select(c => new
+        {
+            id = c.CustomerID,
+            code = $"#KH-{c.CustomerID:D4}",
+            title = (c.LastName + " " + c.FirstName).Trim(),
+            subtitle = string.IsNullOrWhiteSpace(c.Phone) ? "Chưa có SĐT" : c.Phone,
+            url = "/customers"
+        })
+        .ToListAsync(ct);
+
+    return Results.Ok(new { orders, products, customers });
+});
+
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 

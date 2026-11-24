@@ -42,9 +42,17 @@
 
                 <AuthorizeView Roles="Admin,Employee">
                     <Authorized>
-                        <div class="relative hidden sm:flex items-center">
-                            <iconify-icon icon="solar:minimalistic-magnifer-linear" class="absolute left-3.5 text-lg text-bodytext"></iconify-icon>
-                            <input type="text" placeholder="Tìm kiếm đơn hàng, bánh, khách..." class="form-control ps-10 pr-4 py-2 w-72 md:w-80 bg-white dark:bg-dark border border-border dark:border-darkborder rounded-lg text-sm focus:outline-none focus:border-primary transition-all placeholder:text-bodytext/60" />
+                        <div class="relative hidden sm:flex items-center" id="admin-global-search-wrap">
+                            <iconify-icon icon="solar:minimalistic-magnifer-linear" class="absolute left-3.5 text-lg text-bodytext pointer-events-none"></iconify-icon>
+                            <input id="admin-global-search"
+                                   type="text"
+                                   autocomplete="off"
+                                   placeholder="Tìm nhanh đơn #HD, bánh, SĐT khách..."
+                                   class="form-control ps-10 pr-4 py-2 w-72 md:w-80 bg-white dark:bg-dark border border-border dark:border-darkborder rounded-lg text-sm focus:outline-none focus:border-primary transition-all placeholder:text-bodytext/60" />
+                            <div id="admin-global-search-results"
+                                 data-admin-dropdown
+                                 class="hidden absolute left-0 top-full mt-2 w-80 md:w-96 bg-white dark:bg-dark border border-border dark:border-darkborder rounded-xl shadow-lg py-2 z-50 max-h-96 overflow-y-auto">
+                            </div>
                         </div>
                     </Authorized>
                 </AuthorizeView>
@@ -60,7 +68,7 @@
                                 <span class="bakery-header-time-icon">
                                     <iconify-icon icon="solar:clock-circle-bold"></iconify-icon>
                                 </span>
-                                <span class="bakery-header-time-val">
+                                <span id="bakery-header-clock" class="bakery-header-time-val">
                                     @DateTime.Now.ToString("dd/MM/yyyy · HH:mm")
                                 </span>
                                 <span class="bakery-header-time-dot" title="Hệ thống đang hoạt động trực tuyến"></span>
