@@ -92,6 +92,19 @@ public sealed class OrderService(IBakeryDbContext db)
             ? $"Lý do từ chối/hủy: {reason}"
             : $"{order.Note}\nLý do từ chối/hủy: {reason}";
 
+        if (order.PromotionID.HasValue)
+        {
+            var promoInvoice = await db.PromotionInvoices.FirstOrDefaultAsync(
+                pi => pi.PromotionID == order.PromotionID.Value, ct);
+            if (promoInvoice is not null)
+            {
+                promoInvoice.UsedCount = await db.Orders.CountAsync(
+                    o => o.PromotionID == order.PromotionID.Value
+                        && o.OrderID != order.OrderID
+                        && o.Status != OrderStatus.Cancelled, ct);
+            }
+        }
+
         await db.SaveChangesAsync(ct);
         return true;
     }

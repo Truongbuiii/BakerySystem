@@ -311,20 +311,33 @@
                     </div>
 
                     <div class="flex flex-wrap items-center gap-2.5">
-                        <button type="button"
-                                class="bakery-btn bakery-btn-outline"
-                                @onclick='() => Save(ImportReceiptStatus.Pending)'
-                                disabled="@(!CanSave)">
-                            <iconify-icon icon="solar:clock-circle-linear" class="mr-1"></iconify-icon>
-                            @(saving ? "Đang lưu..." : "Lưu phiếu chờ duyệt")
-                        </button>
-                        <button type="button"
-                                class="bakery-btn bakery-btn-primary"
-                                @onclick='() => Save(ImportReceiptStatus.Completed)'
-                                disabled="@(!CanSave)">
-                            <iconify-icon icon="solar:box-minimalistic-bold" class="mr-1"></iconify-icon>
-                            @(saving ? "Đang lưu..." : "Duyệt & Nhập kho ngay")
-                        </button>
+                        @if (isAdmin)
+                        {
+                            <button type="button"
+                                    class="bakery-btn bakery-btn-outline"
+                                    @onclick='() => Save(ImportReceiptStatus.Pending)'
+                                    disabled="@(!CanSave)">
+                                <iconify-icon icon="solar:clock-circle-linear" class="mr-1"></iconify-icon>
+                                @(saving ? "Đang lưu..." : "Lưu phiếu chờ duyệt")
+                            </button>
+                            <button type="button"
+                                    class="bakery-btn bakery-btn-primary"
+                                    @onclick='() => Save(ImportReceiptStatus.Completed)'
+                                    disabled="@(!CanSave)">
+                                <iconify-icon icon="solar:box-minimalistic-bold" class="mr-1"></iconify-icon>
+                                @(saving ? "Đang lưu..." : "Duyệt & Nhập kho ngay")
+                            </button>
+                        }
+                        else
+                        {
+                            <button type="button"
+                                    class="bakery-btn bakery-btn-primary"
+                                    @onclick='() => Save(ImportReceiptStatus.Pending)'
+                                    disabled="@(!CanSave)">
+                                <iconify-icon icon="solar:clock-circle-bold" class="mr-1"></iconify-icon>
+                                @(saving ? "Đang gửi..." : "Gửi phiếu chờ duyệt")
+                            </button>
+                        }
                     </div>
                 </div>
             </div>
@@ -516,9 +529,12 @@
         lines.Count > 0 &&
         lines.All(line => line.ProductID > 0 && line.Quantity > 0 && line.UnitPrice > 0);
 
+    private bool isAdmin;
+
     protected override async Task OnInitializedAsync()
     {
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        isAdmin = authState.User.IsInRole(AccountRole.Admin);
         if (!int.TryParse(authState.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value, out var accountId))
         {
             employeeName = "Không xác định được tài khoản đăng nhập";
@@ -689,6 +705,9 @@
     {
         if (saving)
             return;
+
+        if (!isAdmin)
+            targetStatus = ImportReceiptStatus.Pending;
 
         saving = true;
         try

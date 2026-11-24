@@ -4,6 +4,7 @@
 @using BakerySystem.Domain.Entities
 @using BakerySystem.Domain.Enums
 @inject InventoryService Inventory
+@inject AuthenticationStateProvider AuthStateProvider
 @inject IJSRuntime JS
 
 <PageTitle>Quản lý phiếu nhập kho | BakerySystem</PageTitle>
@@ -268,25 +269,39 @@
                             <iconify-icon icon="solar:info-circle-linear" class="mr-1"></iconify-icon>
                             Phiếu đang ở trạng thái <strong>Chờ duyệt nhập</strong> (tồn kho chưa cộng). Sau khi kiểm đếm thực tế, hãy bấm <strong>"Duyệt &amp; Nhập kho"</strong>.
                         </div>
-                        <div class="flex items-center gap-2">
-                            <button class="bakery-btn bakery-btn-danger bakery-btn-sm" @onclick="() => PromptCancel(selected)" disabled="@isProcessing">
-                                Hủy phiếu
-                            </button>
-                            <button class="bakery-btn bakery-btn-primary bakery-btn-sm" @onclick="() => PromptComplete(selected)" disabled="@isProcessing">
-                                <iconify-icon icon="solar:check-circle-bold" class="mr-1"></iconify-icon>
-                                Duyệt &amp; Nhập kho
-                            </button>
-                        </div>
+                        @if (isAdmin)
+                        {
+                            <div class="flex items-center gap-2">
+                                <button class="bakery-btn bakery-btn-danger bakery-btn-sm" @onclick="() => PromptCancel(selected)" disabled="@isProcessing">
+                                    Hủy phiếu
+                                </button>
+                                <button class="bakery-btn bakery-btn-primary bakery-btn-sm" @onclick="() => PromptComplete(selected)" disabled="@isProcessing">
+                                    <iconify-icon icon="solar:check-circle-bold" class="mr-1"></iconify-icon>
+                                    Duyệt &amp; Nhập kho
+                                </button>
+                            </div>
+                        }
+                        else
+                        {
+                            <span class="text-xs font-medium text-amber-700 dark:text-amber-400">
+                                Đang chờ Quản trị viên duyệt nhập kho.
+                            </span>
+                        }
                     }
                     else if (selected.Status == ImportReceiptStatus.Completed)
                     {
                         <div class="text-xs text-slate-500">
-                            Phiếu đã nhập kho thành công. Nếu phát hiện lập nhầm số lượng, bạn có thể hủy phiếu để hoàn tác tồn kho.
+                            @(isAdmin
+                                ? "Phiếu đã nhập kho thành công. Nếu phát hiện lập nhầm số lượng, bạn có thể hủy phiếu để hoàn tác tồn kho."
+                                : "Phiếu đã nhập kho thành công. Chỉ Quản trị viên mới có quyền hủy hoàn tác kho.")
                         </div>
-                        <button class="bakery-btn bakery-btn-danger bakery-btn-sm" @onclick="() => PromptCancel(selected)" disabled="@isProcessing">
-                            <iconify-icon icon="solar:trash-bin-trash-linear" class="mr-1"></iconify-icon>
-                            Hủy phiếu (Hoàn tác kho)
-                        </button>
+                        @if (isAdmin)
+                        {
+                            <button class="bakery-btn bakery-btn-danger bakery-btn-sm" @onclick="() => PromptCancel(selected)" disabled="@isProcessing">
+                                <iconify-icon icon="solar:trash-bin-trash-linear" class="mr-1"></iconify-icon>
+                                Hủy phiếu (Hoàn tác kho)
+                            </button>
+                        }
                     }
                     else if (selected.Status == ImportReceiptStatus.Cancelled)
                     {
@@ -492,7 +507,14 @@
 
     private List<ImportReceipt> FilteredReceiptList => FilteredReceipts.ToList();
 
-    protected override async Task OnInitializedAsync() => await LoadAsync();
+    private bool isAdmin;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        isAdmin = authState.User.IsInRole(AccountRole.Admin);
+        await LoadAsync();
+    }
 
     protected override async Task OnParametersSetAsync()
     {
@@ -589,6 +611,7 @@
 
     private void PromptComplete(ImportReceipt receipt)
     {
+        if (!isAdmin) return;
         receiptToComplete = receipt;
         completeError = null;
         showCompleteModal = true;
@@ -603,7 +626,7 @@
 
     private async Task ExecuteCompleteReceipt()
     {
-        if (receiptToComplete is null || isProcessing)
+        if (!isAdmin || receiptToComplete is null || isProcessing)
             return;
 
         isProcessing = true;
@@ -628,6 +651,7 @@
 
     private void PromptCancel(ImportReceipt receipt)
     {
+        if (!isAdmin) return;
         receiptToCancel = receipt;
         cancelReason = string.Empty;
         cancelError = null;
@@ -643,7 +667,7 @@
 
     private async Task ExecuteCancelReceipt()
     {
-        if (receiptToCancel is null || isProcessing)
+        if (!isAdmin || receiptToCancel is null || isProcessing)
             return;
 
         isProcessing = true;

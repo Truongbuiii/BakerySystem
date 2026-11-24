@@ -177,7 +177,9 @@ public sealed class CustomerOrderService(IBakeryDbContext db)
 
             var linkedPromotionOrderCount = promotion is null
                 ? 0
-                : await db.Orders.CountAsync(order => order.PromotionID == promotion.PromotionID, ct);
+                : await db.Orders.CountAsync(
+                    order => order.PromotionID == promotion.PromotionID
+                        && order.Status != OrderStatus.Cancelled, ct);
 
             if (promotion is null
                 || (promotion.PromotionInvoice is { UsageLimit: not null } invoice && linkedPromotionOrderCount >= invoice.UsageLimit))
@@ -251,7 +253,9 @@ public sealed class CustomerOrderService(IBakeryDbContext db)
 
         if (promotion?.PromotionInvoice is { } usedInvoice)
         {
-            var linkedPromotionOrderCount = await db.Orders.CountAsync(o => o.PromotionID == promotion.PromotionID, ct);
+            var linkedPromotionOrderCount = await db.Orders.CountAsync(
+                o => o.PromotionID == promotion.PromotionID
+                    && o.Status != OrderStatus.Cancelled, ct);
             usedInvoice.UsedCount = linkedPromotionOrderCount + 1;
         }
 
@@ -276,6 +280,19 @@ public sealed class CustomerOrderService(IBakeryDbContext db)
         order.Note = string.IsNullOrWhiteSpace(order.Note)
             ? "Khách hàng tự hủy đơn trên Web"
             : $"{order.Note}\nKhách hàng tự hủy đơn trên Web";
+
+        if (order.PromotionID.HasValue)
+        {
+            var promoInvoice = await db.PromotionInvoices.FirstOrDefaultAsync(
+                pi => pi.PromotionID == order.PromotionID.Value, ct);
+            if (promoInvoice is not null)
+            {
+                promoInvoice.UsedCount = await db.Orders.CountAsync(
+                    o => o.PromotionID == order.PromotionID.Value
+                        && o.OrderID != order.OrderID
+                        && o.Status != OrderStatus.Cancelled, ct);
+            }
+        }
 
         await db.SaveChangesAsync(ct);
         return true;

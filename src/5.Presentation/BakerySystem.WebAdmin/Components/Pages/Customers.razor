@@ -3,6 +3,7 @@
 @attribute [Authorize(Roles = "Admin,Employee")]
 @using BakerySystem.Application.Features.Customers
 @inject CustomerService CustomerManager
+@inject AuthenticationStateProvider AuthStateProvider
 @inject IJSRuntime JS
 @inject NavigationManager Navigation
 
@@ -256,51 +257,60 @@
                                   @bind="inputForm.Address"></textarea>
                     </label>
 
-                    <!-- Khối thiết lập tài khoản Mobile App -->
-                    <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 mt-1">
-                        @if (inputForm.CustomerId == 0)
-                        {
-                            <div class="flex items-center gap-2 mb-2">
-                                <input type="checkbox" id="chkCreateAccount" class="rounded" @bind="inputForm.CreateAccount" />
-                                <label for="chkCreateAccount" class="text-xs font-bold text-slate-800 dark:text-slate-200 cursor-pointer m-0">
-                                    Cấp tài khoản đăng nhập Mobile App
-                                </label>
-                            </div>
-                        }
-
-                        @if (inputForm.CreateAccount || inputForm.CustomerId != 0)
-                        {
-                            <div class="grid gap-2.5 pt-1">
-                                @if (inputForm.CustomerId == 0)
-                                {
-                                    <label>
-                                        <span class="font-semibold text-slate-700 dark:text-slate-300">Tên đăng nhập (Username)</span>
-                                        <input class="bakery-input w-full" 
-                                               placeholder="Ví dụ: annguyen2026" 
-                                               @bind="inputForm.Username" />
+                    <!-- Khối thiết lập tài khoản Mobile App (Chỉ dành cho Quản trị viên) -->
+                    @if (isAdmin)
+                    {
+                        <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 mt-1">
+                            @if (inputForm.CustomerId == 0)
+                            {
+                                <div class="flex items-center gap-2 mb-2">
+                                    <input type="checkbox" id="chkCreateAccount" class="rounded" @bind="inputForm.CreateAccount" />
+                                    <label for="chkCreateAccount" class="text-xs font-bold text-slate-800 dark:text-slate-200 cursor-pointer m-0">
+                                        Cấp tài khoản đăng nhập Mobile App
                                     </label>
-                                }
+                                </div>
+                            }
 
-                                <label>
-                                    <span class="font-semibold text-slate-700 dark:text-slate-300">
-                                        @(inputForm.CustomerId == 0 ? "Mật khẩu (mặc định: 123456)" : "Mật khẩu mới (để trống nếu giữ nguyên)")
-                                    </span>
-                                    <input class="bakery-input w-full" 
-                                           type="password" 
-                                           placeholder="••••••••" 
-                                           @bind="inputForm.Password" />
-                                </label>
+                            @if (inputForm.CreateAccount || inputForm.CustomerId != 0)
+                            {
+                                <div class="grid gap-2.5 pt-1">
+                                    @if (inputForm.CustomerId == 0)
+                                    {
+                                        <label>
+                                            <span class="font-semibold text-slate-700 dark:text-slate-300">Tên đăng nhập (Username)</span>
+                                            <input class="bakery-input w-full" 
+                                                   placeholder="Ví dụ: annguyen2026" 
+                                                   @bind="inputForm.Username" />
+                                        </label>
+                                    }
 
-                                <label>
-                                    <span class="font-semibold text-slate-700 dark:text-slate-300">Trạng thái tài khoản</span>
-                                    <select class="bakery-input w-full" @bind="inputForm.AccountStatus">
-                                        <option value="Active">Đang hoạt động</option>
-                                        <option value="Inactive">Đã khóa tài khoản</option>
-                                    </select>
-                                </label>
-                            </div>
-                        }
-                    </div>
+                                    <label>
+                                        <span class="font-semibold text-slate-700 dark:text-slate-300">
+                                            @(inputForm.CustomerId == 0 ? "Mật khẩu (mặc định: 123456)" : "Mật khẩu mới (để trống nếu giữ nguyên)")
+                                        </span>
+                                        <input class="bakery-input w-full" 
+                                               type="password" 
+                                               placeholder="••••••••" 
+                                               @bind="inputForm.Password" />
+                                    </label>
+
+                                    <label>
+                                        <span class="font-semibold text-slate-700 dark:text-slate-300">Trạng thái tài khoản</span>
+                                        <select class="bakery-input w-full" @bind="inputForm.AccountStatus">
+                                            <option value="Active">Đang hoạt động</option>
+                                            <option value="Inactive">Đã khóa tài khoản</option>
+                                        </select>
+                                    </label>
+                                </div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-[11px] text-slate-500 mt-1">
+                            Nhân viên chỉ cập nhật thông tin liên hệ. Việc cấp, khóa hoặc đặt lại mật khẩu tài khoản do Quản trị viên thực hiện.
+                        </div>
+                    }
 
                     @if (!string.IsNullOrEmpty(formMessage))
                     {
@@ -433,26 +443,29 @@
                 </div>
 
                 <!-- 5. Thanh công cụ thao tác chuẩn BakeryAdmin -->
-                <div class="pt-3 border-t border-slate-200 dark:border-slate-700 grid grid-cols-2 gap-2">
+                <div class="pt-3 border-t border-slate-200 dark:border-slate-700 grid @(isAdmin ? "grid-cols-2" : "grid-cols-1") gap-2">
                     <button type="button" class="bakery-btn bakery-btn-outline w-full text-xs font-semibold py-2" @onclick="() => OpenEditForm(selectedCustomer)">
                         Chỉnh sửa thông tin
                     </button>
 
-                    @if (selectedCustomer.HasAppAccount)
+                    @if (isAdmin)
                     {
-                        <button type="button" 
-                                class="bakery-btn @(selectedCustomer.AccountStatus == "Active" ? "bakery-btn-secondary" : "bakery-btn-primary") w-full text-xs font-semibold py-2" 
-                                @onclick="() => ToggleAccountStatus(selectedCustomer.CustomerId)">
-                            @(selectedCustomer.AccountStatus == "Active" ? "Khóa tài khoản" : "Mở khóa App")
-                        </button>
-                    }
-                    else
-                    {
-                        <button type="button" 
-                                class="bakery-btn bakery-btn-primary w-full text-xs font-semibold py-2" 
-                                @onclick="() => OpenCreateAccountForCustomer(selectedCustomer)">
-                            Cấp tài khoản App
-                        </button>
+                        @if (selectedCustomer.HasAppAccount)
+                        {
+                            <button type="button" 
+                                    class="bakery-btn @(selectedCustomer.AccountStatus == "Active" ? "bakery-btn-secondary" : "bakery-btn-primary") w-full text-xs font-semibold py-2" 
+                                    @onclick="() => ToggleAccountStatus(selectedCustomer.CustomerId)">
+                                @(selectedCustomer.AccountStatus == "Active" ? "Khóa tài khoản" : "Mở khóa App")
+                            </button>
+                        }
+                        else
+                        {
+                            <button type="button" 
+                                    class="bakery-btn bakery-btn-primary w-full text-xs font-semibold py-2" 
+                                    @onclick="() => OpenCreateAccountForCustomer(selectedCustomer)">
+                                Cấp tài khoản App
+                            </button>
+                        }
                     }
                 </div>
 
@@ -582,8 +595,12 @@
             (c.Username != null && c.Username.Contains(searchKeyword.Trim(), StringComparison.OrdinalIgnoreCase)) ||
             (!string.IsNullOrEmpty(c.CustomerCode) && c.CustomerCode.Contains(searchKeyword.Trim(), StringComparison.OrdinalIgnoreCase))));
 
+    private bool isAdmin;
+
     protected override async Task OnInitializedAsync()
     {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        isAdmin = authState.User.IsInRole(BakerySystem.Domain.Enums.AccountRole.Admin);
         await LoadCustomersAsync();
     }
 
@@ -642,6 +659,7 @@
 
     private void OpenCreateAccountForCustomer(CustomerDetailDto customer)
     {
+        if (!isAdmin) return;
         inputForm = new CustomerInputModel
         {
             CustomerId = customer.CustomerId,
@@ -669,6 +687,18 @@
         formMessage = null;
         try
         {
+            if (!isAdmin)
+            {
+                inputForm.CreateAccount = false;
+                inputForm.Username = null;
+                inputForm.Password = null;
+                inputForm.AccountStatus = selectedCustomer is not null
+                    && selectedCustomer.CustomerId == inputForm.CustomerId
+                    && selectedCustomer.AccountStatus is "Active" or "Inactive"
+                    ? selectedCustomer.AccountStatus
+                    : "Active";
+            }
+
             var savedId = await CustomerManager.SaveCustomerAsync(inputForm);
             formSuccess = true;
             formMessage = inputForm.CustomerId == 0 ? "Thêm khách hàng thành công!" : "Cập nhật thông tin thành công!";
@@ -690,6 +720,7 @@
 
     private async Task ToggleAccountStatus(int customerId)
     {
+        if (!isAdmin) return;
         try
         {
             await CustomerManager.ToggleAccountStatusAsync(customerId);

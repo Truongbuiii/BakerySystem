@@ -533,10 +533,11 @@ else
         ordersUsing = await PromotionManager.GetOrdersUsingAsync(PromotionId);
         hasBeenUsed = await PromotionManager.HasBeenUsedAsync(PromotionId);
 
-        if (promotion?.PromotionInvoice is { } pi && pi.UsedCount != ordersUsing.Count)
+        var activeUsedCount = ordersUsing.Count(o => o.Status != OrderStatus.Cancelled);
+        if (promotion?.PromotionInvoice is { } pi && pi.UsedCount != activeUsedCount)
         {
-            pi.UsedCount = ordersUsing.Count;
-            await PromotionManager.SyncUsedCountAsync(PromotionId, ordersUsing.Count);
+            pi.UsedCount = activeUsedCount;
+            await PromotionManager.SyncUsedCountAsync(PromotionId, activeUsedCount);
         }
     }
 

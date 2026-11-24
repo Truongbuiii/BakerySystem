@@ -185,7 +185,14 @@ public sealed class PosService(IBakeryDbContext db)
             var invoice = await db.PromotionInvoices.FirstOrDefaultAsync(pi => pi.PromotionID == promotionId.Value, ct);
             if (invoice != null)
             {
-                invoice.UsedCount++;
+                var activeUsedCount = await db.Orders.CountAsync(
+                    o => o.PromotionID == promotionId.Value
+                        && o.Status != OrderStatus.Cancelled, ct);
+                if (invoice.UsageLimit.HasValue && activeUsedCount >= invoice.UsageLimit.Value)
+                {
+                    throw new InvalidOperationException("Mã khuyến mãi đã đạt giới hạn lượt sử dụng.");
+                }
+                invoice.UsedCount = activeUsedCount + 1;
             }
         }
 
