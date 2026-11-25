@@ -364,3 +364,324 @@ window.initBakeryReportsCharts = function (labels, revSeries, costSeries, profit
         window.__bakeryReportsDonutChart.render();
     }
 };
+
+/**
+ * BakerySystem Reports Mainform Detail Charts
+ * Managed per container elementId so switching items on the left cleanly destroys & re-renders.
+ */
+window.__bakeryReportDetailCharts = window.__bakeryReportDetailCharts || {};
+
+window.__destroyBakeryReportChart = function (elementId) {
+    const existing = window.__bakeryReportDetailCharts[elementId];
+    if (existing) {
+        try { existing.destroy(); } catch { }
+        delete window.__bakeryReportDetailCharts[elementId];
+    }
+    const el = document.getElementById(elementId);
+    if (el) el.innerHTML = "";
+    return el;
+};
+
+window.renderReportQuarterlyChart = function (elementId, labels, revSeries, profitSeries, qtySeries) {
+    if (typeof ApexCharts === 'undefined') {
+        setTimeout(() => window.renderReportQuarterlyChart(elementId, labels, revSeries, profitSeries, qtySeries), 120);
+        return;
+    }
+
+    const el = window.__destroyBakeryReportChart(elementId);
+    if (!el) return;
+
+    const isDark = document.documentElement.classList.contains('dark');
+    const axisColor = isDark ? '#94a3b8' : '#64748b';
+    const hasQty = Array.isArray(qtySeries) && qtySeries.length > 0;
+
+    const series = [
+        { name: 'Doanh thu thực thu', type: 'column', data: revSeries || [] },
+        { name: 'Lợi nhuận gộp', type: 'column', data: profitSeries || [] }
+    ];
+    if (hasQty) {
+        series.push({ name: 'Số lượng bán', type: 'line', data: qtySeries });
+    }
+
+    const options = {
+        series: series,
+        chart: {
+            height: 270,
+            type: 'line',
+            stacked: false,
+            toolbar: { show: false },
+            fontFamily: 'inherit',
+            animations: { speed: 320 }
+        },
+        colors: hasQty ? ['#2563eb', '#10b981', '#f59e0b'] : ['#2563eb', '#10b981'],
+        stroke: {
+            width: hasQty ? [0, 0, 3] : [0, 0],
+            curve: 'smooth'
+        },
+        plotOptions: {
+            bar: {
+                horizontal: false,
+                columnWidth: '44%',
+                borderRadius: 6,
+                borderRadiusApplication: 'end'
+            }
+        },
+        markers: {
+            size: hasQty ? [0, 0, 5] : [0, 0],
+            strokeWidth: 2,
+            hover: { size: 7 }
+        },
+        dataLabels: { enabled: false },
+        xaxis: {
+            categories: labels || [],
+            labels: {
+                style: { colors: axisColor, fontSize: '12px', fontWeight: 600 }
+            },
+            axisBorder: { show: false },
+            axisTicks: { show: false }
+        },
+        yaxis: hasQty
+            ? [
+                {
+                    seriesName: 'Doanh thu thực thu',
+                    labels: {
+                        style: { colors: axisColor, fontSize: '11px' },
+                        formatter: function (val) {
+                            const abs = Math.abs(val);
+                            const sign = val < 0 ? '-' : '';
+                            if (abs >= 1000000) return sign + (abs / 1000000).toFixed(1) + ' tr';
+                            if (abs >= 1000) return sign + (abs / 1000).toFixed(0) + ' k';
+                            return Math.round(val);
+                        }
+                    }
+                },
+                {
+                    seriesName: 'Doanh thu thực thu',
+                    show: false
+                },
+                {
+                    opposite: true,
+                    seriesName: 'Số lượng bán',
+                    labels: {
+                        style: { colors: '#d97706', fontSize: '11px' },
+                        formatter: function (val) { return Math.round(val) + ' cái'; }
+                    }
+                }
+            ]
+            : {
+                labels: {
+                    style: { colors: axisColor, fontSize: '11px' },
+                    formatter: function (val) {
+                        const abs = Math.abs(val);
+                        const sign = val < 0 ? '-' : '';
+                        if (abs >= 1000000) return sign + (abs / 1000000).toFixed(1) + ' tr';
+                        if (abs >= 1000) return sign + (abs / 1000).toFixed(0) + ' k';
+                        return Math.round(val);
+                    }
+                }
+            },
+        grid: {
+            borderColor: isDark ? '#334155' : '#e2e8f0',
+            strokeDashArray: 3,
+            xaxis: { lines: { show: false } }
+        },
+        tooltip: {
+            shared: true,
+            intersect: false,
+            theme: isDark ? 'dark' : 'light',
+            y: {
+                formatter: function (val, opts) {
+                    if (val === null || val === undefined) return '0';
+                    if (hasQty && opts && opts.seriesIndex === 2) {
+                        return Math.round(val) + ' sản phẩm';
+                    }
+                    return new Intl.NumberFormat('vi-VN').format(Math.round(val)) + ' đ';
+                }
+            }
+        },
+        legend: {
+            position: 'top',
+            horizontalAlign: 'right',
+            fontSize: '12px',
+            fontWeight: 600,
+            labels: { colors: isDark ? '#cbd5e1' : '#334155' },
+            markers: { radius: 4 }
+        }
+    };
+
+    const chart = new ApexCharts(el, options);
+    window.__bakeryReportDetailCharts[elementId] = chart;
+    chart.render();
+};
+
+window.renderReportTopBarChart = function (elementId, labels, values, seriesName, unitSuffix, colorHex) {
+    if (typeof ApexCharts === 'undefined') {
+        setTimeout(() => window.renderReportTopBarChart(elementId, labels, values, seriesName, unitSuffix, colorHex), 120);
+        return;
+    }
+
+    const el = window.__destroyBakeryReportChart(elementId);
+    if (!el) return;
+
+    const isDark = document.documentElement.classList.contains('dark');
+    const axisColor = isDark ? '#94a3b8' : '#475569';
+    const count = Array.isArray(labels) ? labels.length : 0;
+    const dynamicHeight = Math.max(220, Math.min(420, count * 42 + 56));
+    const suffix = unitSuffix || ' đ';
+
+    const options = {
+        series: [{ name: seriesName || 'Giá trị', data: values || [] }],
+        chart: {
+            type: 'bar',
+            height: dynamicHeight,
+            toolbar: { show: false },
+            fontFamily: 'inherit',
+            animations: { speed: 300 }
+        },
+        colors: [colorHex || '#2563eb'],
+        plotOptions: {
+            bar: {
+                horizontal: true,
+                borderRadius: 6,
+                barHeight: '58%',
+                distributed: false
+            }
+        },
+        dataLabels: {
+            enabled: true,
+            textAnchor: 'start',
+            offsetX: 6,
+            style: {
+                fontSize: '11px',
+                fontWeight: 700,
+                colors: [isDark ? '#e2e8f0' : '#1e293b']
+            },
+            formatter: function (val) {
+                return new Intl.NumberFormat('vi-VN').format(Math.round(val)) + suffix;
+            }
+        },
+        xaxis: {
+            categories: labels || [],
+            labels: {
+                style: { colors: axisColor, fontSize: '11px' },
+                formatter: function (val) {
+                    const num = Number(val);
+                    if (isNaN(num)) return val;
+                    if (suffix.includes('đ')) {
+                        if (Math.abs(num) >= 1000000) return (num / 1000000).toFixed(1) + ' tr';
+                        if (Math.abs(num) >= 1000) return (num / 1000).toFixed(0) + ' k';
+                    }
+                    return Math.round(num);
+                }
+            }
+        },
+        yaxis: {
+            labels: {
+                maxWidth: 185,
+                style: { colors: isDark ? '#e2e8f0' : '#0f172a', fontSize: '11.5px', fontWeight: 600 }
+            }
+        },
+        grid: {
+            borderColor: isDark ? '#334155' : '#e2e8f0',
+            strokeDashArray: 3,
+            yaxis: { lines: { show: false } }
+        },
+        tooltip: {
+            theme: isDark ? 'dark' : 'light',
+            y: {
+                formatter: function (val) {
+                    return new Intl.NumberFormat('vi-VN').format(Math.round(val)) + suffix;
+                }
+            }
+        }
+    };
+
+    const chart = new ApexCharts(el, options);
+    window.__bakeryReportDetailCharts[elementId] = chart;
+    chart.render();
+};
+
+window.renderReportDonutChart = function (elementId, labels, series, colors, centerLabel) {
+    if (typeof ApexCharts === 'undefined') {
+        setTimeout(() => window.renderReportDonutChart(elementId, labels, series, colors, centerLabel), 120);
+        return;
+    }
+
+    const el = window.__destroyBakeryReportChart(elementId);
+    if (!el) return;
+
+    const isDark = document.documentElement.classList.contains('dark');
+    const axisColor = isDark ? '#94a3b8' : '#64748b';
+    const hasData = Array.isArray(series) && series.some(v => v > 0);
+    const palette = (Array.isArray(colors) && colors.length > 0)
+        ? colors
+        : ['#2563eb', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4'];
+
+    const options = {
+        series: hasData ? series : [1],
+        labels: hasData ? labels : ['Chưa có dữ liệu'],
+        chart: {
+            type: 'donut',
+            height: 250,
+            fontFamily: 'inherit',
+            animations: { speed: 300 }
+        },
+        colors: hasData ? palette : [isDark ? '#334155' : '#e2e8f0'],
+        dataLabels: { enabled: false },
+        legend: {
+            position: 'bottom',
+            fontSize: '12px',
+            fontWeight: 500,
+            labels: { colors: isDark ? '#cbd5e1' : '#334155' }
+        },
+        plotOptions: {
+            pie: {
+                donut: {
+                    size: '68%',
+                    labels: {
+                        show: true,
+                        name: { show: true, fontSize: '11px', color: axisColor },
+                        value: {
+                            show: true,
+                            fontSize: '14px',
+                            fontWeight: 700,
+                            color: isDark ? '#f8fafc' : '#0f172a',
+                            formatter: function (val) {
+                                if (!hasData) return '0 đ';
+                                return new Intl.NumberFormat('vi-VN').format(Math.round(val)) + ' đ';
+                            }
+                        },
+                        total: {
+                            show: true,
+                            label: centerLabel || 'Tổng thực thu',
+                            fontSize: '11px',
+                            color: axisColor,
+                            formatter: function (w) {
+                                if (!hasData) return '0 đ';
+                                const total = w.globals.seriesTotals.reduce((a, b) => a + b, 0);
+                                return new Intl.NumberFormat('vi-VN').format(Math.round(total)) + ' đ';
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        stroke: {
+            colors: [isDark ? '#0f172a' : '#ffffff'],
+            width: 2
+        },
+        tooltip: {
+            enabled: hasData,
+            theme: isDark ? 'dark' : 'light',
+            y: {
+                formatter: function (val) {
+                    return new Intl.NumberFormat('vi-VN').format(Math.round(val)) + ' đ';
+                }
+            }
+        }
+    };
+
+    const chart = new ApexCharts(el, options);
+    window.__bakeryReportDetailCharts[elementId] = chart;
+    chart.render();
+};

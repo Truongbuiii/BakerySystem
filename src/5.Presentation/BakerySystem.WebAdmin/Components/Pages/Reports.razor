@@ -5,12 +5,11 @@
 @using BakerySystem.Domain.Enums
 @inject ReportService ReportService
 @inject IJSRuntime JS
-@inject NavigationManager Navigation
 
-<PageTitle>Báo Cáo Doanh Thu &amp; Thống Kê | BakeryAdmin</PageTitle>
+<PageTitle>Báo Cáo &amp; Thống Kê Mainform | BakeryAdmin</PageTitle>
 
 <div class="reports-page">
-    <!-- Header Trang & Hành động -->
+    <!-- HEADER -->
     <div class="bakery-page-header pb-2 border-b border-border dark:border-darkborder flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <div>
             <div class="flex items-center gap-2 text-xs text-slate-500 mb-1">
@@ -25,10 +24,10 @@
                 <span class="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800 flex items-center justify-center shrink-0">
                     <iconify-icon icon="solar:chart-2-bold" class="text-xl"></iconify-icon>
                 </span>
-                Báo Cáo Kinh Doanh, Giá Vốn &amp; Lợi Nhuận
+                Báo Cáo &amp; Thống Kê Kinh Doanh
             </h2>
             <p class="text-xs sm:text-sm text-slate-500 mb-0">
-                Tổng hợp doanh thu thực thu từ đơn hoàn tất, giá vốn hàng bán (COGS), lãi gộp thực tế và hiệu suất vận hành theo chu kỳ.
+                Chọn danh mục hoặc sản phẩm ở danh sách bên trái để xem chi tiết doanh thu theo từng quý và biểu đồ trực quan ở bên phải.
             </p>
         </div>
 
@@ -36,8 +35,7 @@
             <button type="button"
                     class="bakery-btn bakery-btn-outline bakery-btn-sm"
                     @onclick="LoadReportDataAsync"
-                    disabled="@isLoading"
-                    title="Tải lại dữ liệu">
+                    disabled="@isLoading">
                 <iconify-icon icon="solar:restart-linear" class="text-base @(isLoading ? "rpt-spin" : "")"></iconify-icon>
                 <span>Tải lại</span>
             </button>
@@ -45,8 +43,7 @@
             <button type="button"
                     class="bakery-btn bakery-btn-outline bakery-btn-sm"
                     @onclick="ExportReportToExcel"
-                    disabled="@isLoading"
-                    title="Xuất bảng báo cáo thống kê ra Excel">
+                    disabled="@isLoading">
                 <iconify-icon icon="solar:file-download-linear" class="text-base rpt-text-emerald"></iconify-icon>
                 <span>Xuất Excel</span>
             </button>
@@ -54,34 +51,28 @@
             <button type="button"
                     class="bakery-btn bakery-btn-primary bakery-btn-sm shadow-sm"
                     @onclick="PrintReport"
-                    disabled="@isLoading"
-                    title="In ấn hoặc lưu báo cáo này dạng PDF">
+                    disabled="@isLoading">
                 <iconify-icon icon="solar:printer-linear" class="text-base"></iconify-icon>
-                <span>In / Xuất PDF Báo Cáo</span>
+                <span>In / Xuất PDF</span>
             </button>
         </div>
     </div>
 
     <div class="rpt-section-stack">
-        <!-- TẦNG 1: Bộ lọc chu kỳ & thông tin đối chiếu kỳ trước -->
-        <div class="bakery-card report-timeline-panel report-filter p-4">
+        <!-- TẦNG 1: BỘ LỌC CHU KỲ & NĂM THỐNG KÊ QUÝ -->
+        <div class="bakery-card report-timeline-panel report-filter p-3.5">
             <div class="report-filter-toolbar">
                 <div class="report-filter-modes" role="tablist" aria-label="Kiểu lọc chu kỳ">
-                    <button type="button" role="tab" aria-selected="@(filterType == "quick")"
-                            class="report-filter-mode @(filterType == "quick" ? "is-active" : "")"
+                    <button type="button" role="tab" class="report-filter-mode @(filterType == "quick" ? "is-active" : "")"
                             @onclick='() => SetFilterType("quick")'>Chu kỳ nhanh</button>
-                    <button type="button" role="tab" aria-selected="@(filterType == "custom")"
-                            class="report-filter-mode @(filterType == "custom" ? "is-active" : "")"
-                            @onclick='() => SetFilterType("custom")'>Từ ngày A &rarr; B</button>
-                    <button type="button" role="tab" aria-selected="@(filterType == "month")"
-                            class="report-filter-mode @(filterType == "month" ? "is-active" : "")"
-                            @onclick='() => SetFilterType("month")'>Theo tháng</button>
-                    <button type="button" role="tab" aria-selected="@(filterType == "quarter")"
-                            class="report-filter-mode @(filterType == "quarter" ? "is-active" : "")"
-                            @onclick='() => SetFilterType("quarter")'>Theo quý</button>
-                    <button type="button" role="tab" aria-selected="@(filterType == "year")"
-                            class="report-filter-mode @(filterType == "year" ? "is-active" : "")"
+                    <button type="button" role="tab" class="report-filter-mode @(filterType == "year" ? "is-active" : "")"
                             @onclick='() => SetFilterType("year")'>Theo năm</button>
+                    <button type="button" role="tab" class="report-filter-mode @(filterType == "quarter" ? "is-active" : "")"
+                            @onclick='() => SetFilterType("quarter")'>Theo quý</button>
+                    <button type="button" role="tab" class="report-filter-mode @(filterType == "month" ? "is-active" : "")"
+                            @onclick='() => SetFilterType("month")'>Theo tháng</button>
+                    <button type="button" role="tab" class="report-filter-mode @(filterType == "custom" ? "is-active" : "")"
+                            @onclick='() => SetFilterType("custom")'>Từ ngày A &rarr; B</button>
                 </div>
 
                 <div class="report-filter-controls">
@@ -111,7 +102,7 @@
                                 <input type="date" class="bakery-input report-filter-input" @bind="customEndDate" />
                             </label>
                             <button type="button" class="bakery-btn bakery-btn-primary bakery-btn-sm" @onclick="LoadReportDataAsync">
-                                Xem thống kê
+                                Xem
                             </button>
                         </div>
                     }
@@ -119,7 +110,7 @@
                     {
                         <div class="report-filter-fields">
                             <label class="report-filter-field">
-                                <span>Chọn tháng</span>
+                                <span>Tháng</span>
                                 <select class="bakery-input report-filter-input" @bind="selectedMonth">
                                     @for (int m = 1; m <= 12; m++)
                                     {
@@ -137,7 +128,7 @@
                                 </select>
                             </label>
                             <button type="button" class="bakery-btn bakery-btn-primary bakery-btn-sm" @onclick="LoadReportDataAsync">
-                                Xem tháng
+                                Xem
                             </button>
                         </div>
                     }
@@ -145,12 +136,12 @@
                     {
                         <div class="report-filter-fields">
                             <label class="report-filter-field">
-                                <span>Chọn quý</span>
+                                <span>Quý</span>
                                 <select class="bakery-input report-filter-input" @bind="selectedQuarter">
-                                    <option value="1">Quý 1 (Tháng 1 - 3)</option>
-                                    <option value="2">Quý 2 (Tháng 4 - 6)</option>
-                                    <option value="3">Quý 3 (Tháng 7 - 9)</option>
-                                    <option value="4">Quý 4 (Tháng 10 - 12)</option>
+                                    <option value="1">Quý 1 (T1 - T3)</option>
+                                    <option value="2">Quý 2 (T4 - T6)</option>
+                                    <option value="3">Quý 3 (T7 - T9)</option>
+                                    <option value="4">Quý 4 (T10 - T12)</option>
                                 </select>
                             </label>
                             <label class="report-filter-field">
@@ -163,7 +154,7 @@
                                 </select>
                             </label>
                             <button type="button" class="bakery-btn bakery-btn-primary bakery-btn-sm" @onclick="LoadReportDataAsync">
-                                Xem quý
+                                Xem
                             </button>
                         </div>
                     }
@@ -171,7 +162,7 @@
                     {
                         <div class="report-filter-fields">
                             <label class="report-filter-field">
-                                <span>Chọn năm</span>
+                                <span>Năm</span>
                                 <select class="bakery-input report-filter-input" @bind="selectedYear">
                                     @for (int y = DateTime.Now.Year - 3; y <= DateTime.Now.Year + 1; y++)
                                     {
@@ -180,7 +171,7 @@
                                 </select>
                             </label>
                             <button type="button" class="bakery-btn bakery-btn-primary bakery-btn-sm" @onclick="LoadReportDataAsync">
-                                Xem cả năm
+                                Xem năm
                             </button>
                         </div>
                     }
@@ -197,17 +188,14 @@
                             <span>(@activeStartDate.Value.ToString("dd/MM/yyyy") &ndash; @activeEndDate.Value.ToString("dd/MM/yyyy"))</span>
                         }
                     </span>
-                    @if (prevStartDate.HasValue && prevEndDate.HasValue)
-                    {
-                        <span class="rpt-meta-chip">
-                            <iconify-icon icon="solar:history-linear"></iconify-icon>
-                            So với kỳ trước: @prevStartDate.Value.ToString("dd/MM/yyyy") &ndash; @prevEndDate.Value.ToString("dd/MM/yyyy")
-                        </span>
-                    }
+                    <span class="rpt-meta-chip">
+                        <iconify-icon icon="solar:chart-square-linear"></iconify-icon>
+                        Biểu đồ Quý (Q1–Q4): <strong>Năm @analytics.AnalyticsYear</strong>
+                    </span>
                 </div>
                 <span class="rpt-meta-chip is-rule">
                     <iconify-icon icon="solar:verified-check-linear"></iconify-icon>
-                    Doanh thu thực thu chỉ tính đơn Hoàn tất &amp; Giá vốn tính theo từng món đã bán
+                    Doanh thu thực thu tính theo đơn Hoàn tất &amp; phân bổ voucher
                 </span>
             </div>
         </div>
@@ -225,9 +213,9 @@
 
         @if (isLoading)
         {
-            <div class="bakery-card p-6 text-center text-sm rpt-text-muted flex flex-col items-center gap-2">
+            <div class="bakery-card p-8 text-center text-sm rpt-text-muted flex flex-col items-center gap-2">
                 <iconify-icon icon="solar:refresh-circle-linear" class="text-3xl rpt-text-blue rpt-spin"></iconify-icon>
-                <span>Đang tổng hợp số liệu tài chính, giá vốn và tồn kho...</span>
+                <span>Đang tổng hợp số liệu kinh doanh, quý và sản phẩm...</span>
             </div>
         }
         else
@@ -237,18 +225,16 @@
             var posChannel = analytics.Channels.FirstOrDefault(c => c.ChannelKey == "pos");
             var onlineChannel = analytics.Channels.FirstOrDefault(c => c.ChannelKey == "online");
 
-            <!-- TẦNG 2: 4 Thẻ KPI Cốt Lõi (Đập vào mắt đầu tiên + Bấm xem chi tiết) -->
+            <!-- TẦNG 2: 4 THẺ KPI TÓM TẮT (Bấm để chuyển nhanh tab Mainform) -->
             <div class="rpt-kpi-grid">
-                <!-- KPI 1: Doanh thu thực thu -->
-                <button type="button" class="rpt-kpi-card" @onclick='() => OpenOrdersModal("Đơn hàng hoàn tất (Doanh thu thực thu)", "completed", "all")'>
+                <button type="button" class="rpt-kpi-card @(masterTab == "quarters" ? "is-active-kpi" : "")"
+                        @onclick="SelectQuartersOverview">
                     <div class="rpt-kpi-top">
                         <div>
                             <div class="rpt-kpi-label">Doanh thu thực thu</div>
                             <div class="rpt-kpi-value">@($"{kpi.ActualRevenue:N0} đ")</div>
                         </div>
-                        <span class="rpt-kpi-icon is-blue">
-                            <iconify-icon icon="solar:wallet-money-bold"></iconify-icon>
-                        </span>
+                        <span class="rpt-kpi-icon is-blue"><iconify-icon icon="solar:wallet-money-bold"></iconify-icon></span>
                     </div>
                     <div class="rpt-kpi-badges">
                         @if (kpi.HasComparison)
@@ -258,1310 +244,1083 @@
                             </span>
                         }
                         <span class="rpt-pill is-info">TB/đơn: @($"{kpi.AverageOrderValue:N0} đ")</span>
-                        @if (kpi.VoucherDiscount > 0)
-                        {
-                            <span class="rpt-pill is-neutral">Giảm voucher: @($"{kpi.VoucherDiscount:N0} đ")</span>
-                        }
-                    </div>
-                    <div class="rpt-kpi-foot">
-                        <span>@kpi.CompletedOrdersCount đơn hoàn tất</span>
-                        <span class="rpt-kpi-link">Xem đơn hoàn tất &rarr;</span>
                     </div>
                 </button>
 
-                <!-- KPI 2: Lợi nhuận gộp & Giá vốn COGS -->
-                <button type="button" class="rpt-kpi-card" @onclick="OpenProductProfitModal">
+                <button type="button" class="rpt-kpi-card @(masterTab == "products" ? "is-active-kpi" : "")"
+                        @onclick='() => JumpToTopProducts("profit")'>
                     <div class="rpt-kpi-top">
                         <div>
-                            <div class="rpt-kpi-label">Lợi nhuận gộp (Doanh thu - COGS)</div>
+                            <div class="rpt-kpi-label">Lợi nhuận gộp (COGS)</div>
                             <div class="rpt-kpi-value">@($"{kpi.GrossProfit:N0} đ")</div>
                         </div>
-                        <span class="rpt-kpi-icon is-emerald">
-                            <iconify-icon icon="solar:graph-up-bold"></iconify-icon>
-                        </span>
+                        <span class="rpt-kpi-icon is-emerald"><iconify-icon icon="solar:graph-up-bold"></iconify-icon></span>
                     </div>
                     <div class="rpt-kpi-badges">
-                        @if (kpi.HasComparison)
-                        {
-                            <span class="rpt-pill @GetGrowthBadgeClass(kpi.GrossProfitGrowthPercent, kpi.GrossProfit, kpi.PreviousGrossProfit)">
-                                @FormatGrowthText(kpi.GrossProfitGrowthPercent, kpi.GrossProfit, kpi.PreviousGrossProfit)
-                            </span>
-                        }
                         <span class="rpt-pill @(kpi.ProfitMargin >= 30 ? "is-up" : kpi.ProfitMargin >= 0 ? "is-warn" : "is-down")">
                             Biên lãi: @($"{kpi.ProfitMargin:F1}%")
                         </span>
-                        <span class="rpt-pill is-neutral">Giá vốn COGS: @($"{kpi.CostOfGoodsSold:N0} đ")</span>
-                    </div>
-                    <div class="rpt-kpi-foot">
-                        <span>Giá vốn tính trên SL món đã bán</span>
-                        <span class="rpt-kpi-link">Lãi gộp từng món &rarr;</span>
+                        <span class="rpt-pill is-neutral">Giá vốn: @($"{kpi.CostOfGoodsSold:N0} đ")</span>
                     </div>
                 </button>
 
-                <!-- KPI 3: Hiệu suất Đơn hàng & Kênh bán -->
-                <button type="button" class="rpt-kpi-card" @onclick='() => OpenOrdersModal("Tất cả đơn hàng trong kỳ", "all", "all")'>
+                <button type="button" class="rpt-kpi-card @(masterTab == "channels" ? "is-active-kpi" : "")"
+                        @onclick="SelectChannelsOverview">
                     <div class="rpt-kpi-top">
                         <div>
                             <div class="rpt-kpi-label">Đơn hàng &amp; Kênh bán</div>
                             <div class="rpt-kpi-value">@kpi.CompletedOrdersCount / @kpi.TotalOrdersCount đơn</div>
                         </div>
-                        <span class="rpt-kpi-icon is-violet">
-                            <iconify-icon icon="solar:bag-check-bold"></iconify-icon>
-                        </span>
+                        <span class="rpt-kpi-icon is-violet"><iconify-icon icon="solar:bag-check-bold"></iconify-icon></span>
                     </div>
                     <div class="rpt-kpi-badges">
                         <span class="rpt-pill is-up">@($"{kpi.OrderSuccessRate:F1}%") thành công</span>
                         <span class="rpt-pill is-info">POS: @(posChannel?.OrderCount ?? 0) &middot; Online: @(onlineChannel?.OrderCount ?? 0)</span>
-                        @if (kpi.ProcessingOrdersCount > 0)
-                        {
-                            <span class="rpt-pill is-warn">Chờ thu: @kpi.ProcessingOrdersCount đơn</span>
-                        }
-                        @if (kpi.CancelledOrdersCount > 0)
-                        {
-                            <span class="rpt-pill is-down">Hủy: @kpi.CancelledOrdersCount</span>
-                        }
-                    </div>
-                    <div class="rpt-kpi-foot">
-                        <span>Chờ thu: @($"{kpi.ProcessingOrdersAmount:N0} đ")</span>
-                        <span class="rpt-kpi-link">Chi tiết trạng thái &rarr;</span>
                     </div>
                 </button>
 
-                <!-- KPI 4: Nhập kho kỳ & Sức khỏe Tồn kho -->
-                <button type="button" class="rpt-kpi-card" @onclick='() => OpenImportsModal(null, "Phiếu nhập kho trong kỳ")'>
+                <button type="button" class="rpt-kpi-card @(masterTab == "categories" ? "is-active-kpi" : "")"
+                        @onclick="SelectCategoriesOverview">
                     <div class="rpt-kpi-top">
                         <div>
                             <div class="rpt-kpi-label">Chi nhập kho &amp; Tồn kho</div>
                             <div class="rpt-kpi-value">@($"{kpi.PeriodImportCashflow:N0} đ")</div>
                         </div>
-                        <span class="rpt-kpi-icon is-amber">
-                            <iconify-icon icon="solar:box-bold"></iconify-icon>
-                        </span>
+                        <span class="rpt-kpi-icon is-amber"><iconify-icon icon="solar:box-bold"></iconify-icon></span>
                     </div>
                     <div class="rpt-kpi-badges">
-                        <span class="rpt-pill is-neutral">@kpi.ImportReceiptsCount phiếu nhập &middot; @kpi.SuppliersCount NCC</span>
                         <span class="rpt-pill is-info">Tồn: @($"{inv.TotalStockUnits:N0}") bánh</span>
                         @if (inv.LowStockCount > 0)
                         {
-                            <span class="rpt-pill @(inv.OutOfStockCount > 0 ? "is-down" : "is-warn")">
-                                &#9888; @inv.LowStockCount món sắp hết
-                            </span>
+                            <span class="rpt-pill is-warn">@inv.LowStockCount món sắp hết</span>
                         }
                         else
                         {
                             <span class="rpt-pill is-up">Tồn kho ổn định</span>
                         }
                     </div>
-                    <div class="rpt-kpi-foot">
-                        <span>Vốn tồn: @($"{inv.TotalInventoryCostValue:N0} đ")</span>
-                        <span class="rpt-kpi-link">Xem phiếu nhập &rarr;</span>
-                    </div>
                 </button>
             </div>
 
-            <!-- TẦNG 3: Biểu đồ Trực quan Ngay Dưới KPI -->
-            <div class="rpt-charts-grid">
-                <!-- Left 2/3: Revenue vs COGS vs Gross Profit Chart -->
-                <section class="rpt-panel">
-                    <div class="rpt-panel-header">
-                        <div>
-                            <h3 class="rpt-panel-title">
-                                <iconify-icon icon="solar:chart-square-bold" class="rpt-text-blue"></iconify-icon>
-                                Biểu Đồ Doanh Thu &ndash; Giá Vốn (COGS) &ndash; Lợi Nhuận Gộp
-                            </h3>
-                            <p class="rpt-panel-sub">So sánh doanh thu thực thu với giá vốn hàng bán thực tế theo từng mốc (@GetPeriodDisplayName())</p>
-                        </div>
-                        <button type="button" class="rpt-link-btn" @onclick="OpenProductProfitModal">
-                            Phân tích giá vốn món bánh &rarr;
-                        </button>
-                    </div>
-
-                    <div class="rpt-chart-summary-row">
-                        <div class="rpt-mini-stat">
-                            <span>Doanh thu thực thu</span>
-                            <strong class="rpt-text-blue">@($"{kpi.ActualRevenue:N0} đ")</strong>
-                        </div>
-                        <div class="rpt-mini-stat">
-                            <span>Giá vốn hàng bán (COGS)</span>
-                            <strong class="rpt-text-amber">@($"{kpi.CostOfGoodsSold:N0} đ")</strong>
-                        </div>
-                        <div class="rpt-mini-stat">
-                            <span>Lợi nhuận gộp (@($"{kpi.ProfitMargin:F1}%"))</span>
-                            <strong class="@(kpi.GrossProfit >= 0 ? "rpt-text-emerald" : "rpt-text-red")">
-                                @($"{kpi.GrossProfit:N0} đ")
-                            </strong>
-                        </div>
-                    </div>
-
-                    <div id="reports-financial-chart" style="min-height: 260px;"></div>
-                </section>
-
-                <!-- Right 1/3: Category Net Revenue Donut (Khớp 100% Doanh thu thực thu) -->
-                <section class="rpt-panel">
-                    <div class="rpt-panel-header">
-                        <div>
-                            <h3 class="rpt-panel-title">
-                                <iconify-icon icon="solar:pie-chart-2-bold" class="rpt-text-emerald"></iconify-icon>
-                                Cơ Cấu Doanh Thu Loại Bánh
-                            </h3>
-                            <p class="rpt-panel-sub">Đã phân bổ voucher &middot; Khớp 100% tổng thực thu (@($"{kpi.ActualRevenue:N0} đ"))</p>
-                        </div>
-                    </div>
-
-                    <div id="reports-category-donut" style="min-height: 200px;"></div>
-
-                    @if (!analytics.Categories.Any())
-                    {
-                        <div class="rpt-empty">Chưa phát sinh doanh thu loại bánh trong chu kỳ này.</div>
-                    }
-                    else
-                    {
-                        <div class="rpt-list">
-                            @foreach (var cat in analytics.Categories)
-                            {
-                                var targetCat = cat;
-                                <button type="button" class="rpt-list-row" @onclick="() => OpenCategoryDetail(targetCat)">
-                                    <div class="flex items-center gap-2 min-w-0">
-                                        <span class="rpt-dot" style="background: @cat.ColorHex"></span>
-                                        <div class="min-w-0">
-                                            <div class="rpt-row-title truncate">@cat.CategoryName</div>
-                                            <div class="rpt-row-sub rpt-num">@cat.SoldQuantity bánh &middot; Lãi @($"{cat.GrossProfit:N0} đ") (@($"{cat.Margin:F1}%"))</div>
-                                        </div>
-                                    </div>
-                                    <div class="text-right shrink-0">
-                                        <div class="rpt-row-amount">@($"{cat.Revenue:N0} đ")</div>
-                                        <div class="rpt-row-sub rpt-text-blue font-semibold rpt-num">@($"{cat.Percentage:F1}%") &rsaquo;</div>
-                                    </div>
-                                </button>
-                            }
-                        </div>
-                    }
-                </section>
-            </div>
-
-            <!-- TẦNG 4A: Kênh bán & Thanh toán + Hiệu suất Món bánh -->
-            <div class="rpt-analytics-grid">
-                <!-- Panel 1: Kênh bán hàng (POS vs Online) & Phương thức thanh toán -->
-                <section class="rpt-panel">
-                    <div class="rpt-panel-header">
-                        <div>
-                            <h3 class="rpt-panel-title">
-                                <iconify-icon icon="solar:shop-2-bold" class="rpt-text-violet"></iconify-icon>
-                                Kênh Bán Hàng &amp; Thanh Toán
-                            </h3>
-                            <p class="rpt-panel-sub">Tách bạch bán tại quầy (POS) với đặt hàng Online &amp; dòng tiền thanh toán</p>
-                        </div>
-                        <span class="rpt-pill is-info">@($"{kpi.ActualRevenue:N0} đ")</span>
-                    </div>
-
-                    <!-- POS vs Online Cards -->
-                    <div class="rpt-channel-cards">
-                        @foreach (var channel in analytics.Channels)
-                        {
-                            var ch = channel;
-                            <button type="button" class="rpt-channel-card"
-                                    @onclick='() => OpenOrdersModal($"Đơn hàng hoàn tất - {ch.DisplayName}", "completed", ch.ChannelKey)'>
-                                <div class="flex items-center justify-between gap-2 mb-1">
-                                    <span class="rpt-channel-name">
-                                        <iconify-icon icon="@ch.Icon" class="text-base rpt-text-blue"></iconify-icon>
-                                        @ch.DisplayName
-                                    </span>
-                                    <span class="rpt-channel-pct">@($"{ch.Percentage:F1}%")</span>
-                                </div>
-                                <div class="rpt-channel-amount">@($"{ch.Revenue:N0} đ")</div>
-                                <div class="rpt-row-sub rpt-num">@ch.OrderCount đơn hoàn tất &middot; Lãi @($"{ch.GrossProfit:N0} đ")</div>
-                                <div class="rpt-progress-track">
-                                    <div class="rpt-progress-fill"
-                                         style="width: @($"{Math.Min(100m, ch.Percentage):F1}%"); background: @(ch.ChannelKey == "pos" ? "#2563eb" : "#8b5cf6")"></div>
-                                </div>
+            <!-- TẦNG 3: MAINFORM MASTER–DETAIL (TRÁI: DANH SÁCH | PHẢI: CHI TIẾT & BIỂU ĐỒ) -->
+            <div class="rpt-mainform-grid">
+                <!-- CỘT TRÁI: DANH SÁCH LỰA CHỌN THỐNG KÊ -->
+                <section class="rpt-master-card">
+                    <div class="rpt-master-head">
+                        <div class="rpt-master-tabs" role="tablist">
+                            <button type="button" role="tab" class="rpt-master-tab @(masterTab == "products" ? "is-active" : "")"
+                                    @onclick='() => SwitchMasterTab("products")'>
+                                <iconify-icon icon="solar:cup-star-bold"></iconify-icon>
+                                <span>Sản phẩm</span>
                             </button>
+                            <button type="button" role="tab" class="rpt-master-tab @(masterTab == "quarters" ? "is-active" : "")"
+                                    @onclick='() => SwitchMasterTab("quarters")'>
+                                <iconify-icon icon="solar:calendar-mark-bold"></iconify-icon>
+                                <span>Theo Quý</span>
+                            </button>
+                            <button type="button" role="tab" class="rpt-master-tab @(masterTab == "categories" ? "is-active" : "")"
+                                    @onclick='() => SwitchMasterTab("categories")'>
+                                <iconify-icon icon="solar:pie-chart-2-bold"></iconify-icon>
+                                <span>Loại bánh</span>
+                            </button>
+                            <button type="button" role="tab" class="rpt-master-tab @(masterTab == "channels" ? "is-active" : "")"
+                                    @onclick='() => SwitchMasterTab("channels")'>
+                                <iconify-icon icon="solar:shop-2-bold"></iconify-icon>
+                                <span>Kênh &amp; KH</span>
+                            </button>
+                        </div>
+
+                        @if (masterTab == "products")
+                        {
+                            <div class="rpt-master-tools">
+                                <div class="rpt-search-wrap">
+                                    <iconify-icon icon="solar:magnifer-linear" class="rpt-search-icon"></iconify-icon>
+                                    <input type="text"
+                                           class="bakery-input rpt-search-input"
+                                           placeholder="Tìm tên bánh hoặc loại bánh..."
+                                           @bind="productSearch"
+                                           @bind:event="oninput" />
+                                </div>
+                                <select class="bakery-input rpt-sort-select" @bind="productSort">
+                                    <option value="revenue_desc">Top doanh thu</option>
+                                    <option value="sold_desc">Top SL bán</option>
+                                    <option value="profit_desc">Top lãi gộp</option>
+                                    <option value="slow_asc">Bán chậm / Tồn cao</option>
+                                </select>
+                            </div>
                         }
                     </div>
 
-                    <!-- Payment Methods -->
-                    <div class="pt-1">
-                        <div class="flex items-center justify-between mb-2">
-                            <span class="rpt-row-title">Chi tiết theo phương thức thanh toán</span>
-                            <span class="rpt-row-sub">Bấm dòng để xem đơn hàng</span>
-                        </div>
-                        <div class="rpt-list">
-                            @foreach (var pay in analytics.Payments)
+                    <div class="rpt-master-list">
+                        @if (masterTab == "products")
+                        {
+                            <!-- Mục ghim: Biểu đồ Top sản phẩm -->
+                            <button type="button"
+                                    class="rpt-master-item is-pinned @(selectedProductId is null ? "is-selected" : "")"
+                                    @onclick="SelectTopProductsChart">
+                                <div class="rpt-item-main">
+                                    <span class="rpt-pin-icon"><iconify-icon icon="solar:ranking-bold"></iconify-icon></span>
+                                    <div class="min-w-0">
+                                        <div class="rpt-row-title">Tổng quan Biểu đồ Top sản phẩm</div>
+                                        <div class="rpt-row-sub">So sánh Top 5 / Top 10 theo Doanh thu, SL &amp; Lãi gộp</div>
+                                    </div>
+                                </div>
+                                <iconify-icon icon="solar:alt-arrow-right-linear" class="rpt-chevron"></iconify-icon>
+                            </button>
+
+                            var productList = GetMasterProducts();
+                            @if (!productList.Any())
                             {
-                                var targetPay = pay;
-                                <button type="button" class="rpt-list-row" @onclick="() => OpenPaymentOrdersModal(targetPay)">
-                                    <div class="flex items-center gap-2 min-w-0">
-                                        <span class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 @GetPaymentIconStyle(pay.BadgeTone)">
-                                            <iconify-icon icon="@pay.Icon" class="text-base"></iconify-icon>
-                                        </span>
+                                <div class="rpt-empty">Không tìm thấy sản phẩm phù hợp.</div>
+                            }
+                            else
+                            {
+                                @for (int i = 0; i < productList.Count; i++)
+                                {
+                                    var prod = productList[i];
+                                    var rank = i + 1;
+                                    var rankClass = productSort != "slow_asc"
+                                        ? (rank == 1 ? "is-top1" : rank == 2 ? "is-top2" : rank == 3 ? "is-top3" : "")
+                                        : "";
+                                    var annualRev = prod.QuarterlyMetrics.Sum(q => q.NetRevenue);
+                                    var isSelected = selectedProductId == prod.ProductID;
+
+                                    <button type="button"
+                                            class="rpt-master-item @(isSelected ? "is-selected" : "")"
+                                            @onclick="() => SelectProduct(prod.ProductID)">
+                                        <div class="rpt-item-main">
+                                            <span class="rpt-rank-badge @rankClass">@rank</span>
+                                            <div class="min-w-0">
+                                                <div class="rpt-row-title truncate" title="@prod.ProductName">@prod.ProductName</div>
+                                                <div class="rpt-row-sub rpt-num">
+                                                    @prod.CategoryName &middot; Đã bán <strong>@prod.SoldQuantity</strong> &middot; Tồn @prod.CurrentStock
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="text-right shrink-0">
+                                            <div class="rpt-row-amount">@($"{prod.NetRevenue:N0} đ")</div>
+                                            <div class="rpt-micro">Năm @analytics.AnalyticsYear: @($"{annualRev:N0} đ")</div>
+                                        </div>
+                                    </button>
+                                }
+                            }
+                        }
+                        else if (masterTab == "quarters")
+                        {
+                            <button type="button"
+                                    class="rpt-master-item is-pinned @(selectedQuarterDetail is null ? "is-selected" : "")"
+                                    @onclick="SelectQuartersOverview">
+                                <div class="rpt-item-main">
+                                    <span class="rpt-pin-icon"><iconify-icon icon="solar:chart-bold"></iconify-icon></span>
+                                    <div class="min-w-0">
+                                        <div class="rpt-row-title">So sánh cả 4 Quý năm @analytics.AnalyticsYear</div>
+                                        <div class="rpt-row-sub">Biểu đồ Doanh thu, Lợi nhuận &amp; SL bán Q1 &rarr; Q4</div>
+                                    </div>
+                                </div>
+                                <iconify-icon icon="solar:alt-arrow-right-linear" class="rpt-chevron"></iconify-icon>
+                            </button>
+
+                            @foreach (var q in analytics.YearQuarters)
+                            {
+                                var quarterNum = q.Quarter;
+                                var isSelected = selectedQuarterDetail == quarterNum;
+                                var monthsRange = quarterNum switch
+                                {
+                                    1 => "Tháng 1 – 3",
+                                    2 => "Tháng 4 – 6",
+                                    3 => "Tháng 7 – 9",
+                                    _ => "Tháng 10 – 12"
+                                };
+
+                                <button type="button"
+                                        class="rpt-master-item @(isSelected ? "is-selected" : "")"
+                                        @onclick="() => SelectQuarter(quarterNum)">
+                                    <div class="rpt-item-main">
+                                        <span class="rpt-quarter-badge">@q.ShortLabel</span>
                                         <div class="min-w-0">
-                                            <div class="rpt-row-title">@pay.DisplayName</div>
-                                            <div class="rpt-row-sub rpt-num">@pay.OrderCount đơn hoàn tất</div>
+                                            <div class="rpt-row-title">@q.Label / @analytics.AnalyticsYear</div>
+                                            <div class="rpt-row-sub rpt-num">@monthsRange &middot; @q.OrderCount đơn &middot; @q.SoldQuantity bánh</div>
                                         </div>
                                     </div>
                                     <div class="text-right shrink-0">
-                                        <div class="rpt-row-amount">@($"{pay.Amount:N0} đ")</div>
-                                        <div class="rpt-row-sub rpt-num">@($"{pay.Percentage:F1}%") &rsaquo;</div>
+                                        <div class="rpt-row-amount">@($"{q.NetRevenue:N0} đ")</div>
+                                        <div class="rpt-micro @(q.GrossProfit >= 0 ? "rpt-text-emerald" : "rpt-text-red")">
+                                            Lãi @($"{q.GrossProfit:N0} đ")
+                                        </div>
                                     </div>
                                 </button>
                             }
-                        </div>
-                    </div>
-
-                    @if (kpi.ProcessingOrdersCount > 0 || kpi.CancelledOrdersCount > 0)
-                    {
-                        <div class="rpt-panel-footer">
-                            @if (kpi.ProcessingOrdersCount > 0)
-                            {
-                                <button type="button" class="rpt-link-btn rpt-text-amber rpt-num"
-                                        @onclick='() => OpenOrdersModal("Đơn hàng đang xử lý / chờ thu tiền", "processing", "all")'>
-                                    &#9203; @kpi.ProcessingOrdersCount đơn đang xử lý (@($"{kpi.ProcessingOrdersAmount:N0} đ")) &rarr;
-                                </button>
-                            }
-                            @if (kpi.CancelledOrdersCount > 0)
-                            {
-                                <button type="button" class="rpt-link-btn rpt-text-red rpt-num"
-                                        @onclick='() => OpenOrdersModal("Đơn hàng đã hủy trong kỳ", "cancelled", "all")'>
-                                    &#10005; @kpi.CancelledOrdersCount đơn hủy (@($"{kpi.CancellationRate:F1}%")) &rarr;
-                                </button>
-                            }
-                        </div>
-                    }
-                </section>
-
-                <!-- Panel 2: Hiệu suất Món bánh (Bán chạy / Bán chậm / Toàn bộ Menu) -->
-                <section class="rpt-panel">
-                    <div class="rpt-panel-header">
-                        <div>
-                            <h3 class="rpt-panel-title">
-                                <iconify-icon icon="solar:cup-star-bold" class="rpt-text-amber"></iconify-icon>
-                                Hiệu Suất Món Bánh Trong Kỳ
-                            </h3>
-                            <p class="rpt-panel-sub">Theo dõi món chủ lực và món bán chậm / tồn kho cần đẩy</p>
-                        </div>
-                        <div class="rpt-tabs" role="tablist">
-                            <button type="button" role="tab" class="rpt-tab @(productTab == "top" ? "is-active" : "")"
-                                    @onclick='() => productTab = "top"'>Bán chạy</button>
-                            <button type="button" role="tab" class="rpt-tab @(productTab == "slow" ? "is-active" : "")"
-                                    @onclick='() => productTab = "slow"'>Bán chậm</button>
-                            <button type="button" role="tab" class="rpt-tab @(productTab == "all" ? "is-active" : "")"
-                                    @onclick='() => productTab = "all"'>Tất cả (@analytics.Products.Count)</button>
-                        </div>
-                    </div>
-
-                    @{
-                        var displayedProducts = GetDisplayedProductsForPanel();
-                    }
-
-                    @if (!displayedProducts.Any())
-                    {
-                        <div class="rpt-empty">Chưa có dữ liệu sản phẩm phù hợp trong chu kỳ này.</div>
-                    }
-                    else
-                    {
-                        <div class="rpt-table-wrap">
-                            <table class="rpt-table">
-                                <thead>
-                                    <tr>
-                                        <th>#</th>
-                                        <th>Món bánh</th>
-                                        <th class="text-center">SL bán</th>
-                                        <th class="text-center">Tồn</th>
-                                        <th class="text-right">Doanh thu</th>
-                                        <th class="text-right">Lãi gộp</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @for (int i = 0; i < displayedProducts.Count; i++)
-                                    {
-                                        var p = displayedProducts[i];
-                                        var rankClass = productTab == "top"
-                                            ? (i == 0 ? "is-top1" : i == 1 ? "is-top2" : i == 2 ? "is-top3" : "")
-                                            : "";
-                                        <tr class="is-clickable" @onclick="() => OpenProductOrdersModal(p)">
-                                            <td><span class="rpt-rank-badge @rankClass">@(i + 1)</span></td>
-                                            <td>
-                                                <div class="rpt-row-title">@p.ProductName</div>
-                                                <div class="rpt-row-sub rpt-num">@p.CategoryName &middot; Bán @($"{p.RetailPrice:N0} đ")</div>
-                                            </td>
-                                            <td class="text-center font-bold">@p.SoldQuantity</td>
-                                            <td class="text-center">
-                                                <span class="rpt-pill @(p.CurrentStock <= 0 ? "is-down" : p.CurrentStock <= 10 ? "is-warn" : "is-neutral")">
-                                                    @p.CurrentStock
-                                                </span>
-                                            </td>
-                                            <td class="text-right font-semibold whitespace-nowrap">@($"{p.NetRevenue:N0} đ")</td>
-                                            <td class="text-right whitespace-nowrap">
-                                                <div class="font-bold @(p.GrossProfit >= 0 ? "rpt-text-emerald" : "rpt-text-red")">
-                                                    @($"{p.GrossProfit:N0} đ")
-                                                </div>
-                                                <div class="rpt-micro">@($"{p.Margin:F1}%")</div>
-                                            </td>
-                                        </tr>
-                                    }
-                                </tbody>
-                            </table>
-                        </div>
-                    }
-
-                    <div class="rpt-panel-footer">
-                        <span class="rpt-row-sub">Bấm vào từng món để xem các hóa đơn đã bán</span>
-                        <button type="button" class="rpt-link-btn" @onclick="OpenProductProfitModal">
-                            Xem bảng giá vốn &amp; lãi gộp đầy đủ &rarr;
-                        </button>
-                    </div>
-                </section>
-            </div>
-
-            <!-- TẦNG 4B: Top Khách hàng & Sức khỏe Tồn kho -->
-            <div class="rpt-analytics-grid">
-                <!-- Panel 3: Top Khách hàng -->
-                <section class="rpt-panel">
-                    <div class="rpt-panel-header">
-                        <div>
-                            <h3 class="rpt-panel-title">
-                                <iconify-icon icon="solar:users-group-rounded-bold" class="rpt-text-blue"></iconify-icon>
-                                Khách Hàng Chi Tiêu Cao Trong Kỳ
-                            </h3>
-                            <p class="rpt-panel-sub">Xếp hạng theo tổng chi tiêu từ đơn Hoàn tất (bấm để xem lịch sử đơn)</p>
-                        </div>
-                        <span class="rpt-pill is-neutral">Top @analytics.TopCustomers.Count</span>
-                    </div>
-
-                    @if (!analytics.TopCustomers.Any())
-                    {
-                        <div class="rpt-empty">Chưa có khách hàng phát sinh đơn hoàn tất trong chu kỳ này.</div>
-                    }
-                    else
-                    {
-                        <div class="rpt-table-wrap">
-                            <table class="rpt-table">
-                                <thead>
-                                    <tr>
-                                        <th>Hạng</th>
-                                        <th>Khách hàng</th>
-                                        <th class="text-center">Số đơn</th>
-                                        <th class="text-right">TB / đơn</th>
-                                        <th class="text-right">Tổng chi tiêu</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @for (int idx = 0; idx < analytics.TopCustomers.Count; idx++)
-                                    {
-                                        var cust = analytics.TopCustomers[idx];
-                                        var rankClass = idx == 0 ? "is-top1" : idx == 1 ? "is-top2" : idx == 2 ? "is-top3" : "";
-                                        <tr class="is-clickable" @onclick="() => OpenCustomerOrdersModal(cust)">
-                                            <td><span class="rpt-rank-badge @rankClass">@(idx + 1)</span></td>
-                                            <td>
-                                                <div class="rpt-row-title">@cust.CustomerName</div>
-                                                <div class="rpt-row-sub rpt-num">
-                                                    @(string.IsNullOrWhiteSpace(cust.Phone) ? "Không có SĐT" : cust.Phone) &middot; Gần nhất: @cust.LastOrderDate.ToString("dd/MM")
-                                                </div>
-                                            </td>
-                                            <td class="text-center font-semibold">@cust.CompletedOrderCount</td>
-                                            <td class="text-right rpt-text-muted whitespace-nowrap">@($"{cust.AverageOrderValue:N0} đ")</td>
-                                            <td class="text-right font-bold rpt-text-blue whitespace-nowrap">@($"{cust.TotalSpent:N0} đ")</td>
-                                        </tr>
-                                    }
-                                </tbody>
-                            </table>
-                        </div>
-                    }
-                </section>
-
-                <!-- Panel 4: Sức khỏe Tồn kho & Nhập hàng -->
-                <section class="rpt-panel">
-                    <div class="rpt-panel-header">
-                        <div>
-                            <h3 class="rpt-panel-title">
-                                <iconify-icon icon="solar:archive-check-bold" class="rpt-text-amber"></iconify-icon>
-                                Giá Trị Tồn Kho &amp; Cảnh Báo Nhập Hàng
-                            </h3>
-                            <p class="rpt-panel-sub">Định giá hàng tồn hiện tại theo giá vốn &amp; theo dõi món sắp hết (&le; 10)</p>
-                        </div>
-                        <button type="button" class="rpt-link-btn" @onclick='() => OpenInventoryModal("low")'>
-                            Xem toàn bộ tồn kho &rarr;
-                        </button>
-                    </div>
-
-                    <div class="rpt-inv-grid">
-                        <div class="rpt-inv-box">
-                            <span>Tổng tồn (@inv.ActiveProductsCount món đang bán)</span>
-                            <strong>@($"{inv.TotalStockUnits:N0} sản phẩm")</strong>
-                        </div>
-                        <div class="rpt-inv-box">
-                            <span>Giá trị tồn (theo giá vốn)</span>
-                            <strong class="rpt-text-blue">@($"{inv.TotalInventoryCostValue:N0} đ")</strong>
-                        </div>
-                        <div class="rpt-inv-box">
-                            <span>Giá trị bán lẻ dự kiến</span>
-                            <strong class="rpt-text-emerald">@($"{inv.TotalInventoryRetailValue:N0} đ")</strong>
-                        </div>
-                        <div class="rpt-inv-box">
-                            <span>Cần bổ sung kho (&le; 10 cái)</span>
-                            <strong class="@(inv.LowStockCount > 0 ? "rpt-text-amber" : "rpt-text-emerald")">
-                                @inv.LowStockCount món (@inv.OutOfStockCount hết hàng)
-                            </strong>
-                        </div>
-                    </div>
-
-                    @if (!inv.LowStockItems.Any())
-                    {
-                        <div class="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 text-xs rpt-text-emerald flex items-center gap-2">
-                            <iconify-icon icon="solar:check-circle-bold" class="text-base"></iconify-icon>
-                            Tất cả sản phẩm đang bán đều có lượng tồn kho trên 10 chiếc.
-                        </div>
-                    }
-                    else
-                    {
-                        <div class="rpt-list">
-                            @foreach (var item in inv.LowStockItems.Take(4))
-                            {
-                                <button type="button" class="rpt-list-row" @onclick='() => OpenInventoryModal("low")'>
+                        }
+                        else if (masterTab == "categories")
+                        {
+                            <button type="button"
+                                    class="rpt-master-item is-pinned @(selectedCategoryId is null ? "is-selected" : "")"
+                                    @onclick="SelectCategoriesOverview">
+                                <div class="rpt-item-main">
+                                    <span class="rpt-pin-icon"><iconify-icon icon="solar:pie-chart-2-bold"></iconify-icon></span>
                                     <div class="min-w-0">
-                                        <div class="rpt-row-title truncate">@item.ProductName</div>
-                                        <div class="rpt-row-sub rpt-num">@item.CategoryName &middot; Giá vốn @(item.HasUnitCost ? $"{item.UnitCost:N0} đ" : "Chưa có giá nhập")</div>
+                                        <div class="rpt-row-title">Cơ cấu toàn bộ Loại bánh</div>
+                                        <div class="rpt-row-sub">Biểu đồ Donut tỷ trọng doanh thu theo nhóm sản phẩm</div>
                                     </div>
-                                    <span class="rpt-pill @(item.StockQuantity <= 0 ? "is-down" : "is-warn") shrink-0">
-                                        @(item.StockQuantity <= 0 ? "Hết hàng (0)" : $"Còn {item.StockQuantity}")
-                                    </span>
+                                </div>
+                                <iconify-icon icon="solar:alt-arrow-right-linear" class="rpt-chevron"></iconify-icon>
+                            </button>
+
+                            @if (!analytics.Categories.Any())
+                            {
+                                <div class="rpt-empty">Chưa có doanh thu theo loại bánh trong kỳ này.</div>
+                            }
+                            else
+                            {
+                                @foreach (var cat in analytics.Categories)
+                                {
+                                    var catId = cat.CategoryID;
+                                    var isSelected = selectedCategoryId == catId;
+                                    <button type="button"
+                                            class="rpt-master-item @(isSelected ? "is-selected" : "")"
+                                            @onclick="() => SelectCategory(catId)">
+                                        <div class="rpt-item-main">
+                                            <span class="rpt-dot" style="background: @cat.ColorHex"></span>
+                                            <div class="min-w-0">
+                                                <div class="rpt-row-title truncate">@cat.CategoryName</div>
+                                                <div class="rpt-row-sub rpt-num">@cat.SoldQuantity bánh &middot; @cat.ProductCount món bán chạy</div>
+                                            </div>
+                                        </div>
+                                        <div class="text-right shrink-0">
+                                            <div class="rpt-row-amount">@($"{cat.Revenue:N0} đ")</div>
+                                            <div class="rpt-micro rpt-text-blue font-semibold">@($"{cat.Percentage:F1}%")</div>
+                                        </div>
+                                    </button>
+                                }
+                            }
+                        }
+                        else if (masterTab == "channels")
+                        {
+                            <button type="button"
+                                    class="rpt-master-item is-pinned @(selectedChannelSection == "overview" ? "is-selected" : "")"
+                                    @onclick='() => SelectChannelSection("overview")'>
+                                <div class="rpt-item-main">
+                                    <span class="rpt-pin-icon"><iconify-icon icon="solar:shop-2-bold"></iconify-icon></span>
+                                    <div class="min-w-0">
+                                        <div class="rpt-row-title">Cơ cấu Kênh bán &amp; Thanh toán</div>
+                                        <div class="rpt-row-sub">So sánh POS vs Online &amp; dòng tiền thanh toán</div>
+                                    </div>
+                                </div>
+                                <iconify-icon icon="solar:alt-arrow-right-linear" class="rpt-chevron"></iconify-icon>
+                            </button>
+
+                            @foreach (var ch in analytics.Channels)
+                            {
+                                var chKey = ch.ChannelKey;
+                                <button type="button"
+                                        class="rpt-master-item @(selectedChannelSection == chKey ? "is-selected" : "")"
+                                        @onclick="() => SelectChannelSection(chKey)">
+                                    <div class="rpt-item-main">
+                                        <span class="rpt-pin-icon is-soft"><iconify-icon icon="@ch.Icon"></iconify-icon></span>
+                                        <div class="min-w-0">
+                                            <div class="rpt-row-title">@ch.DisplayName</div>
+                                            <div class="rpt-row-sub rpt-num">@ch.OrderCount đơn hoàn tất &middot; @($"{ch.Percentage:F1}%")</div>
+                                        </div>
+                                    </div>
+                                    <div class="text-right shrink-0">
+                                        <div class="rpt-row-amount">@($"{ch.Revenue:N0} đ")</div>
+                                        <div class="rpt-micro rpt-text-emerald">Lãi @($"{ch.GrossProfit:N0} đ")</div>
+                                    </div>
                                 </button>
+                            }
+
+                            <button type="button"
+                                    class="rpt-master-item @(selectedChannelSection == "customers" ? "is-selected" : "")"
+                                    @onclick='() => SelectChannelSection("customers")'>
+                                <div class="rpt-item-main">
+                                    <span class="rpt-pin-icon is-amber"><iconify-icon icon="solar:users-group-rounded-bold"></iconify-icon></span>
+                                    <div class="min-w-0">
+                                        <div class="rpt-row-title">Top Khách hàng chi tiêu cao</div>
+                                        <div class="rpt-row-sub">@analytics.TopCustomers.Count khách hàng nổi bật trong kỳ</div>
+                                    </div>
+                                </div>
+                                <iconify-icon icon="solar:alt-arrow-right-linear" class="rpt-chevron"></iconify-icon>
+                            </button>
+                        }
+                    </div>
+                </section>
+
+                <!-- CỘT PHẢI: CHI TIẾT & BIỂU ĐỒ THEO LỰA CHỌN BÊN TRÁI -->
+                <section class="rpt-detail-card">
+                    @if (masterTab == "products" && selectedProductId is null)
+                    {
+                        <!-- DETAIL 1A: BIỂU ĐỒ TOP SẢN PHẨM -->
+                        var topItems = GetTopChartProducts();
+                        <div class="rpt-detail-head">
+                            <div>
+                                <div class="rpt-detail-eyebrow">TOP BIỂU ĐỒ SẢN PHẨM &middot; @GetPeriodDisplayName()</div>
+                                <h3 class="rpt-detail-title">Xếp hạng Top Sản Phẩm Nổi Bật</h3>
+                                <p class="rpt-detail-sub">So sánh trực quan các món bánh dẫn đầu — bấm vào bất kỳ món nào bên dưới để xem tổng tiền theo từng Quý (Q1–Q4).</p>
+                            </div>
+                            <div class="rpt-detail-controls">
+                                <div class="rpt-seg-group">
+                                    <button type="button" class="rpt-seg-btn @(topChartMetric == "revenue" ? "is-active" : "")"
+                                            @onclick='() => ChangeTopChartConfig("revenue", topChartLimit)'>Doanh thu</button>
+                                    <button type="button" class="rpt-seg-btn @(topChartMetric == "sold" ? "is-active" : "")"
+                                            @onclick='() => ChangeTopChartConfig("sold", topChartLimit)'>Số lượng</button>
+                                    <button type="button" class="rpt-seg-btn @(topChartMetric == "profit" ? "is-active" : "")"
+                                            @onclick='() => ChangeTopChartConfig("profit", topChartLimit)'>Lãi gộp</button>
+                                </div>
+                                <div class="rpt-seg-group">
+                                    <button type="button" class="rpt-seg-btn @(topChartLimit == 5 ? "is-active" : "")"
+                                            @onclick='() => ChangeTopChartConfig(topChartMetric, 5)'>Top 5</button>
+                                    <button type="button" class="rpt-seg-btn @(topChartLimit == 10 ? "is-active" : "")"
+                                            @onclick='() => ChangeTopChartConfig(topChartMetric, 10)'>Top 10</button>
+                                    <button type="button" class="rpt-seg-btn @(topChartLimit == 0 ? "is-active" : "")"
+                                            @onclick='() => ChangeTopChartConfig(topChartMetric, 0)'>Tất cả</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="rpt-chart-box">
+                            @if (!topItems.Any())
+                            {
+                                <div class="rpt-empty">Chưa có sản phẩm nào bán ra trong chu kỳ này.</div>
+                            }
+                            else
+                            {
+                                <div id="rpt-detail-chart" style="min-height: 240px;"></div>
+                            }
+                        </div>
+
+                        <div class="rpt-table-box">
+                            <div class="rpt-table-box-head">
+                                <span>Bảng chi tiết Top sản phẩm (@topItems.Count món)</span>
+                                <span class="rpt-micro">Bấm một dòng để xem thống kê Q1–Q4 của sản phẩm đó</span>
+                            </div>
+                            <div class="rpt-table-wrap">
+                                <table class="rpt-table">
+                                    <thead>
+                                        <tr>
+                                            <th style="width: 38px;">#</th>
+                                            <th>Sản phẩm</th>
+                                            <th class="text-center">SL bán</th>
+                                            <th class="text-right">Doanh thu</th>
+                                            <th class="text-right">Lợi nhuận gộp</th>
+                                            <th class="text-right">Biên lãi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @for (int i = 0; i < topItems.Count; i++)
+                                        {
+                                            var p = topItems[i];
+                                            var rCls = i == 0 ? "is-top1" : i == 1 ? "is-top2" : i == 2 ? "is-top3" : "";
+                                            <tr class="is-clickable" @onclick="() => SelectProduct(p.ProductID)">
+                                                <td><span class="rpt-rank-badge @rCls">@(i + 1)</span></td>
+                                                <td>
+                                                    <div class="rpt-row-title">@p.ProductName</div>
+                                                    <div class="rpt-micro">@p.CategoryName</div>
+                                                </td>
+                                                <td class="text-center font-bold">@p.SoldQuantity</td>
+                                                <td class="text-right font-bold rpt-text-blue whitespace-nowrap">@($"{p.NetRevenue:N0} đ")</td>
+                                                <td class="text-right font-semibold @(p.GrossProfit >= 0 ? "rpt-text-emerald" : "rpt-text-red") whitespace-nowrap">@($"{p.GrossProfit:N0} đ")</td>
+                                                <td class="text-right font-semibold">@($"{p.Margin:F1}%")</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    }
+                    else if (masterTab == "products" && GetSelectedProduct() is { } selectedProd)
+                    {
+                        <!-- DETAIL 1B: CHI TIẾT 1 SẢN PHẨM THEO TỪNG QUÝ (Q1–Q4) -->
+                        var annualRev = selectedProd.QuarterlyMetrics.Sum(q => q.NetRevenue);
+                        var annualCost = selectedProd.QuarterlyMetrics.Sum(q => q.CostOfGoodsSold);
+                        var annualProfit = annualRev - annualCost;
+                        var annualQty = selectedProd.QuarterlyMetrics.Sum(q => q.SoldQuantity);
+                        var annualMargin = annualRev > 0 ? annualProfit / annualRev * 100m : 0m;
+                        var relatedOrders = analytics.Orders
+                            .Where(o => o.Status == OrderStatus.Completed && o.Lines.Any(l => l.ProductID == selectedProd.ProductID))
+                            .OrderByDescending(o => o.OrderDate)
+                            .Take(8)
+                            .ToList();
+
+                        <div class="rpt-detail-head">
+                            <div>
+                                <div class="rpt-detail-eyebrow">CHI TIẾT SẢN PHẨM THEO QUÝ &middot; NĂM @analytics.AnalyticsYear</div>
+                                <h3 class="rpt-detail-title">@selectedProd.ProductName</h3>
+                                <p class="rpt-detail-sub">
+                                    Loại: <strong>@selectedProd.CategoryName</strong> &middot;
+                                    Giá bán: <strong>@($"{selectedProd.RetailPrice:N0} đ")</strong> &middot;
+                                    Giá vốn ĐV: <strong>@(selectedProd.HasUnitCost ? $"{selectedProd.UnitCost:N0} đ" : "Chưa có")</strong> &middot;
+                                    Tồn kho: <strong>@selectedProd.CurrentStock</strong>
+                                </p>
+                            </div>
+                            <button type="button" class="bakery-btn bakery-btn-outline bakery-btn-sm" @onclick="SelectTopProductsChart">
+                                &larr; Về Top biểu đồ
+                            </button>
+                        </div>
+
+                        <div class="rpt-summary-4">
+                            <div class="rpt-summary-box">
+                                <span>Tổng tiền cả năm @analytics.AnalyticsYear</span>
+                                <strong class="rpt-text-blue">@($"{annualRev:N0} đ")</strong>
+                            </div>
+                            <div class="rpt-summary-box">
+                                <span>Tổng SL bán năm @analytics.AnalyticsYear</span>
+                                <strong>@($"{annualQty:N0} cái")</strong>
+                            </div>
+                            <div class="rpt-summary-box">
+                                <span>Lợi nhuận gộp năm</span>
+                                <strong class="@(annualProfit >= 0 ? "rpt-text-emerald" : "rpt-text-red")">@($"{annualProfit:N0} đ")</strong>
+                            </div>
+                            <div class="rpt-summary-box">
+                                <span>Biên lãi gộp</span>
+                                <strong>@($"{annualMargin:F1}%")</strong>
+                            </div>
+                        </div>
+
+                        <div class="rpt-chart-box">
+                            <div class="rpt-chart-box-title">
+                                Biểu đồ Tổng tiền &amp; Số lượng bán theo từng Quý (Năm @analytics.AnalyticsYear)
+                            </div>
+                            <div id="rpt-detail-chart" style="min-height: 270px;"></div>
+                        </div>
+
+                        <div class="rpt-table-box">
+                            <div class="rpt-table-box-head">
+                                <span>Bảng tổng tiền sản phẩm theo từng Quý (Q1 – Q4 / @analytics.AnalyticsYear)</span>
+                            </div>
+                            <div class="rpt-table-wrap">
+                                <table class="rpt-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Quý</th>
+                                            <th class="text-center">Số đơn</th>
+                                            <th class="text-center">SL bán</th>
+                                            <th class="text-right">Tổng tiền (Thực thu)</th>
+                                            <th class="text-right">Giá vốn</th>
+                                            <th class="text-right">Lợi nhuận gộp</th>
+                                            <th class="text-right">Tỷ trọng</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var q in selectedProd.QuarterlyMetrics)
+                                        {
+                                            var share = annualRev > 0 ? q.NetRevenue / annualRev * 100m : 0m;
+                                            <tr>
+                                                <td class="font-bold">@q.Label</td>
+                                                <td class="text-center">@q.OrderCount</td>
+                                                <td class="text-center font-semibold">@q.SoldQuantity</td>
+                                                <td class="text-right font-bold rpt-text-blue whitespace-nowrap">@($"{q.NetRevenue:N0} đ")</td>
+                                                <td class="text-right rpt-text-amber whitespace-nowrap">@($"{q.CostOfGoodsSold:N0} đ")</td>
+                                                <td class="text-right font-bold @(q.GrossProfit >= 0 ? "rpt-text-emerald" : "rpt-text-red") whitespace-nowrap">@($"{q.GrossProfit:N0} đ")</td>
+                                                <td class="text-right font-semibold">@($"{share:F1}%")</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        @if (relatedOrders.Any())
+                        {
+                            <div class="rpt-table-box">
+                                <div class="rpt-table-box-head">
+                                    <span>Đơn hàng hoàn tất gần đây có món này trong kỳ (@GetPeriodDisplayName())</span>
+                                </div>
+                                <div class="rpt-table-wrap">
+                                    <table class="rpt-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Mã đơn</th>
+                                                <th>Ngày đặt</th>
+                                                <th>Kênh</th>
+                                                <th class="text-center">SL món này</th>
+                                                <th class="text-right">Tiền món</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var ord in relatedOrders)
+                                            {
+                                                var lineQty = ord.Lines.Where(l => l.ProductID == selectedProd.ProductID).Sum(l => l.Quantity);
+                                                var lineRev = ord.Lines.Where(l => l.ProductID == selectedProd.ProductID).Sum(l => l.AllocatedNetRevenue);
+                                                <tr>
+                                                    <td>
+                                                        <a href="/orders?order=@ord.OrderID" class="font-bold rpt-text-blue hover:underline">
+                                                            #HD-@ord.OrderID.ToString("D4")
+                                                        </a>
+                                                    </td>
+                                                    <td class="whitespace-nowrap">@ord.OrderDate.ToString("dd/MM/yyyy HH:mm")</td>
+                                                    <td>@ord.ChannelLabel</td>
+                                                    <td class="text-center font-bold">@lineQty</td>
+                                                    <td class="text-right font-bold whitespace-nowrap">@($"{lineRev:N0} đ")</td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        }
+                    }
+                    else if (masterTab == "quarters" && selectedQuarterDetail is null)
+                    {
+                        <!-- DETAIL 2A: SO SÁNH 4 QUÝ TRONG NĂM -->
+                        var totalYearRev = analytics.YearQuarters.Sum(q => q.NetRevenue);
+                        var totalYearProfit = analytics.YearQuarters.Sum(q => q.GrossProfit);
+                        var totalYearOrders = analytics.YearQuarters.Sum(q => q.OrderCount);
+                        var totalYearQty = analytics.YearQuarters.Sum(q => q.SoldQuantity);
+
+                        <div class="rpt-detail-head">
+                            <div>
+                                <div class="rpt-detail-eyebrow">THỐNG KÊ THEO QUÝ &middot; NĂM @analytics.AnalyticsYear</div>
+                                <h3 class="rpt-detail-title">Tổng Quan Doanh Thu &amp; Lợi Nhuận 4 Quý (@analytics.AnalyticsYear)</h3>
+                                <p class="rpt-detail-sub">So sánh hiệu quả kinh doanh từ Quý 1 đến Quý 4. Bấm vào từng Quý bên trái để xem Top sản phẩm của quý đó.</p>
+                            </div>
+                        </div>
+
+                        <div class="rpt-summary-4">
+                            <div class="rpt-summary-box">
+                                <span>Doanh thu năm @analytics.AnalyticsYear</span>
+                                <strong class="rpt-text-blue">@($"{totalYearRev:N0} đ")</strong>
+                            </div>
+                            <div class="rpt-summary-box">
+                                <span>Lợi nhuận gộp năm</span>
+                                <strong class="rpt-text-emerald">@($"{totalYearProfit:N0} đ")</strong>
+                            </div>
+                            <div class="rpt-summary-box">
+                                <span>Tổng đơn hoàn tất</span>
+                                <strong>@($"{totalYearOrders:N0} đơn")</strong>
+                            </div>
+                            <div class="rpt-summary-box">
+                                <span>Tổng bánh đã bán</span>
+                                <strong>@($"{totalYearQty:N0} cái")</strong>
+                            </div>
+                        </div>
+
+                        <div class="rpt-chart-box">
+                            <div class="rpt-chart-box-title">Biểu đồ Doanh thu, Lợi nhuận gộp &amp; Sản lượng theo 4 Quý</div>
+                            <div id="rpt-detail-chart" style="min-height: 270px;"></div>
+                        </div>
+
+                        <div class="rpt-table-box">
+                            <div class="rpt-table-box-head">
+                                <span>Bảng tổng hợp 4 Quý năm @analytics.AnalyticsYear</span>
+                                <span class="rpt-micro">Bấm một quý để xem Top sản phẩm trong quý</span>
+                            </div>
+                            <div class="rpt-table-wrap">
+                                <table class="rpt-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Quý</th>
+                                            <th class="text-center">Đơn hoàn tất</th>
+                                            <th class="text-center">SL bánh</th>
+                                            <th class="text-right">Doanh thu</th>
+                                            <th class="text-right">Giá vốn</th>
+                                            <th class="text-right">Lợi nhuận gộp</th>
+                                            <th class="text-right">Tỷ trọng</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var q in analytics.YearQuarters)
+                                        {
+                                            var share = totalYearRev > 0 ? q.NetRevenue / totalYearRev * 100m : 0m;
+                                            <tr class="is-clickable" @onclick="() => SelectQuarter(q.Quarter)">
+                                                <td class="font-bold">@q.Label</td>
+                                                <td class="text-center">@q.OrderCount</td>
+                                                <td class="text-center font-semibold">@q.SoldQuantity</td>
+                                                <td class="text-right font-bold rpt-text-blue whitespace-nowrap">@($"{q.NetRevenue:N0} đ")</td>
+                                                <td class="text-right rpt-text-amber whitespace-nowrap">@($"{q.CostOfGoodsSold:N0} đ")</td>
+                                                <td class="text-right font-bold rpt-text-emerald whitespace-nowrap">@($"{q.GrossProfit:N0} đ")</td>
+                                                <td class="text-right font-semibold">@($"{share:F1}%")</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    }
+                    else if (masterTab == "quarters" && selectedQuarterDetail is int qNum)
+                    {
+                        <!-- DETAIL 2B: CHI TIẾT 1 QUÝ CỤ THỂ -->
+                        var qInfo = analytics.YearQuarters.FirstOrDefault(x => x.Quarter == qNum) ?? new ReportQuarterMetric { Quarter = qNum };
+                        var qProducts = analytics.TopProductsByQuarter.TryGetValue(qNum, out var list) ? list : [];
+
+                        <div class="rpt-detail-head">
+                            <div>
+                                <div class="rpt-detail-eyebrow">CHI TIẾT QUÝ @qNum / @analytics.AnalyticsYear</div>
+                                <h3 class="rpt-detail-title">Top Sản Phẩm &amp; Hiệu Suất Quý @qNum (@analytics.AnalyticsYear)</h3>
+                                <p class="rpt-detail-sub">Xếp hạng sản phẩm đóng góp doanh thu cao nhất trong Quý @qNum.</p>
+                            </div>
+                            <button type="button" class="bakery-btn bakery-btn-outline bakery-btn-sm" @onclick="SelectQuartersOverview">
+                                &larr; So sánh 4 Quý
+                            </button>
+                        </div>
+
+                        <div class="rpt-summary-4">
+                            <div class="rpt-summary-box">
+                                <span>Doanh thu Quý @qNum</span>
+                                <strong class="rpt-text-blue">@($"{qInfo.NetRevenue:N0} đ")</strong>
+                            </div>
+                            <div class="rpt-summary-box">
+                                <span>Lợi nhuận gộp</span>
+                                <strong class="rpt-text-emerald">@($"{qInfo.GrossProfit:N0} đ")</strong>
+                            </div>
+                            <div class="rpt-summary-box">
+                                <span>Đơn hoàn tất</span>
+                                <strong>@($"{qInfo.OrderCount} đơn")</strong>
+                            </div>
+                            <div class="rpt-summary-box">
+                                <span>Sản phẩm bán ra</span>
+                                <strong>@($"{qInfo.SoldQuantity} cái")</strong>
+                            </div>
+                        </div>
+
+                        <div class="rpt-chart-box">
+                            <div class="rpt-chart-box-title">Biểu đồ Top Sản Phẩm Doanh Thu Cao Nhất — Quý @qNum/@analytics.AnalyticsYear</div>
+                            @if (!qProducts.Any())
+                            {
+                                <div class="rpt-empty">Chưa có đơn hàng hoàn tất trong Quý @qNum/@analytics.AnalyticsYear.</div>
+                            }
+                            else
+                            {
+                                <div id="rpt-detail-chart" style="min-height: 240px;"></div>
+                            }
+                        </div>
+
+                        <div class="rpt-table-box">
+                            <div class="rpt-table-box-head">
+                                <span>Danh sách sản phẩm bán trong Quý @qNum (@qProducts.Count món)</span>
+                            </div>
+                            @if (!qProducts.Any())
+                            {
+                                <div class="rpt-empty">Không có dữ liệu bán hàng trong quý này.</div>
+                            }
+                            else
+                            {
+                                <div class="rpt-table-wrap">
+                                    <table class="rpt-table">
+                                        <thead>
+                                            <tr>
+                                                <th style="width: 38px;">#</th>
+                                                <th>Món bánh</th>
+                                                <th class="text-center">SL bán</th>
+                                                <th class="text-right">Doanh thu Quý @qNum</th>
+                                                <th class="text-right">Lãi gộp</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @for (int i = 0; i < qProducts.Count; i++)
+                                            {
+                                                var p = qProducts[i];
+                                                <tr class="is-clickable" @onclick="() => JumpToProductDetail(p.ProductID)">
+                                                    <td><span class="rpt-rank-badge @(i == 0 ? "is-top1" : i == 1 ? "is-top2" : i == 2 ? "is-top3" : "")">@(i + 1)</span></td>
+                                                    <td>
+                                                        <div class="rpt-row-title">@p.ProductName</div>
+                                                        <div class="rpt-micro">@p.CategoryName</div>
+                                                    </td>
+                                                    <td class="text-center font-bold">@p.SoldQuantity</td>
+                                                    <td class="text-right font-bold rpt-text-blue whitespace-nowrap">@($"{p.NetRevenue:N0} đ")</td>
+                                                    <td class="text-right font-semibold rpt-text-emerald whitespace-nowrap">@($"{p.GrossProfit:N0} đ")</td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
                             }
                         </div>
                     }
+                    else if (masterTab == "categories" && selectedCategoryId is null)
+                    {
+                        <!-- DETAIL 3A: CƠ CẤU TOÀN BỘ LOẠI BÁNH -->
+                        <div class="rpt-detail-head">
+                            <div>
+                                <div class="rpt-detail-eyebrow">CƠ CẤU DANH MỤC &middot; @GetPeriodDisplayName()</div>
+                                <h3 class="rpt-detail-title">Tỷ Trọng Doanh Thu Theo Loại Bánh</h3>
+                                <p class="rpt-detail-sub">Doanh thu đã phân bổ voucher theo tỷ lệ — bấm vào 1 loại bánh bên trái để xem biến động theo từng Quý (Q1–Q4).</p>
+                            </div>
+                        </div>
 
-                    <div class="rpt-panel-footer">
-                        <button type="button" class="rpt-link-btn rpt-num" @onclick='() => OpenImportsModal(null, "Phiếu nhập kho trong kỳ")'>
-                            &#128230; @kpi.ImportReceiptsCount phiếu nhập trong kỳ (@($"{kpi.PeriodImportCashflow:N0} đ")) &rarr;
-                        </button>
-                        <button type="button" class="bakery-btn bakery-btn-outline bakery-btn-sm" @onclick='() => Navigation.NavigateTo("/import-receipts")'>
-                            Lập phiếu nhập kho
-                        </button>
-                    </div>
+                        <div class="rpt-chart-box">
+                            <div id="rpt-detail-chart" style="min-height: 250px;"></div>
+                        </div>
+
+                        <div class="rpt-table-box">
+                            <div class="rpt-table-box-head">
+                                <span>Chi tiết từng loại bánh (@analytics.Categories.Count nhóm)</span>
+                            </div>
+                            <div class="rpt-table-wrap">
+                                <table class="rpt-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Loại bánh</th>
+                                            <th class="text-center">SL bán</th>
+                                            <th class="text-right">Doanh thu</th>
+                                            <th class="text-right">Lãi gộp</th>
+                                            <th class="text-right">Tỷ trọng</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var cat in analytics.Categories)
+                                        {
+                                            <tr class="is-clickable" @onclick="() => SelectCategory(cat.CategoryID)">
+                                                <td>
+                                                    <div class="flex items-center gap-2">
+                                                        <span class="rpt-dot" style="background: @cat.ColorHex"></span>
+                                                        <span class="rpt-row-title">@cat.CategoryName</span>
+                                                    </div>
+                                                </td>
+                                                <td class="text-center font-bold">@cat.SoldQuantity</td>
+                                                <td class="text-right font-bold rpt-text-blue whitespace-nowrap">@($"{cat.Revenue:N0} đ")</td>
+                                                <td class="text-right font-semibold rpt-text-emerald whitespace-nowrap">@($"{cat.GrossProfit:N0} đ")</td>
+                                                <td class="text-right font-bold">@($"{cat.Percentage:F1}%")</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    }
+                    else if (masterTab == "categories" && GetSelectedCategory() is { } selectedCat)
+                    {
+                        <!-- DETAIL 3B: CHI TIẾT 1 LOẠI BÁNH THEO QUÝ -->
+                        var catProducts = analytics.Products
+                            .Where(p => p.CategoryID == selectedCat.CategoryID)
+                            .OrderByDescending(p => p.NetRevenue)
+                            .ToList();
+                        var catAnnualRev = selectedCat.QuarterlyMetrics.Sum(q => q.NetRevenue);
+
+                        <div class="rpt-detail-head">
+                            <div>
+                                <div class="rpt-detail-eyebrow">LOẠI BÁNH THEO QUÝ &middot; NĂM @analytics.AnalyticsYear</div>
+                                <h3 class="rpt-detail-title">@selectedCat.CategoryName</h3>
+                                <p class="rpt-detail-sub">Biến động doanh thu loại bánh qua 4 quý và hiệu suất từng sản phẩm thuộc nhóm này.</p>
+                            </div>
+                            <button type="button" class="bakery-btn bakery-btn-outline bakery-btn-sm" @onclick="SelectCategoriesOverview">
+                                &larr; Cơ cấu toàn bộ
+                            </button>
+                        </div>
+
+                        <div class="rpt-summary-4">
+                            <div class="rpt-summary-box">
+                                <span>Doanh thu kỳ chọn</span>
+                                <strong class="rpt-text-blue">@($"{selectedCat.Revenue:N0} đ")</strong>
+                            </div>
+                            <div class="rpt-summary-box">
+                                <span>Doanh thu năm @analytics.AnalyticsYear</span>
+                                <strong>@($"{catAnnualRev:N0} đ")</strong>
+                            </div>
+                            <div class="rpt-summary-box">
+                                <span>Lợi nhuận gộp kỳ</span>
+                                <strong class="rpt-text-emerald">@($"{selectedCat.GrossProfit:N0} đ")</strong>
+                            </div>
+                            <div class="rpt-summary-box">
+                                <span>Tỷ trọng doanh thu</span>
+                                <strong>@($"{selectedCat.Percentage:F1}%")</strong>
+                            </div>
+                        </div>
+
+                        <div class="rpt-chart-box">
+                            <div class="rpt-chart-box-title">Biểu đồ Doanh thu &amp; Lợi nhuận loại "@selectedCat.CategoryName" theo 4 Quý (@analytics.AnalyticsYear)</div>
+                            <div id="rpt-detail-chart" style="min-height: 270px;"></div>
+                        </div>
+
+                        <div class="rpt-table-box">
+                            <div class="rpt-table-box-head">
+                                <span>Các sản phẩm thuộc nhóm (@catProducts.Count món)</span>
+                            </div>
+                            <div class="rpt-table-wrap">
+                                <table class="rpt-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Sản phẩm</th>
+                                            <th class="text-center">SL bán</th>
+                                            <th class="text-right">Doanh thu kỳ</th>
+                                            <th class="text-right">Cả năm @analytics.AnalyticsYear</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var p in catProducts)
+                                        {
+                                            <tr class="is-clickable" @onclick="() => JumpToProductDetail(p.ProductID)">
+                                                <td class="rpt-row-title">@p.ProductName</td>
+                                                <td class="text-center font-bold">@p.SoldQuantity</td>
+                                                <td class="text-right font-bold rpt-text-blue whitespace-nowrap">@($"{p.NetRevenue:N0} đ")</td>
+                                                <td class="text-right font-semibold whitespace-nowrap">@($"{p.QuarterlyMetrics.Sum(q => q.NetRevenue):N0} đ")</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    }
+                    else if (masterTab == "channels" && selectedChannelSection == "customers")
+                    {
+                        <!-- DETAIL 4B: TOP KHÁCH HÀNG -->
+                        <div class="rpt-detail-head">
+                            <div>
+                                <div class="rpt-detail-eyebrow">TOP KHÁCH HÀNG &middot; @GetPeriodDisplayName()</div>
+                                <h3 class="rpt-detail-title">Biểu Đồ Top Khách Hàng Chi Tiêu Cao Nhất</h3>
+                                <p class="rpt-detail-sub">Xếp hạng khách hàng theo tổng giá trị đơn hàng hoàn tất trong chu kỳ.</p>
+                            </div>
+                        </div>
+
+                        <div class="rpt-chart-box">
+                            @if (!analytics.TopCustomers.Any())
+                            {
+                                <div class="rpt-empty">Chưa có dữ liệu khách hàng hoàn tất đơn trong kỳ.</div>
+                            }
+                            else
+                            {
+                                <div id="rpt-detail-chart" style="min-height: 250px;"></div>
+                            }
+                        </div>
+
+                        <div class="rpt-table-box">
+                            <div class="rpt-table-box-head">
+                                <span>Danh sách Top khách hàng (@analytics.TopCustomers.Count khách)</span>
+                            </div>
+                            <div class="rpt-table-wrap">
+                                <table class="rpt-table">
+                                    <thead>
+                                        <tr>
+                                            <th style="width: 38px;">#</th>
+                                            <th>Khách hàng</th>
+                                            <th class="text-center">Số đơn</th>
+                                            <th class="text-right">TB / đơn</th>
+                                            <th class="text-right">Tổng chi tiêu</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @for (int i = 0; i < analytics.TopCustomers.Count; i++)
+                                        {
+                                            var c = analytics.TopCustomers[i];
+                                            <tr>
+                                                <td><span class="rpt-rank-badge @(i == 0 ? "is-top1" : i == 1 ? "is-top2" : i == 2 ? "is-top3" : "")">@(i + 1)</span></td>
+                                                <td>
+                                                    <div class="rpt-row-title">@c.CustomerName</div>
+                                                    <div class="rpt-micro">@(string.IsNullOrWhiteSpace(c.Phone) ? "Khách tại quầy" : c.Phone)</div>
+                                                </td>
+                                                <td class="text-center font-bold">@c.CompletedOrderCount</td>
+                                                <td class="text-right whitespace-nowrap">@($"{c.AverageOrderValue:N0} đ")</td>
+                                                <td class="text-right font-bold rpt-text-blue whitespace-nowrap">@($"{c.TotalSpent:N0} đ")</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <!-- DETAIL 4A: KÊNH BÁN HÀNG & THANH TOÁN -->
+                        var filteredChOrders = analytics.Orders
+                            .Where(o => o.Status == OrderStatus.Completed && (selectedChannelSection == "overview" || o.ChannelKey == selectedChannelSection))
+                            .OrderByDescending(o => o.OrderDate)
+                            .Take(10)
+                            .ToList();
+                        var sectionTitle = selectedChannelSection switch
+                        {
+                            "pos" => "Chi Tiết Kênh Bán Tại Quầy (POS)",
+                            "online" => "Chi Tiết Kênh Đặt Hàng Online",
+                            _ => "Cơ Cấu Kênh Bán Hàng & Phương Thức Thanh Toán"
+                        };
+
+                        <div class="rpt-detail-head">
+                            <div>
+                                <div class="rpt-detail-eyebrow">KÊNH BÁN &amp; DÒNG TIỀN &middot; @GetPeriodDisplayName()</div>
+                                <h3 class="rpt-detail-title">@sectionTitle</h3>
+                                <p class="rpt-detail-sub">Phân tách doanh thu thực thu giữa bán tại quầy (POS), đặt Online và các hình thức thanh toán.</p>
+                            </div>
+                        </div>
+
+                        <div class="rpt-chart-box">
+                            <div id="rpt-detail-chart" style="min-height: 245px;"></div>
+                        </div>
+
+                        <div class="rpt-table-box">
+                            <div class="rpt-table-box-head">
+                                <span>Phương thức thanh toán trong kỳ</span>
+                            </div>
+                            <div class="rpt-table-wrap">
+                                <table class="rpt-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Phương thức</th>
+                                            <th class="text-center">Số đơn</th>
+                                            <th class="text-right">Thực thu</th>
+                                            <th class="text-right">Tỷ trọng</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var pay in analytics.Payments)
+                                        {
+                                            <tr>
+                                                <td class="rpt-row-title">@pay.DisplayName</td>
+                                                <td class="text-center font-bold">@pay.OrderCount</td>
+                                                <td class="text-right font-bold rpt-text-blue whitespace-nowrap">@($"{pay.Amount:N0} đ")</td>
+                                                <td class="text-right font-semibold">@($"{pay.Percentage:F1}%")</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        @if (filteredChOrders.Any())
+                        {
+                            <div class="rpt-table-box">
+                                <div class="rpt-table-box-head">
+                                    <span>Đơn hoàn tất gần đây (@filteredChOrders.Count đơn)</span>
+                                </div>
+                                <div class="rpt-table-wrap">
+                                    <table class="rpt-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Mã đơn</th>
+                                                <th>Ngày đặt</th>
+                                                <th>Kênh</th>
+                                                <th>Thanh toán</th>
+                                                <th class="text-right">Tổng tiền</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var ord in filteredChOrders)
+                                            {
+                                                <tr>
+                                                    <td>
+                                                        <a href="/orders?order=@ord.OrderID" class="font-bold rpt-text-blue hover:underline">
+                                                            #HD-@ord.OrderID.ToString("D4")
+                                                        </a>
+                                                    </td>
+                                                    <td class="whitespace-nowrap">@ord.OrderDate.ToString("dd/MM/yyyy HH:mm")</td>
+                                                    <td>@ord.ChannelLabel</td>
+                                                    <td>@ord.PaymentMethodLabel</td>
+                                                    <td class="text-right font-bold whitespace-nowrap">@($"{ord.FinalAmount:N0} đ")</td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        }
+                    }
                 </section>
             </div>
-
-            <!-- TẦNG 5: Bảng Thống kê Chi tiết Theo Mốc Thời Gian + Drill-down từng mốc -->
-            <section class="rpt-panel">
-                <div class="rpt-panel-header">
-                    <div>
-                        <h3 class="rpt-panel-title">
-                            <iconify-icon icon="solar:calendar-mark-bold" class="rpt-text-blue"></iconify-icon>
-                            Bảng Thống Kê Chi Tiết Theo Mốc Thời Gian (@GetPeriodDisplayName())
-                        </h3>
-                        <p class="rpt-panel-sub">Bấm vào từng dòng mốc thời gian để xem chi tiết các đơn hàng và phiếu nhập phát sinh trong mốc đó</p>
-                    </div>
-                    <span class="rpt-pill is-info">@analytics.Timeline.Count mốc thời gian</span>
-                </div>
-
-                @if (!analytics.Timeline.Any())
-                {
-                    <div class="rpt-empty">Không có mốc thời gian nào trong chu kỳ đã chọn.</div>
-                }
-                else
-                {
-                    <div class="rpt-table-wrap">
-                        <table class="rpt-table">
-                            <thead>
-                                <tr>
-                                    <th>Mốc thời gian</th>
-                                    <th class="text-center">Đơn hoàn tất</th>
-                                    <th class="text-right">Doanh thu thuần</th>
-                                    <th class="text-right">Giá vốn (COGS)</th>
-                                    <th class="text-right">Lợi nhuận gộp</th>
-                                    <th class="text-center">Biên lãi</th>
-                                    <th class="text-right">Chi nhập kho (TK)</th>
-                                    <th class="text-right">Chi tiết</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach (var row in analytics.Timeline)
-                                {
-                                    var bucket = row;
-                                    <tr class="is-clickable" @onclick="() => OpenTimelineBucketModal(bucket)">
-                                        <td class="font-semibold">@row.TimeLabel</td>
-                                        <td class="text-center">
-                                            <span class="font-semibold">@row.CompletedOrderCount đơn</span>
-                                            @if (row.CancelledOrderCount > 0)
-                                            {
-                                                <span class="rpt-micro rpt-text-red"> (@row.CancelledOrderCount hủy)</span>
-                                            }
-                                        </td>
-                                        <td class="text-right font-bold rpt-text-blue whitespace-nowrap">@($"{row.Revenue:N0} đ")</td>
-                                        <td class="text-right rpt-text-amber whitespace-nowrap">@($"{row.CostOfGoodsSold:N0} đ")</td>
-                                        <td class="text-right font-bold @(row.GrossProfit >= 0 ? "rpt-text-emerald" : "rpt-text-red") whitespace-nowrap">
-                                            @($"{row.GrossProfit:N0} đ")
-                                        </td>
-                                        <td class="text-center">
-                                            <span class="rpt-pill @(row.Revenue == 0 ? "is-neutral" : row.Margin >= 30 ? "is-up" : row.Margin >= 0 ? "is-warn" : "is-down")">
-                                                @($"{row.Margin:F1}%")
-                                            </span>
-                                        </td>
-                                        <td class="text-right rpt-text-muted whitespace-nowrap">
-                                            @($"{row.ImportCashflow:N0} đ")
-                                            @if (row.ImportReceiptsCount > 0)
-                                            {
-                                                <span class="rpt-micro"> (@row.ImportReceiptsCount PN)</span>
-                                            }
-                                        </td>
-                                        <td class="text-right rpt-text-blue font-semibold">&rsaquo;</td>
-                                    </tr>
-                                }
-                            </tbody>
-                            <tfoot>
-                                <tr>
-                                    <td>Tổng cộng chu kỳ</td>
-                                    <td class="text-center">@kpi.CompletedOrdersCount đơn</td>
-                                    <td class="text-right rpt-text-blue whitespace-nowrap">@($"{kpi.ActualRevenue:N0} đ")</td>
-                                    <td class="text-right rpt-text-amber whitespace-nowrap">@($"{kpi.CostOfGoodsSold:N0} đ")</td>
-                                    <td class="text-right @(kpi.GrossProfit >= 0 ? "rpt-text-emerald" : "rpt-text-red") whitespace-nowrap">
-                                        @($"{kpi.GrossProfit:N0} đ")
-                                    </td>
-                                    <td class="text-center">@($"{kpi.ProfitMargin:F1}%")</td>
-                                    <td class="text-right whitespace-nowrap">@($"{kpi.PeriodImportCashflow:N0} đ")</td>
-                                    <td></td>
-                                </tr>
-                            </tfoot>
-                        </table>
-                    </div>
-                }
-            </section>
         }
     </div>
 </div>
 
-<!-- ======================== 6+ DRILL-DOWN MODALS ======================== -->
+<!-- Bảng xuất Excel (ẩn) -->
+<table id="report-export-data" class="export-only-table" aria-hidden="true">
+    <thead>
+        <tr>
+            <th>Sản phẩm</th>
+            <th>Loại bánh</th>
+            <th>SL bán kỳ</th>
+            <th>Doanh thu kỳ</th>
+            <th>Quý 1/@analytics.AnalyticsYear</th>
+            <th>Quý 2/@analytics.AnalyticsYear</th>
+            <th>Quý 3/@analytics.AnalyticsYear</th>
+            <th>Quý 4/@analytics.AnalyticsYear</th>
+            <th>Tổng năm @analytics.AnalyticsYear</th>
+            <th>Lãi gộp kỳ</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var p in analytics.Products)
+        {
+            var q1 = p.QuarterlyMetrics.FirstOrDefault(x => x.Quarter == 1)?.NetRevenue ?? 0m;
+            var q2 = p.QuarterlyMetrics.FirstOrDefault(x => x.Quarter == 2)?.NetRevenue ?? 0m;
+            var q3 = p.QuarterlyMetrics.FirstOrDefault(x => x.Quarter == 3)?.NetRevenue ?? 0m;
+            var q4 = p.QuarterlyMetrics.FirstOrDefault(x => x.Quarter == 4)?.NetRevenue ?? 0m;
+            <tr>
+                <td>@p.ProductName</td>
+                <td>@p.CategoryName</td>
+                <td>@p.SoldQuantity</td>
+                <td>@p.NetRevenue.ToString("N0") đ</td>
+                <td>@q1.ToString("N0") đ</td>
+                <td>@q2.ToString("N0") đ</td>
+                <td>@q3.ToString("N0") đ</td>
+                <td>@q4.ToString("N0") đ</td>
+                <td>@((q1 + q2 + q3 + q4).ToString("N0")) đ</td>
+                <td>@p.GrossProfit.ToString("N0") đ</td>
+            </tr>
+        }
+    </tbody>
+</table>
 
-@* 1. Modal Chi tiết Đơn hàng (Hỗ trợ lọc theo Trạng thái, Kênh bán, Thanh toán, Khách hàng) *@
-@if (showOrdersModal)
-{
-    var filteredOrders = GetFilteredModalOrders();
-    <div class="reports-modal-backdrop" role="presentation" @onclick="CloseAllModals">
-        <section class="reports-stock-modal rpt-modal-wide" role="dialog" aria-modal="true" @onclick:stopPropagation>
-            <div class="reports-stock-modal-header">
-                <div>
-                    <h2>@ordersModalTitle</h2>
-                    <p>@GetPeriodDisplayName() · @filteredOrders.Count đơn hàng phù hợp</p>
-                </div>
-                <button type="button" class="reports-modal-close" aria-label="Đóng" @onclick="CloseAllModals">&times;</button>
-            </div>
-
-            <div class="rpt-modal-toolbar">
-                <div class="rpt-tabs">
-                    <button type="button" class="rpt-tab @(ordersModalStatusFilter == "all" ? "is-active" : "")"
-                            @onclick='() => ordersModalStatusFilter = "all"'>Tất cả</button>
-                    <button type="button" class="rpt-tab @(ordersModalStatusFilter == "completed" ? "is-active" : "")"
-                            @onclick='() => ordersModalStatusFilter = "completed"'>Hoàn tất</button>
-                    <button type="button" class="rpt-tab @(ordersModalStatusFilter == "processing" ? "is-active" : "")"
-                            @onclick='() => ordersModalStatusFilter = "processing"'>Đang xử lý</button>
-                    <button type="button" class="rpt-tab @(ordersModalStatusFilter == "cancelled" ? "is-active" : "")"
-                            @onclick='() => ordersModalStatusFilter = "cancelled"'>Đã hủy</button>
-                </div>
-                <div class="rpt-tabs">
-                    <button type="button" class="rpt-tab @(ordersModalChannelFilter == "all" ? "is-active" : "")"
-                            @onclick='() => ordersModalChannelFilter = "all"'>Mọi kênh</button>
-                    <button type="button" class="rpt-tab @(ordersModalChannelFilter == "pos" ? "is-active" : "")"
-                            @onclick='() => ordersModalChannelFilter = "pos"'>Tại quầy POS</button>
-                    <button type="button" class="rpt-tab @(ordersModalChannelFilter == "online" ? "is-active" : "")"
-                            @onclick='() => ordersModalChannelFilter = "online"'>Đặt Online</button>
-                </div>
-            </div>
-
-            <div class="rpt-summary-4">
-                <div><span>Số đơn hiển thị</span><strong>@filteredOrders.Count đơn</strong></div>
-                <div><span>Tổng giá trị đơn</span><strong>@($"{filteredOrders.Sum(o => o.FinalAmount):N0} đ")</strong></div>
-                <div><span>Giá vốn COGS (Hoàn tất)</span><strong>@($"{filteredOrders.Where(o => o.Status == OrderStatus.Completed).Sum(o => o.CostOfGoodsSold):N0} đ")</strong></div>
-                <div><span>Lãi gộp (Hoàn tất)</span><strong>@($"{filteredOrders.Where(o => o.Status == OrderStatus.Completed).Sum(o => o.GrossProfit):N0} đ")</strong></div>
-            </div>
-
-            <div class="reports-detail-table-wrap">
-                <table class="reports-detail-table">
-                    <thead>
-                        <tr>
-                            <th>Mã đơn</th>
-                            <th>Ngày đặt</th>
-                            <th>Khách hàng</th>
-                            <th>Kênh &amp; TT</th>
-                            <th>Món bánh</th>
-                            <th class="text-right">Tổng thu</th>
-                            <th class="text-right">Giá vốn</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @if (!filteredOrders.Any())
-                        {
-                            <tr><td colspan="7" class="reports-detail-empty">Không có đơn hàng nào khớp bộ lọc.</td></tr>
-                        }
-                        else
-                        {
-                            @foreach (var ord in filteredOrders)
-                            {
-                                <tr>
-                                    <td>
-                                        <strong>#HD-@ord.OrderID.ToString("D4")</strong>
-                                        <span class="reports-detail-status @ord.StatusClass">@ord.StatusLabel</span>
-                                    </td>
-                                    <td class="whitespace-nowrap">@ord.OrderDate.ToString("dd/MM/yyyy HH:mm")</td>
-                                    <td>
-                                        <strong>@ord.CustomerName</strong>
-                                        @if (!string.IsNullOrWhiteSpace(ord.CustomerPhone))
-                                        {
-                                            <span>@ord.CustomerPhone</span>
-                                        }
-                                    </td>
-                                    <td>
-                                        <strong>@ord.ChannelLabel</strong>
-                                        <span>@ord.PaymentMethodLabel</span>
-                                    </td>
-                                    <td>
-                                        @foreach (var line in ord.Lines.Take(2))
-                                        {
-                                            <span>@line.ProductName &times; @line.Quantity</span>
-                                        }
-                                        @if (ord.Lines.Count > 2)
-                                        {
-                                            <span>+@(ord.Lines.Count - 2) món khác...</span>
-                                        }
-                                    </td>
-                                    <td class="text-right whitespace-nowrap">
-                                        <strong>@($"{ord.FinalAmount:N0} đ")</strong>
-                                        @if (ord.DiscountAmount > 0)
-                                        {
-                                            <span>Giảm @($"{ord.DiscountAmount:N0} đ")</span>
-                                        }
-                                    </td>
-                                    <td class="text-right whitespace-nowrap">@($"{ord.CostOfGoodsSold:N0} đ")</td>
-                                </tr>
-                            }
-                        }
-                    </tbody>
-                </table>
-            </div>
-        </section>
-    </div>
-}
-
-@* 2. Modal Chi tiết Giá vốn & Lợi nhuận gộp theo từng Món bánh *@
-@if (showProductProfitModal)
-{
-    var profitList = GetFilteredProductProfitList();
-    <div class="reports-modal-backdrop" role="presentation" @onclick="CloseAllModals">
-        <section class="reports-stock-modal rpt-modal-wide" role="dialog" aria-modal="true" @onclick:stopPropagation>
-            <div class="reports-stock-modal-header">
-                <div>
-                    <h2>Phân tích Doanh thu, Giá vốn (COGS) &amp; Lợi nhuận gộp theo Món bánh</h2>
-                    <p>@GetPeriodDisplayName() · Tính trên đơn Hoàn tất (đã phân bổ giảm giá voucher)</p>
-                </div>
-                <button type="button" class="reports-modal-close" aria-label="Đóng" @onclick="CloseAllModals">&times;</button>
-            </div>
-
-            <div class="rpt-modal-toolbar">
-                <input type="text"
-                       class="bakery-input report-filter-input"
-                       style="min-width: 240px;"
-                       placeholder="Tìm tên bánh hoặc loại bánh..."
-                       @bind="productProfitSearch"
-                       @bind:event="oninput" />
-                <div class="rpt-tabs">
-                    <button type="button" class="rpt-tab @(productProfitSort == "sold_desc" ? "is-active" : "")"
-                            @onclick='() => productProfitSort = "sold_desc"'>Bán chạy</button>
-                    <button type="button" class="rpt-tab @(productProfitSort == "profit_desc" ? "is-active" : "")"
-                            @onclick='() => productProfitSort = "profit_desc"'>Lãi cao nhất</button>
-                    <button type="button" class="rpt-tab @(productProfitSort == "margin_asc" ? "is-active" : "")"
-                            @onclick='() => productProfitSort = "margin_asc"'>Biên lãi thấp</button>
-                    <button type="button" class="rpt-tab @(productProfitSort == "slow_asc" ? "is-active" : "")"
-                            @onclick='() => productProfitSort = "slow_asc"'>Bán chậm</button>
-                </div>
-            </div>
-
-            <div class="rpt-summary-4">
-                <div><span>Tổng SL đã bán</span><strong>@($"{profitList.Sum(p => p.SoldQuantity):N0}") bánh</strong></div>
-                <div><span>Doanh thu thuần</span><strong>@($"{profitList.Sum(p => p.NetRevenue):N0} đ")</strong></div>
-                <div><span>Tổng giá vốn (COGS)</span><strong>@($"{profitList.Sum(p => p.TotalCost):N0} đ")</strong></div>
-                <div><span>Tổng lợi nhuận gộp</span><strong>@($"{profitList.Sum(p => p.GrossProfit):N0} đ")</strong></div>
-            </div>
-
-            <div class="reports-detail-table-wrap">
-                <table class="reports-detail-table">
-                    <thead>
-                        <tr>
-                            <th>Món bánh</th>
-                            <th class="text-center">SL bán</th>
-                            <th class="text-center">Tồn</th>
-                            <th class="text-right">Giá bán</th>
-                            <th class="text-right">Giá vốn ĐV</th>
-                            <th class="text-right">Doanh thu thuần</th>
-                            <th class="text-right">Tổng COGS</th>
-                            <th class="text-right">Lãi gộp</th>
-                            <th class="text-center">Margin</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @if (!profitList.Any())
-                        {
-                            <tr><td colspan="9" class="reports-detail-empty">Không tìm thấy sản phẩm phù hợp.</td></tr>
-                        }
-                        else
-                        {
-                            @foreach (var item in profitList)
-                            {
-                                var target = item;
-                                <tr style="cursor: pointer;" @onclick="() => OpenProductOrdersModal(target)">
-                                    <td>
-                                        <strong>@item.ProductName</strong>
-                                        <span>@item.CategoryName</span>
-                                    </td>
-                                    <td class="text-center font-semibold">@item.SoldQuantity</td>
-                                    <td class="text-center">@item.CurrentStock</td>
-                                    <td class="text-right whitespace-nowrap">@($"{item.RetailPrice:N0} đ")</td>
-                                    <td class="text-right whitespace-nowrap">
-                                        @(item.HasUnitCost ? $"{item.UnitCost:N0} đ" : "0 đ (Chưa nhập)")
-                                    </td>
-                                    <td class="text-right font-semibold whitespace-nowrap">@($"{item.NetRevenue:N0} đ")</td>
-                                    <td class="text-right whitespace-nowrap">@($"{item.TotalCost:N0} đ")</td>
-                                    <td class="text-right font-semibold whitespace-nowrap">@($"{item.GrossProfit:N0} đ")</td>
-                                    <td class="text-center">@($"{item.Margin:F1}%")</td>
-                                </tr>
-                            }
-                        }
-                    </tbody>
-                </table>
-            </div>
-        </section>
-    </div>
-}
-
-@* 3. Modal Chi tiết Phiếu nhập kho trong kỳ *@
-@if (showImportsModal)
-{
-    <div class="reports-modal-backdrop" role="presentation" @onclick="CloseAllModals">
-        <section class="reports-stock-modal rpt-modal-wide" role="dialog" aria-modal="true" @onclick:stopPropagation>
-            <div class="reports-stock-modal-header">
-                <div>
-                    <h2>@importsModalTitle</h2>
-                    <p>@GetPeriodDisplayName() · Các phiếu nhập kho đã hoàn tất (Dòng tiền chi mua hàng)</p>
-                </div>
-                <button type="button" class="reports-modal-close" aria-label="Đóng" @onclick="CloseAllModals">&times;</button>
-            </div>
-
-            <div class="reports-detail-summary">
-                <div><span>Số phiếu nhập</span><strong>@selectedModalImports.Count phiếu</strong></div>
-                <div><span>Tổng chi nhập kho</span><strong>@($"{selectedModalImports.Sum(i => i.TotalAmount):N0} đ")</strong></div>
-                <div><span>Số nhà cung cấp</span><strong>@selectedModalImports.Select(i => i.SupplierName).Distinct().Count() NCC</strong></div>
-            </div>
-
-            <div class="reports-detail-table-wrap">
-                <table class="reports-detail-table">
-                    <thead>
-                        <tr>
-                            <th>Mã phiếu</th>
-                            <th>Ngày nhập</th>
-                            <th>Nhà cung cấp</th>
-                            <th>Người lập</th>
-                            <th>Chi tiết món nhập</th>
-                            <th class="text-right">Tổng tiền</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @if (!selectedModalImports.Any())
-                        {
-                            <tr><td colspan="6" class="reports-detail-empty">Không phát sinh phiếu nhập kho nào trong khoảng thời gian này.</td></tr>
-                        }
-                        else
-                        {
-                            @foreach (var imp in selectedModalImports)
-                            {
-                                <tr>
-                                    <td><strong>#PN-@imp.ReceiptID.ToString("D4")</strong></td>
-                                    <td class="whitespace-nowrap">@imp.ReceiptDate.ToString("dd/MM/yyyy HH:mm")</td>
-                                    <td><strong>@imp.SupplierName</strong>@if (!string.IsNullOrWhiteSpace(imp.Note)) { <span>@imp.Note</span> }</td>
-                                    <td>@imp.EmployeeName</td>
-                                    <td>
-                                        @foreach (var line in imp.Lines)
-                                        {
-                                            <span>@line.ProductName: @line.Quantity x @($"{line.UnitPrice:N0} đ") = @($"{line.SubTotal:N0} đ")</span>
-                                        }
-                                    </td>
-                                    <td class="text-right font-semibold whitespace-nowrap">@($"{imp.TotalAmount:N0} đ")</td>
-                                </tr>
-                            }
-                        }
-                    </tbody>
-                </table>
-            </div>
-        </section>
-    </div>
-}
-
-@* 4. Modal Chi tiết theo Loại bánh (Category Drill-down) *@
-@if (showCategoryModal && selectedCategory != null)
-{
-    var catProducts = analytics.Products
-        .Where(p => p.CategoryID == selectedCategory.CategoryID && p.SoldQuantity > 0)
-        .OrderByDescending(p => p.NetRevenue)
-        .ToList();
-    <div class="reports-modal-backdrop" role="presentation" @onclick="CloseAllModals">
-        <section class="reports-stock-modal rpt-modal-wide" role="dialog" aria-modal="true" @onclick:stopPropagation>
-            <div class="reports-stock-modal-header">
-                <div>
-                    <h2>Chi tiết Loại bánh: @selectedCategory.CategoryName</h2>
-                    <p>@GetPeriodDisplayName() · Tỷ trọng @($"{selectedCategory.Percentage:F1}%") tổng doanh thu thực thu</p>
-                </div>
-                <button type="button" class="reports-modal-close" aria-label="Đóng" @onclick="CloseAllModals">&times;</button>
-            </div>
-
-            <div class="rpt-summary-4">
-                <div><span>SL bánh đã bán</span><strong>@selectedCategory.SoldQuantity bánh</strong></div>
-                <div><span>Doanh thu thuần</span><strong>@($"{selectedCategory.Revenue:N0} đ")</strong></div>
-                <div><span>Giá vốn (COGS)</span><strong>@($"{selectedCategory.CostOfGoodsSold:N0} đ")</strong></div>
-                <div><span>Lãi gộp (@($"{selectedCategory.Margin:F1}%"))</span><strong>@($"{selectedCategory.GrossProfit:N0} đ")</strong></div>
-            </div>
-
-            <div class="reports-detail-table-wrap">
-                <table class="reports-detail-table">
-                    <thead>
-                        <tr>
-                            <th>Món bánh</th>
-                            <th class="text-center">SL bán</th>
-                            <th class="text-center">Tồn kho</th>
-                            <th class="text-right">Doanh thu thuần</th>
-                            <th class="text-right">Giá vốn COGS</th>
-                            <th class="text-right">Lãi gộp</th>
-                            <th class="text-center">Margin</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @if (!catProducts.Any())
-                        {
-                            <tr><td colspan="7" class="reports-detail-empty">Chưa có món bánh nào được bán trong danh mục này.</td></tr>
-                        }
-                        else
-                        {
-                            @foreach (var item in catProducts)
-                            {
-                                var target = item;
-                                <tr style="cursor: pointer;" @onclick="() => OpenProductOrdersModal(target)">
-                                    <td><strong>@item.ProductName</strong><span>Giá niêm yết: @($"{item.RetailPrice:N0} đ")</span></td>
-                                    <td class="text-center font-semibold">@item.SoldQuantity</td>
-                                    <td class="text-center">@item.CurrentStock</td>
-                                    <td class="text-right font-semibold whitespace-nowrap">@($"{item.NetRevenue:N0} đ")</td>
-                                    <td class="text-right whitespace-nowrap">@($"{item.TotalCost:N0} đ")</td>
-                                    <td class="text-right font-semibold whitespace-nowrap">@($"{item.GrossProfit:N0} đ")</td>
-                                    <td class="text-center">@($"{item.Margin:F1}%")</td>
-                                </tr>
-                            }
-                        }
-                    </tbody>
-                </table>
-            </div>
-        </section>
-    </div>
-}
-
-@* 5. Modal Chi tiết các Hóa đơn đã bán của 1 Món bánh cụ thể *@
-@if (showProductOrdersModal && selectedProductItem != null)
-{
-    <div class="reports-modal-backdrop" role="presentation" @onclick="CloseAllModals">
-        <section class="reports-stock-modal reports-detail-modal" role="dialog" aria-modal="true" @onclick:stopPropagation>
-            <div class="reports-stock-modal-header">
-                <div>
-                    <h2>Chi tiết đơn bán món: @selectedProductItem.ProductName</h2>
-                    <p>@selectedProductItem.CategoryName · @GetPeriodDisplayName() (chỉ tính đơn Hoàn tất)</p>
-                </div>
-                <button type="button" class="reports-modal-close" aria-label="Đóng" @onclick="CloseAllModals">&times;</button>
-            </div>
-
-            <div class="rpt-summary-4">
-                <div><span>SL đã bán</span><strong>@selectedProductItem.SoldQuantity cái</strong></div>
-                <div><span>Doanh thu thuần</span><strong>@($"{selectedProductItem.NetRevenue:N0} đ")</strong></div>
-                <div><span>Giá vốn (COGS)</span><strong>@($"{selectedProductItem.TotalCost:N0} đ")</strong></div>
-                <div><span>Lãi gộp (@($"{selectedProductItem.Margin:F1}%"))</span><strong>@($"{selectedProductItem.GrossProfit:N0} đ")</strong></div>
-            </div>
-
-            <div class="reports-detail-table-wrap">
-                <table class="reports-detail-table">
-                    <thead>
-                        <tr>
-                            <th>Mã đơn</th>
-                            <th>Ngày đặt</th>
-                            <th>Khách hàng</th>
-                            <th class="text-center">SL</th>
-                            <th class="text-right">Doanh thu thuần</th>
-                            <th class="text-right">Giá vốn</th>
-                            <th>Kênh &amp; TT</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @if (!selectedProductOrders.Any())
-                        {
-                            <tr><td colspan="7" class="reports-detail-empty">Món bánh này chưa có đơn hoàn tất nào trong chu kỳ đã chọn.</td></tr>
-                        }
-                        else
-                        {
-                            @foreach (var ord in selectedProductOrders)
-                            {
-                                var qty = ord.Lines.Where(l => l.ProductID == selectedProductItem.ProductID).Sum(l => l.Quantity);
-                                var rev = ord.Lines.Where(l => l.ProductID == selectedProductItem.ProductID).Sum(l => l.AllocatedNetRevenue);
-                                var cost = ord.Lines.Where(l => l.ProductID == selectedProductItem.ProductID).Sum(l => l.LineCost);
-                                <tr>
-                                    <td><strong>#HD-@ord.OrderID.ToString("D4")</strong><span class="reports-detail-status @ord.StatusClass">@ord.StatusLabel</span></td>
-                                    <td class="whitespace-nowrap">@ord.OrderDate.ToString("dd/MM/yyyy HH:mm")</td>
-                                    <td><strong>@ord.CustomerName</strong>@if (!string.IsNullOrWhiteSpace(ord.CustomerPhone)) { <span>@ord.CustomerPhone</span> }</td>
-                                    <td class="text-center font-semibold">@qty</td>
-                                    <td class="text-right font-semibold whitespace-nowrap">@($"{rev:N0} đ")</td>
-                                    <td class="text-right whitespace-nowrap">@($"{cost:N0} đ")</td>
-                                    <td><strong>@ord.ChannelLabel</strong><span>@ord.PaymentMethodLabel</span></td>
-                                </tr>
-                            }
-                        }
-                    </tbody>
-                </table>
-            </div>
-        </section>
-    </div>
-}
-
-@* 6. Modal Danh sách Cảnh báo Tồn kho & Định giá Tồn kho *@
-@if (showInventoryModal)
-{
-    var invList = inventoryModalFilter == "low" ? analytics.Inventory.LowStockItems : analytics.Inventory.AllItems;
-    <div class="reports-modal-backdrop" role="presentation" @onclick="CloseAllModals">
-        <section class="reports-stock-modal rpt-modal-wide" role="dialog" aria-modal="true" @onclick:stopPropagation>
-            <div class="reports-stock-modal-header">
-                <div>
-                    <h2>Báo cáo Tồn kho &amp; Định giá hàng tồn</h2>
-                    <p>Quản lý số lượng tồn thực tế, cảnh báo hết hàng và giá trị vốn tồn kho</p>
-                </div>
-                <button type="button" class="reports-modal-close" aria-label="Đóng" @onclick="CloseAllModals">&times;</button>
-            </div>
-
-            <div class="rpt-modal-toolbar">
-                <div class="rpt-tabs">
-                    <button type="button" class="rpt-tab @(inventoryModalFilter == "low" ? "is-active" : "")"
-                            @onclick='() => inventoryModalFilter = "low"'>Cần nhập gấp (@analytics.Inventory.LowStockCount)</button>
-                    <button type="button" class="rpt-tab @(inventoryModalFilter == "all" ? "is-active" : "")"
-                            @onclick='() => inventoryModalFilter = "all"'>Toàn bộ menu (@analytics.Inventory.ActiveProductsCount)</button>
-                </div>
-                <button type="button" class="bakery-btn bakery-btn-primary bakery-btn-sm" @onclick='() => Navigation.NavigateTo("/import-receipts")'>
-                    Tạo phiếu nhập kho &rarr;
-                </button>
-            </div>
-
-            <div class="rpt-summary-4">
-                <div><span>Sản phẩm hiển thị</span><strong>@invList.Count món</strong></div>
-                <div><span>Tổng SL tồn</span><strong>@($"{invList.Sum(i => i.StockQuantity):N0}") cái</strong></div>
-                <div><span>Giá trị theo vốn</span><strong>@($"{invList.Sum(i => i.InventoryCostValue):N0} đ")</strong></div>
-                <div><span>Giá trị bán dự kiến</span><strong>@($"{invList.Sum(i => i.InventoryRetailValue):N0} đ")</strong></div>
-            </div>
-
-            <div class="reports-detail-table-wrap">
-                <table class="reports-detail-table">
-                    <thead>
-                        <tr>
-                            <th>Sản phẩm</th>
-                            <th class="text-center">Tồn kho</th>
-                            <th class="text-right">Giá vốn ĐV</th>
-                            <th class="text-right">Giá bán</th>
-                            <th class="text-right">Giá trị tồn (Vốn)</th>
-                            <th class="text-center">Trạng thái</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @if (!invList.Any())
-                        {
-                            <tr><td colspan="6" class="reports-detail-empty">Không có sản phẩm nào trong danh sách này.</td></tr>
-                        }
-                        else
-                        {
-                            @foreach (var item in invList)
-                            {
-                                <tr>
-                                    <td><strong>@item.ProductName</strong><span>@item.CategoryName</span></td>
-                                    <td class="text-center font-semibold">@item.StockQuantity</td>
-                                    <td class="text-right whitespace-nowrap">@(item.HasUnitCost ? $"{item.UnitCost:N0} đ" : "Chưa nhập")</td>
-                                    <td class="text-right whitespace-nowrap">@($"{item.RetailPrice:N0} đ")</td>
-                                    <td class="text-right font-semibold whitespace-nowrap">@($"{item.InventoryCostValue:N0} đ")</td>
-                                    <td class="text-center">
-                                        @if (item.StockQuantity <= 0)
-                                        {
-                                            <span class="reports-detail-status is-danger">Hết hàng</span>
-                                        }
-                                        else if (item.StockQuantity <= 10)
-                                        {
-                                            <span class="reports-detail-status is-warning">Sắp hết</span>
-                                        }
-                                        else
-                                        {
-                                            <span class="reports-detail-status is-success">Ổn định</span>
-                                        }
-                                    </td>
-                                </tr>
-                            }
-                        }
-                    </tbody>
-                </table>
-            </div>
-        </section>
-    </div>
-}
-
-@* 7. Modal Chi tiết Mốc Thời Gian (Cả Đơn hàng lẫn Phiếu nhập của đúng mốc đó) *@
-@if (showTimelineModal && selectedTimelineBucket != null)
-{
-    var bucketOrders = analytics.Orders
-        .Where(o => o.TimelineBucketKey == selectedTimelineBucket.BucketKey)
-        .OrderByDescending(o => o.OrderDate)
-        .ToList();
-    var bucketImports = analytics.Imports
-        .Where(i => i.TimelineBucketKey == selectedTimelineBucket.BucketKey)
-        .OrderByDescending(i => i.ReceiptDate)
-        .ToList();
-
-    <div class="reports-modal-backdrop" role="presentation" @onclick="CloseAllModals">
-        <section class="reports-stock-modal rpt-modal-wide" role="dialog" aria-modal="true" @onclick:stopPropagation>
-            <div class="reports-stock-modal-header">
-                <div>
-                    <h2>Chi tiết mốc thời gian: @selectedTimelineBucket.TimeLabel</h2>
-                    <p>@GetPeriodDisplayName() · @bucketOrders.Count đơn hàng &amp; @bucketImports.Count phiếu nhập kho</p>
-                </div>
-                <button type="button" class="reports-modal-close" aria-label="Đóng" @onclick="CloseAllModals">&times;</button>
-            </div>
-
-            <div class="rpt-modal-toolbar">
-                <div class="rpt-tabs">
-                    <button type="button" class="rpt-tab @(timelineModalTab == "orders" ? "is-active" : "")"
-                            @onclick='() => timelineModalTab = "orders"'>Đơn hàng (@bucketOrders.Count)</button>
-                    <button type="button" class="rpt-tab @(timelineModalTab == "imports" ? "is-active" : "")"
-                            @onclick='() => timelineModalTab = "imports"'>Phiếu nhập kho (@bucketImports.Count)</button>
-                </div>
-            </div>
-
-            <div class="rpt-summary-4">
-                <div><span>Doanh thu thuần (Hoàn tất)</span><strong>@($"{selectedTimelineBucket.Revenue:N0} đ")</strong></div>
-                <div><span>Giá vốn COGS</span><strong>@($"{selectedTimelineBucket.CostOfGoodsSold:N0} đ")</strong></div>
-                <div><span>Lợi nhuận gộp (@($"{selectedTimelineBucket.Margin:F1}%"))</span><strong>@($"{selectedTimelineBucket.GrossProfit:N0} đ")</strong></div>
-                <div><span>Chi nhập kho trong mốc</span><strong>@($"{selectedTimelineBucket.ImportCashflow:N0} đ")</strong></div>
-            </div>
-
-            <div class="reports-detail-table-wrap">
-                @if (timelineModalTab == "orders")
-                {
-                    <table class="reports-detail-table">
-                        <thead>
-                            <tr>
-                                <th>Mã đơn</th>
-                                <th>Thời gian</th>
-                                <th>Khách hàng</th>
-                                <th>Kênh &amp; TT</th>
-                                <th class="text-right">Thành tiền</th>
-                                <th class="text-right">Giá vốn COGS</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @if (!bucketOrders.Any())
-                            {
-                                <tr><td colspan="6" class="reports-detail-empty">Không phát sinh đơn hàng nào trong mốc thời gian này.</td></tr>
-                            }
-                            else
-                            {
-                                @foreach (var ord in bucketOrders)
-                                {
-                                    <tr>
-                                        <td><strong>#HD-@ord.OrderID.ToString("D4")</strong><span class="reports-detail-status @ord.StatusClass">@ord.StatusLabel</span></td>
-                                        <td class="whitespace-nowrap">@ord.OrderDate.ToString("dd/MM/yyyy HH:mm")</td>
-                                        <td><strong>@ord.CustomerName</strong>@if (!string.IsNullOrWhiteSpace(ord.CustomerPhone)) { <span>@ord.CustomerPhone</span> }</td>
-                                        <td><strong>@ord.ChannelLabel</strong><span>@ord.PaymentMethodLabel</span></td>
-                                        <td class="text-right font-semibold whitespace-nowrap">@($"{ord.FinalAmount:N0} đ")</td>
-                                        <td class="text-right whitespace-nowrap">@($"{ord.CostOfGoodsSold:N0} đ")</td>
-                                    </tr>
-                                }
-                            }
-                        </tbody>
-                    </table>
-                }
-                else
-                {
-                    <table class="reports-detail-table">
-                        <thead>
-                            <tr>
-                                <th>Mã phiếu</th>
-                                <th>Ngày nhập</th>
-                                <th>Nhà cung cấp</th>
-                                <th>Món nhập</th>
-                                <th class="text-right">Tổng tiền phiếu</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @if (!bucketImports.Any())
-                            {
-                                <tr><td colspan="5" class="reports-detail-empty">Không phát sinh phiếu nhập kho nào trong mốc thời gian này.</td></tr>
-                            }
-                            else
-                            {
-                                @foreach (var imp in bucketImports)
-                                {
-                                    <tr>
-                                        <td><strong>#PN-@imp.ReceiptID.ToString("D4")</strong></td>
-                                        <td class="whitespace-nowrap">@imp.ReceiptDate.ToString("dd/MM/yyyy HH:mm")</td>
-                                        <td><strong>@imp.SupplierName</strong><span>NV: @imp.EmployeeName</span></td>
-                                        <td>
-                                            @foreach (var line in imp.Lines)
-                                            {
-                                                <span>@line.ProductName &times; @line.Quantity (@($"{line.UnitPrice:N0} đ"))</span>
-                                            }
-                                        </td>
-                                        <td class="text-right font-semibold whitespace-nowrap">@($"{imp.TotalAmount:N0} đ")</td>
-                                    </tr>
-                                }
-                            }
-                        </tbody>
-                    </table>
-                }
-            </div>
-        </section>
-    </div>
-}
-
-<!-- ======================== XUẤT EXCEL & IN PDF ======================== -->
-
-<div id="report-export-data" class="report-export-data">
-    <h2>Báo cáo kinh doanh, giá vốn &amp; lợi nhuận - BakerySystem</h2>
-    <p>Chu kỳ: @GetPeriodDisplayName()</p>
-    <table>
-        <caption>Tổng quan tài chính</caption>
-        <tbody>
-            <tr><th>Doanh thu thực thu (Hoàn tất)</th><td>@($"{analytics.Kpi.ActualRevenue:N0} đ")</td><th>Giá vốn hàng bán (COGS)</th><td>@($"{analytics.Kpi.CostOfGoodsSold:N0} đ")</td></tr>
-            <tr><th>Lợi nhuận gộp</th><td>@($"{analytics.Kpi.GrossProfit:N0} đ")</td><th>Biên lợi nhuận gộp</th><td>@($"{analytics.Kpi.ProfitMargin:F1}%")</td></tr>
-            <tr><th>Đơn hoàn tất / Tổng đơn</th><td>@analytics.Kpi.CompletedOrdersCount / @analytics.Kpi.TotalOrdersCount</td><th>Giá trị TB / đơn (AOV)</th><td>@($"{analytics.Kpi.AverageOrderValue:N0} đ")</td></tr>
-            <tr><th>Đơn đang xử lý</th><td>@analytics.Kpi.ProcessingOrdersCount (@($"{analytics.Kpi.ProcessingOrdersAmount:N0} đ"))</td><th>Đơn đã hủy</th><td>@analytics.Kpi.CancelledOrdersCount (@($"{analytics.Kpi.CancellationRate:F1}%"))</td></tr>
-            <tr><th>Chi nhập kho trong kỳ</th><td>@($"{analytics.Kpi.PeriodImportCashflow:N0} đ") (@analytics.Kpi.ImportReceiptsCount phiếu)</td><th>Giá trị tồn kho (theo vốn)</th><td>@($"{analytics.Inventory.TotalInventoryCostValue:N0} đ")</td></tr>
-        </tbody>
-    </table>
-    <table>
-        <caption>Chi tiết theo mốc thời gian</caption>
-        <thead><tr><th>Mốc thời gian</th><th>Đơn hoàn tất</th><th>Đơn hủy</th><th>Doanh thu thuần</th><th>Giá vốn COGS</th><th>Lợi nhuận gộp</th><th>Biên lãi</th><th>Chi nhập kho</th></tr></thead>
-        <tbody>
-            @foreach (var row in analytics.Timeline)
-            {
-                <tr><td>@row.TimeLabel</td><td>@row.CompletedOrderCount</td><td>@row.CancelledOrderCount</td><td>@($"{row.Revenue:N0} đ")</td><td>@($"{row.CostOfGoodsSold:N0} đ")</td><td>@($"{row.GrossProfit:N0} đ")</td><td>@($"{row.Margin:F1}%")</td><td>@($"{row.ImportCashflow:N0} đ")</td></tr>
-            }
-        </tbody>
-    </table>
-    <table>
-        <caption>Kênh bán hàng &amp; Thanh toán</caption>
-        <thead><tr><th>Hạng mục</th><th>Số đơn</th><th>Doanh thu thuần</th><th>Tỷ lệ</th></tr></thead>
-        <tbody>
-            @foreach (var ch in analytics.Channels)
-            {
-                <tr><td>[Kênh] @ch.DisplayName</td><td>@ch.OrderCount</td><td>@($"{ch.Revenue:N0} đ")</td><td>@($"{ch.Percentage:F1}%")</td></tr>
-            }
-            @foreach (var pay in analytics.Payments)
-            {
-                <tr><td>[TT] @pay.DisplayName</td><td>@pay.OrderCount</td><td>@($"{pay.Amount:N0} đ")</td><td>@($"{pay.Percentage:F1}%")</td></tr>
-            }
-        </tbody>
-    </table>
-    <table>
-        <caption>Cơ cấu doanh thu theo loại bánh</caption>
-        <thead><tr><th>Loại bánh</th><th>SL bán</th><th>Doanh thu thuần</th><th>Giá vốn COGS</th><th>Lợi nhuận gộp</th><th>Tỷ trọng</th></tr></thead>
-        <tbody>
-            @foreach (var cat in analytics.Categories)
-            {
-                <tr><td>@cat.CategoryName</td><td>@cat.SoldQuantity</td><td>@($"{cat.Revenue:N0} đ")</td><td>@($"{cat.CostOfGoodsSold:N0} đ")</td><td>@($"{cat.GrossProfit:N0} đ")</td><td>@($"{cat.Percentage:F1}%")</td></tr>
-            }
-        </tbody>
-    </table>
-    <table>
-        <caption>Hiệu suất món bánh</caption>
-        <thead><tr><th>Món bánh</th><th>Loại</th><th>SL bán</th><th>Tồn kho</th><th>Doanh thu thuần</th><th>Giá vốn COGS</th><th>Lãi gộp</th><th>Biên lãi</th></tr></thead>
-        <tbody>
-            @foreach (var prod in analytics.Products)
-            {
-                <tr><td>@prod.ProductName</td><td>@prod.CategoryName</td><td>@prod.SoldQuantity</td><td>@prod.CurrentStock</td><td>@($"{prod.NetRevenue:N0} đ")</td><td>@($"{prod.TotalCost:N0} đ")</td><td>@($"{prod.GrossProfit:N0} đ")</td><td>@($"{prod.Margin:F1}%")</td></tr>
-            }
-        </tbody>
-    </table>
-    <table>
-        <caption>Cảnh báo tồn kho (&le; 10)</caption>
-        <thead><tr><th>Sản phẩm</th><th>Loại</th><th>Tồn kho</th><th>Giá vốn ĐV</th><th>Giá bán</th></tr></thead>
-        <tbody>
-            @foreach (var product in analytics.Inventory.LowStockItems)
-            {
-                <tr><td>@product.ProductName</td><td>@product.CategoryName</td><td>@product.StockQuantity</td><td>@($"{product.UnitCost:N0} đ")</td><td>@($"{product.RetailPrice:N0} đ")</td></tr>
-            }
-        </tbody>
-    </table>
-</div>
-
+<!-- Mẫu In / Xuất PDF -->
 <div class="admin-print-report" data-report="reports">
     <div class="admin-print-header">
         <div>
             <div class="admin-print-eyebrow">BAKERYSYSTEM</div>
-            <h1>Báo cáo kinh doanh, giá vốn &amp; lợi nhuận</h1>
-            <p>@GetPeriodDisplayName() · Ngày in: @DateTime.Now.ToString("dd/MM/yyyy HH:mm")</p>
+            <h1>Báo cáo Kinh doanh &amp; Thống kê theo Quý</h1>
+            <p>Chu kỳ: @GetPeriodDisplayName() · Năm đối chiếu Quý: @analytics.AnalyticsYear · Ngày in: @DateTime.Now.ToString("dd/MM/yyyy HH:mm")</p>
         </div>
         <div class="admin-print-summary">
-            <strong>@analytics.Kpi.CompletedOrdersCount</strong>
-            <span>đơn hoàn tất</span>
+            <strong>@analytics.Kpi.ActualRevenue.ToString("N0") đ</strong>
+            <span>Doanh thu thực thu</span>
         </div>
     </div>
-    <div class="admin-print-kpis">
-        <div><strong>@($"{analytics.Kpi.ActualRevenue:N0} đ")</strong><span>Doanh thu thực thu</span></div>
-        <div><strong>@($"{analytics.Kpi.CostOfGoodsSold:N0} đ")</strong><span>Giá vốn hàng bán (COGS)</span></div>
-        <div><strong>@($"{analytics.Kpi.GrossProfit:N0} đ")</strong><span>Lợi nhuận gộp</span></div>
-        <div><strong>@($"{analytics.Kpi.ProfitMargin:F1}%")</strong><span>Biên lãi gộp</span></div>
-    </div>
-    <h2>Chi tiết theo mốc thời gian</h2>
+
+    <h2>1. Tổng hợp 4 Quý năm @analytics.AnalyticsYear</h2>
     <table>
-        <thead><tr><th>Mốc thời gian</th><th class="print-number">Hoàn tất</th><th class="print-number">Doanh thu thuần</th><th class="print-number">Giá vốn COGS</th><th class="print-number">Lãi gộp</th><th class="print-number">Biên lãi</th><th class="print-number">Chi nhập kho</th></tr></thead>
+        <thead>
+            <tr>
+                <th>Quý</th>
+                <th class="print-number">Số đơn</th>
+                <th class="print-number">SL bánh</th>
+                <th class="print-number">Doanh thu</th>
+                <th class="print-number">Giá vốn</th>
+                <th class="print-number">Lợi nhuận gộp</th>
+            </tr>
+        </thead>
         <tbody>
-            @foreach (var row in analytics.Timeline)
+            @foreach (var q in analytics.YearQuarters)
             {
-                <tr><td><strong>@row.TimeLabel</strong></td><td class="print-number">@row.CompletedOrderCount</td><td class="print-number">@row.Revenue.ToString("N0") đ</td><td class="print-number">@row.CostOfGoodsSold.ToString("N0") đ</td><td class="print-number">@row.GrossProfit.ToString("N0") đ</td><td class="print-number">@row.Margin.ToString("F1")%</td><td class="print-number">@row.ImportCashflow.ToString("N0") đ</td></tr>
+                <tr>
+                    <td>@q.Label</td>
+                    <td class="print-number">@q.OrderCount</td>
+                    <td class="print-number">@q.SoldQuantity</td>
+                    <td class="print-number">@q.NetRevenue.ToString("N0") đ</td>
+                    <td class="print-number">@q.CostOfGoodsSold.ToString("N0") đ</td>
+                    <td class="print-number">@q.GrossProfit.ToString("N0") đ</td>
+                </tr>
             }
         </tbody>
     </table>
-    <div class="admin-print-columns">
-        <div>
-            <h2>Kênh bán &amp; Thanh toán</h2>
-            <table>
-                <thead><tr><th>Hạng mục</th><th>Đơn</th><th class="print-number">Số tiền</th><th class="print-number">Tỷ lệ</th></tr></thead>
-                <tbody>
-                    @foreach (var ch in analytics.Channels)
-                    {
-                        <tr><td>@ch.DisplayName</td><td>@ch.OrderCount</td><td class="print-number">@ch.Revenue.ToString("N0") đ</td><td class="print-number">@ch.Percentage.ToString("F1")%</td></tr>
-                    }
-                    @foreach (var pay in analytics.Payments)
-                    {
-                        <tr><td>@pay.DisplayName</td><td>@pay.OrderCount</td><td class="print-number">@pay.Amount.ToString("N0") đ</td><td class="print-number">@pay.Percentage.ToString("F1")%</td></tr>
-                    }
-                </tbody>
-            </table>
-        </div>
-        <div>
-            <h2>Top món bánh bán chạy</h2>
-            <table>
-                <thead><tr><th>#</th><th>Món bánh</th><th class="print-number">SL</th><th class="print-number">Doanh thu</th><th class="print-number">Lãi gộp</th></tr></thead>
-                <tbody>
-                    @for (var index = 0; index < Math.Min(8, analytics.Products.Count); index++)
-                    {
-                        var item = analytics.Products[index];
-                        <tr><td>@(index + 1)</td><td>@item.ProductName</td><td class="print-number">@item.SoldQuantity</td><td class="print-number">@item.NetRevenue.ToString("N0") đ</td><td class="print-number">@item.GrossProfit.ToString("N0") đ</td></tr>
-                    }
-                </tbody>
-            </table>
-        </div>
-    </div>
-    <h2>Cảnh báo tồn kho (&le; 10)</h2>
+
+    <h2>2. Tổng tiền sản phẩm theo từng Quý (Năm @analytics.AnalyticsYear)</h2>
     <table>
-        <thead><tr><th>Sản phẩm</th><th>Loại</th><th class="print-number">Tồn kho</th><th class="print-number">Giá vốn ĐV</th><th class="print-number">Giá bán</th></tr></thead>
+        <thead>
+            <tr>
+                <th>Sản phẩm</th>
+                <th class="print-number">Q1</th>
+                <th class="print-number">Q2</th>
+                <th class="print-number">Q3</th>
+                <th class="print-number">Q4</th>
+                <th class="print-number">Cả năm</th>
+            </tr>
+        </thead>
         <tbody>
-            @foreach (var product in analytics.Inventory.LowStockItems)
+            @foreach (var p in analytics.Products.OrderByDescending(x => x.QuarterlyMetrics.Sum(q => q.NetRevenue)))
             {
-                <tr><td>@product.ProductName</td><td>@product.CategoryName</td><td class="print-number">@product.StockQuantity</td><td class="print-number">@product.UnitCost.ToString("N0") đ</td><td class="print-number">@product.RetailPrice.ToString("N0") đ</td></tr>
+                var q1 = p.QuarterlyMetrics.FirstOrDefault(x => x.Quarter == 1)?.NetRevenue ?? 0m;
+                var q2 = p.QuarterlyMetrics.FirstOrDefault(x => x.Quarter == 2)?.NetRevenue ?? 0m;
+                var q3 = p.QuarterlyMetrics.FirstOrDefault(x => x.Quarter == 3)?.NetRevenue ?? 0m;
+                var q4 = p.QuarterlyMetrics.FirstOrDefault(x => x.Quarter == 4)?.NetRevenue ?? 0m;
+                <tr>
+                    <td>@p.ProductName</td>
+                    <td class="print-number">@q1.ToString("N0") đ</td>
+                    <td class="print-number">@q2.ToString("N0") đ</td>
+                    <td class="print-number">@q3.ToString("N0") đ</td>
+                    <td class="print-number">@q4.ToString("N0") đ</td>
+                    <td class="print-number">@((q1 + q2 + q3 + q4).ToString("N0")) đ</td>
+                </tr>
             }
         </tbody>
     </table>
-    <div class="admin-print-footer"><span>Báo cáo tổng hợp theo chu kỳ đã chọn.</span><span>Người lập: ____________________</span></div>
+    <div class="admin-print-footer">
+        <span>Báo cáo tổng hợp BakerySystem.</span>
+        <span>Người lập: ____________________</span>
+    </div>
 </div>
 
 @code {
@@ -1582,43 +1341,22 @@
     private bool isLoading = true;
     private bool hasError;
     private string errorMessage = "";
-    private bool chartsNeedRender;
+    private bool detailChartNeedsRender;
     private bool isInteractive;
 
     private ReportAnalyticsResult analytics = new();
 
-    // Panel UI state
-    private string productTab = "top"; // "top" | "slow" | "all"
+    // Mainform Master–Detail state
+    private string masterTab = "products"; // "products" | "quarters" | "categories" | "channels"
+    private string productSearch = "";
+    private string productSort = "revenue_desc";
+    private int? selectedProductId;       // null = Top Products Chart
+    private string topChartMetric = "revenue"; // "revenue" | "sold" | "profit"
+    private int topChartLimit = 5;        // 5 | 10 | 0 (all)
 
-    // Drill-down modal state
-    private bool showOrdersModal;
-    private string ordersModalTitle = "";
-    private string ordersModalStatusFilter = "all";
-    private string ordersModalChannelFilter = "all";
-    private string? ordersModalPaymentKey;
-    private int? ordersModalCustomerId;
-
-    private bool showProductProfitModal;
-    private string productProfitSearch = "";
-    private string productProfitSort = "sold_desc";
-
-    private bool showImportsModal;
-    private string importsModalTitle = "";
-    private List<ReportImportItem> selectedModalImports = [];
-
-    private bool showCategoryModal;
-    private ReportCategoryItem? selectedCategory;
-
-    private bool showProductOrdersModal;
-    private ReportProductItem? selectedProductItem;
-    private List<ReportOrderItem> selectedProductOrders = [];
-
-    private bool showInventoryModal;
-    private string inventoryModalFilter = "low";
-
-    private bool showTimelineModal;
-    private ReportTimelineItem? selectedTimelineBucket;
-    private string timelineModalTab = "orders";
+    private int? selectedQuarterDetail;   // null = 4-Quarter Overview, 1..4 = Specific Quarter
+    private int? selectedCategoryId;      // null = All Categories Donut
+    private string selectedChannelSection = "overview"; // "overview" | "pos" | "online" | "customers"
 
     protected override async Task OnInitializedAsync()
     {
@@ -1665,19 +1403,268 @@
                 ReferenceMonth = refMonth,
                 ReferenceQuarter = refQuarter
             });
+
+            // Giữ lựa chọn hợp lệ nếu sản phẩm/danh mục không còn trong danh sách
+            if (selectedProductId.HasValue && analytics.Products.All(p => p.ProductID != selectedProductId.Value))
+            {
+                selectedProductId = null;
+            }
+            if (selectedCategoryId.HasValue && analytics.Categories.All(c => c.CategoryID != selectedCategoryId.Value))
+            {
+                selectedCategoryId = null;
+            }
         }
         catch (Exception ex)
         {
             hasError = true;
             errorMessage = ex.Message;
-            Console.WriteLine("Lỗi nạp báo cáo: " + ex);
         }
         finally
         {
             isLoading = false;
-            chartsNeedRender = true;
+            detailChartNeedsRender = true;
             StateHasChanged();
         }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        isInteractive = true;
+        if (isInteractive && detailChartNeedsRender && !isLoading)
+        {
+            detailChartNeedsRender = false;
+            await TriggerDetailChartRenderAsync();
+        }
+    }
+
+    private async Task TriggerDetailChartRenderAsync()
+    {
+        try
+        {
+            await Task.Delay(50);
+
+            if (masterTab == "products")
+            {
+                if (selectedProductId is null)
+                {
+                    var items = GetTopChartProducts();
+                    if (!items.Any()) return;
+
+                    var labels = items.Select(p => p.ProductName).ToArray();
+                    var (values, seriesName, unit, color) = topChartMetric switch
+                    {
+                        "sold" => (items.Select(p => (double)p.SoldQuantity).ToArray(), "Số lượng bán", " cái", "#f59e0b"),
+                        "profit" => (items.Select(p => (double)p.GrossProfit).ToArray(), "Lợi nhuận gộp", " đ", "#10b981"),
+                        _ => (items.Select(p => (double)p.NetRevenue).ToArray(), "Doanh thu thực thu", " đ", "#2563eb")
+                    };
+
+                    await JS.InvokeVoidAsync("renderReportTopBarChart", "rpt-detail-chart", labels, values, seriesName, unit, color);
+                }
+                else if (GetSelectedProduct() is { } prod)
+                {
+                    var labels = prod.QuarterlyMetrics.Select(q => q.Label).ToArray();
+                    var rev = prod.QuarterlyMetrics.Select(q => (double)q.NetRevenue).ToArray();
+                    var profit = prod.QuarterlyMetrics.Select(q => (double)q.GrossProfit).ToArray();
+                    var qty = prod.QuarterlyMetrics.Select(q => (double)q.SoldQuantity).ToArray();
+                    await JS.InvokeVoidAsync("renderReportQuarterlyChart", "rpt-detail-chart", labels, rev, profit, qty);
+                }
+            }
+            else if (masterTab == "quarters")
+            {
+                if (selectedQuarterDetail is null)
+                {
+                    var labels = analytics.YearQuarters.Select(q => q.Label).ToArray();
+                    var rev = analytics.YearQuarters.Select(q => (double)q.NetRevenue).ToArray();
+                    var profit = analytics.YearQuarters.Select(q => (double)q.GrossProfit).ToArray();
+                    var qty = analytics.YearQuarters.Select(q => (double)q.SoldQuantity).ToArray();
+                    await JS.InvokeVoidAsync("renderReportQuarterlyChart", "rpt-detail-chart", labels, rev, profit, qty);
+                }
+                else if (analytics.TopProductsByQuarter.TryGetValue(selectedQuarterDetail.Value, out var qProds) && qProds.Any())
+                {
+                    var top = qProds.Take(8).ToList();
+                    var labels = top.Select(p => p.ProductName).ToArray();
+                    var values = top.Select(p => (double)p.NetRevenue).ToArray();
+                    await JS.InvokeVoidAsync("renderReportTopBarChart", "rpt-detail-chart", labels, values, $"Doanh thu Quý {selectedQuarterDetail.Value}", " đ", "#2563eb");
+                }
+            }
+            else if (masterTab == "categories")
+            {
+                if (selectedCategoryId is null)
+                {
+                    var labels = analytics.Categories.Select(c => c.CategoryName).ToArray();
+                    var series = analytics.Categories.Select(c => (double)c.Revenue).ToArray();
+                    var colors = analytics.Categories.Select(c => c.ColorHex).ToArray();
+                    await JS.InvokeVoidAsync("renderReportDonutChart", "rpt-detail-chart", labels, series, colors, "Tổng thực thu");
+                }
+                else if (GetSelectedCategory() is { } cat)
+                {
+                    var labels = cat.QuarterlyMetrics.Select(q => q.Label).ToArray();
+                    var rev = cat.QuarterlyMetrics.Select(q => (double)q.NetRevenue).ToArray();
+                    var profit = cat.QuarterlyMetrics.Select(q => (double)q.GrossProfit).ToArray();
+                    var qty = cat.QuarterlyMetrics.Select(q => (double)q.SoldQuantity).ToArray();
+                    await JS.InvokeVoidAsync("renderReportQuarterlyChart", "rpt-detail-chart", labels, rev, profit, qty);
+                }
+            }
+            else if (masterTab == "channels")
+            {
+                if (selectedChannelSection == "customers")
+                {
+                    if (!analytics.TopCustomers.Any()) return;
+                    var labels = analytics.TopCustomers.Select(c => c.CustomerName).ToArray();
+                    var values = analytics.TopCustomers.Select(c => (double)c.TotalSpent).ToArray();
+                    await JS.InvokeVoidAsync("renderReportTopBarChart", "rpt-detail-chart", labels, values, "Tổng chi tiêu", " đ", "#7c3aed");
+                }
+                else
+                {
+                    var labels = analytics.Channels.Select(c => c.DisplayName).ToArray();
+                    var series = analytics.Channels.Select(c => (double)c.Revenue).ToArray();
+                    var colors = new[] { "#2563eb", "#8b5cf6" };
+                    await JS.InvokeVoidAsync("renderReportDonutChart", "rpt-detail-chart", labels, series, colors, "Kênh bán");
+                }
+            }
+        }
+        catch (Exception ex) when (ex is JSDisconnectedException || ex is TaskCanceledException)
+        {
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Lỗi render biểu đồ Mainform: " + ex.Message);
+        }
+    }
+
+    // ===== Navigation / Selection Handlers =====
+
+    private void SwitchMasterTab(string tab)
+    {
+        masterTab = tab;
+        detailChartNeedsRender = true;
+    }
+
+    private void SelectTopProductsChart()
+    {
+        masterTab = "products";
+        selectedProductId = null;
+        detailChartNeedsRender = true;
+    }
+
+    private void JumpToTopProducts(string metric)
+    {
+        masterTab = "products";
+        selectedProductId = null;
+        topChartMetric = metric;
+        detailChartNeedsRender = true;
+    }
+
+    private void ChangeTopChartConfig(string metric, int limit)
+    {
+        topChartMetric = metric;
+        topChartLimit = limit;
+        detailChartNeedsRender = true;
+    }
+
+    private void SelectProduct(int productId)
+    {
+        selectedProductId = productId;
+        detailChartNeedsRender = true;
+    }
+
+    private void JumpToProductDetail(int productId)
+    {
+        masterTab = "products";
+        selectedProductId = productId;
+        detailChartNeedsRender = true;
+    }
+
+    private void SelectQuartersOverview()
+    {
+        masterTab = "quarters";
+        selectedQuarterDetail = null;
+        detailChartNeedsRender = true;
+    }
+
+    private void SelectQuarter(int quarter)
+    {
+        masterTab = "quarters";
+        selectedQuarterDetail = quarter;
+        detailChartNeedsRender = true;
+    }
+
+    private void SelectCategoriesOverview()
+    {
+        masterTab = "categories";
+        selectedCategoryId = null;
+        detailChartNeedsRender = true;
+    }
+
+    private void SelectCategory(int categoryId)
+    {
+        masterTab = "categories";
+        selectedCategoryId = categoryId;
+        detailChartNeedsRender = true;
+    }
+
+    private void SelectChannelsOverview()
+    {
+        masterTab = "channels";
+        selectedChannelSection = "overview";
+        detailChartNeedsRender = true;
+    }
+
+    private void SelectChannelSection(string section)
+    {
+        masterTab = "channels";
+        selectedChannelSection = section;
+        detailChartNeedsRender = true;
+    }
+
+    // ===== Query Helpers =====
+
+    private ReportProductItem? GetSelectedProduct() =>
+        selectedProductId.HasValue
+            ? analytics.Products.FirstOrDefault(p => p.ProductID == selectedProductId.Value)
+            : null;
+
+    private ReportCategoryItem? GetSelectedCategory() =>
+        selectedCategoryId.HasValue
+            ? analytics.Categories.FirstOrDefault(c => c.CategoryID == selectedCategoryId.Value)
+            : null;
+
+    private List<ReportProductItem> GetMasterProducts()
+    {
+        IEnumerable<ReportProductItem> query = analytics.Products;
+        if (!string.IsNullOrWhiteSpace(productSearch))
+        {
+            var term = productSearch.Trim();
+            query = query.Where(p =>
+                p.ProductName.Contains(term, StringComparison.OrdinalIgnoreCase) ||
+                p.CategoryName.Contains(term, StringComparison.OrdinalIgnoreCase));
+        }
+
+        return productSort switch
+        {
+            "sold_desc" => query.OrderByDescending(p => p.SoldQuantity).ThenByDescending(p => p.NetRevenue).ToList(),
+            "profit_desc" => query.OrderByDescending(p => p.GrossProfit).ThenByDescending(p => p.NetRevenue).ToList(),
+            "slow_asc" => query.OrderBy(p => p.SoldQuantity).ThenByDescending(p => p.CurrentStock).ToList(),
+            _ => query.OrderByDescending(p => p.NetRevenue).ThenByDescending(p => p.SoldQuantity).ToList()
+        };
+    }
+
+    private List<ReportProductItem> GetTopChartProducts()
+    {
+        IEnumerable<ReportProductItem> query = analytics.Products.Where(p => p.SoldQuantity > 0 || p.NetRevenue > 0);
+        query = topChartMetric switch
+        {
+            "sold" => query.OrderByDescending(p => p.SoldQuantity).ThenByDescending(p => p.NetRevenue),
+            "profit" => query.OrderByDescending(p => p.GrossProfit).ThenByDescending(p => p.NetRevenue),
+            _ => query.OrderByDescending(p => p.NetRevenue).ThenByDescending(p => p.SoldQuantity)
+        };
+
+        if (topChartLimit > 0)
+        {
+            query = query.Take(topChartLimit);
+        }
+
+        return query.ToList();
     }
 
     private (DateTime? Start, DateTime? End, DateTime? PrevStart, DateTime? PrevEnd, string TimelineMode, int RefYear, int RefMonth, int RefQuarter) ResolvePeriod(DateTime now)
@@ -1689,16 +1676,7 @@
                 var s = customStartDate.Date <= customEndDate.Date ? customStartDate.Date : customEndDate.Date;
                 var e = customEndDate.Date >= customStartDate.Date ? customEndDate.Date : customStartDate.Date;
                 var spanDays = (e - s).Days + 1;
-                return (
-                    s,
-                    e.AddDays(1).AddTicks(-1),
-                    s.AddDays(-spanDays),
-                    s.AddTicks(-1),
-                    "days",
-                    s.Year,
-                    s.Month,
-                    (s.Month - 1) / 3 + 1
-                );
+                return (s, e.AddDays(1).AddTicks(-1), s.AddDays(-spanDays), s.AddTicks(-1), "days", e.Year, e.Month, (e.Month - 1) / 3 + 1);
             }
             case "month":
             {
@@ -1724,246 +1702,13 @@
             default:
                 return quickPeriod switch
                 {
-                    "today" => (
-                        now.Date,
-                        now.Date.AddDays(1).AddTicks(-1),
-                        now.Date.AddDays(-1),
-                        now.Date.AddTicks(-1),
-                        "hours",
-                        now.Year,
-                        now.Month,
-                        (now.Month - 1) / 3 + 1
-                    ),
-                    "week" => (
-                        now.Date.AddDays(-6),
-                        now.Date.AddDays(1).AddTicks(-1),
-                        now.Date.AddDays(-13),
-                        now.Date.AddDays(-6).AddTicks(-1),
-                        "days",
-                        now.Year,
-                        now.Month,
-                        (now.Month - 1) / 3 + 1
-                    ),
-                    "month" => (
-                        new DateTime(now.Year, now.Month, 1),
-                        new DateTime(now.Year, now.Month, 1).AddMonths(1).AddTicks(-1),
-                        new DateTime(now.Year, now.Month, 1).AddMonths(-1),
-                        new DateTime(now.Year, now.Month, 1).AddTicks(-1),
-                        "weeks",
-                        now.Year,
-                        now.Month,
-                        (now.Month - 1) / 3 + 1
-                    ),
-                    _ => (null, null, null, null, "days", now.Year, now.Month, (now.Month - 1) / 3 + 1)
+                    "today" => (now.Date, now.Date.AddDays(1).AddTicks(-1), now.Date.AddDays(-1), now.Date.AddTicks(-1), "hours", now.Year, now.Month, (now.Month - 1) / 3 + 1),
+                    "week" => (now.Date.AddDays(-6), now.Date.AddDays(1).AddTicks(-1), now.Date.AddDays(-13), now.Date.AddDays(-6).AddTicks(-1), "days", now.Year, now.Month, (now.Month - 1) / 3 + 1),
+                    "month" => (new DateTime(now.Year, now.Month, 1), new DateTime(now.Year, now.Month, 1).AddMonths(1).AddTicks(-1), new DateTime(now.Year, now.Month, 1).AddMonths(-1), new DateTime(now.Year, now.Month, 1).AddTicks(-1), "weeks", now.Year, now.Month, (now.Month - 1) / 3 + 1),
+                    _ => (null, null, null, null, "days", selectedYear, now.Month, (now.Month - 1) / 3 + 1)
                 };
         }
     }
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        isInteractive = true;
-        if (isInteractive && chartsNeedRender && !isLoading)
-        {
-            chartsNeedRender = false;
-            await TriggerChartsRenderAsync();
-        }
-    }
-
-    private async Task TriggerChartsRenderAsync()
-    {
-        try
-        {
-            await Task.Delay(80);
-            var labels = analytics.Timeline.Select(t => t.ShortLabel).ToArray();
-            var revSeries = analytics.Timeline.Select(t => (double)t.Revenue).ToArray();
-            var costSeries = analytics.Timeline.Select(t => (double)t.CostOfGoodsSold).ToArray();
-            var profitSeries = analytics.Timeline.Select(t => (double)t.GrossProfit).ToArray();
-            var donutSeries = analytics.Categories.Select(c => (double)c.Revenue).ToArray();
-            var donutLabels = analytics.Categories.Select(c => c.CategoryName).ToArray();
-            var donutColors = analytics.Categories.Select(c => c.ColorHex).ToArray();
-
-            await JS.InvokeVoidAsync(
-                "initBakeryReportsCharts",
-                labels,
-                revSeries,
-                costSeries,
-                profitSeries,
-                donutSeries,
-                donutLabels,
-                donutColors
-            );
-        }
-        catch (Exception ex) when (ex is JSDisconnectedException || ex is TaskCanceledException)
-        {
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine("Lỗi render biểu đồ: " + ex.Message);
-        }
-    }
-
-    private List<ReportProductItem> GetDisplayedProductsForPanel() => productTab switch
-    {
-        "slow" => analytics.Products
-            .OrderBy(p => p.SoldQuantity)
-            .ThenByDescending(p => p.CurrentStock)
-            .Take(6)
-            .ToList(),
-        "all" => analytics.Products.Take(8).ToList(),
-        _ => analytics.Products
-            .Where(p => p.SoldQuantity > 0)
-            .OrderByDescending(p => p.SoldQuantity)
-            .ThenByDescending(p => p.NetRevenue)
-            .Take(6)
-            .ToList()
-    };
-
-    // ===== Drill-down Modal Actions =====
-
-    private void CloseAllModals()
-    {
-        showOrdersModal = false;
-        showProductProfitModal = false;
-        showImportsModal = false;
-        showCategoryModal = false;
-        showProductOrdersModal = false;
-        showInventoryModal = false;
-        showTimelineModal = false;
-        ordersModalPaymentKey = null;
-        ordersModalCustomerId = null;
-        selectedCategory = null;
-        selectedProductItem = null;
-        selectedTimelineBucket = null;
-    }
-
-    private void OpenOrdersModal(string title, string statusFilter, string channelFilter)
-    {
-        CloseAllModals();
-        ordersModalTitle = title;
-        ordersModalStatusFilter = statusFilter;
-        ordersModalChannelFilter = channelFilter;
-        showOrdersModal = true;
-    }
-
-    private void OpenPaymentOrdersModal(ReportPaymentItem payment)
-    {
-        CloseAllModals();
-        ordersModalTitle = $"Đơn hàng thanh toán: {payment.DisplayName}";
-        ordersModalStatusFilter = "completed";
-        ordersModalChannelFilter = "all";
-        ordersModalPaymentKey = payment.GroupKey;
-        showOrdersModal = true;
-    }
-
-    private void OpenCustomerOrdersModal(ReportCustomerItem customer)
-    {
-        CloseAllModals();
-        ordersModalTitle = $"Lịch sử đơn trong kỳ - {customer.CustomerName}";
-        ordersModalStatusFilter = "completed";
-        ordersModalChannelFilter = "all";
-        ordersModalCustomerId = customer.CustomerID;
-        showOrdersModal = true;
-    }
-
-    private List<ReportOrderItem> GetFilteredModalOrders()
-    {
-        IEnumerable<ReportOrderItem> query = analytics.Orders;
-
-        if (ordersModalStatusFilter != "all")
-        {
-            query = query.Where(o => o.StatusGroup == ordersModalStatusFilter);
-        }
-
-        if (ordersModalChannelFilter != "all")
-        {
-            query = query.Where(o => o.ChannelKey == ordersModalChannelFilter);
-        }
-
-        if (!string.IsNullOrEmpty(ordersModalPaymentKey))
-        {
-            query = query.Where(o => o.PaymentGroupKey == ordersModalPaymentKey);
-        }
-
-        if (ordersModalCustomerId.HasValue)
-        {
-            query = query.Where(o => o.CustomerID == ordersModalCustomerId.Value);
-        }
-
-        return query.OrderByDescending(o => o.OrderDate).ToList();
-    }
-
-    private void OpenProductProfitModal()
-    {
-        CloseAllModals();
-        productProfitSearch = "";
-        showProductProfitModal = true;
-    }
-
-    private List<ReportProductItem> GetFilteredProductProfitList()
-    {
-        IEnumerable<ReportProductItem> query = analytics.Products;
-
-        if (!string.IsNullOrWhiteSpace(productProfitSearch))
-        {
-            var term = productProfitSearch.Trim();
-            query = query.Where(p =>
-                p.ProductName.Contains(term, StringComparison.OrdinalIgnoreCase) ||
-                p.CategoryName.Contains(term, StringComparison.OrdinalIgnoreCase));
-        }
-
-        return productProfitSort switch
-        {
-            "profit_desc" => query.OrderByDescending(p => p.GrossProfit).ThenByDescending(p => p.SoldQuantity).ToList(),
-            "margin_asc" => query.Where(p => p.SoldQuantity > 0).OrderBy(p => p.Margin).ThenByDescending(p => p.SoldQuantity).ToList(),
-            "slow_asc" => query.OrderBy(p => p.SoldQuantity).ThenByDescending(p => p.CurrentStock).ToList(),
-            _ => query.OrderByDescending(p => p.SoldQuantity).ThenByDescending(p => p.NetRevenue).ToList()
-        };
-    }
-
-    private void OpenImportsModal(string? bucketKey, string title)
-    {
-        CloseAllModals();
-        importsModalTitle = title;
-        selectedModalImports = string.IsNullOrEmpty(bucketKey)
-            ? analytics.Imports
-            : analytics.Imports.Where(i => i.TimelineBucketKey == bucketKey).ToList();
-        showImportsModal = true;
-    }
-
-    private void OpenCategoryDetail(ReportCategoryItem category)
-    {
-        CloseAllModals();
-        selectedCategory = category;
-        showCategoryModal = true;
-    }
-
-    private void OpenProductOrdersModal(ReportProductItem product)
-    {
-        CloseAllModals();
-        selectedProductItem = product;
-        selectedProductOrders = analytics.Orders
-            .Where(o => o.Status == OrderStatus.Completed && o.Lines.Any(l => l.ProductID == product.ProductID))
-            .OrderByDescending(o => o.OrderDate)
-            .ToList();
-        showProductOrdersModal = true;
-    }
-
-    private void OpenInventoryModal(string filterMode)
-    {
-        CloseAllModals();
-        inventoryModalFilter = filterMode;
-        showInventoryModal = true;
-    }
-
-    private void OpenTimelineBucketModal(ReportTimelineItem bucket)
-    {
-        CloseAllModals();
-        selectedTimelineBucket = bucket;
-        timelineModalTab = "orders";
-        showTimelineModal = true;
-    }
-
-    // ===== Formatting Helpers =====
 
     private string GetPeriodDisplayName() => filterType switch
     {
@@ -1995,20 +1740,11 @@
     {
         if (!pct.HasValue)
         {
-            return current > 0 && previous == 0 ? "Mới phát sinh kỳ này" : "So kỳ trước: 0%";
+            return current > 0 && previous == 0 ? "Mới phát sinh" : "So kỳ trước: 0%";
         }
         var sign = pct.Value > 0 ? "+" : "";
         return $"{sign}{pct.Value:F1}% vs kỳ trước";
     }
-
-    private static string GetPaymentIconStyle(string tone) => tone switch
-    {
-        "emerald" => "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300",
-        "violet" => "bg-violet-50 text-violet-700 dark:bg-violet-950/40 dark:text-violet-300",
-        "pink" => "bg-pink-50 text-pink-700 dark:bg-pink-950/40 dark:text-pink-300",
-        "slate" => "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
-        _ => "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300"
-    };
 
     private async Task ExportReportToExcel()
     {

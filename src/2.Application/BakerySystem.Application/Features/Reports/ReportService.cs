@@ -28,9 +28,12 @@ public sealed class ReportAnalyticsRequest
 
 public sealed class ReportAnalyticsResult
 {
+    public int AnalyticsYear { get; init; } = DateTime.Now.Year;
     public ReportKpiSummary Kpi { get; init; } = new();
     public ReportInventorySummary Inventory { get; init; } = new();
     public List<ReportTimelineItem> Timeline { get; init; } = [];
+    public List<ReportQuarterMetric> YearQuarters { get; init; } = [];
+    public Dictionary<int, List<ReportProductItem>> TopProductsByQuarter { get; init; } = [];
     public List<ReportChannelItem> Channels { get; init; } = [];
     public List<ReportPaymentItem> Payments { get; init; } = [];
     public List<ReportCategoryItem> Categories { get; init; } = [];
@@ -38,6 +41,19 @@ public sealed class ReportAnalyticsResult
     public List<ReportCustomerItem> TopCustomers { get; init; } = [];
     public List<ReportOrderItem> Orders { get; init; } = [];
     public List<ReportImportItem> Imports { get; init; } = [];
+}
+
+public sealed class ReportQuarterMetric
+{
+    public int Quarter { get; init; } // 1..4
+    public string Label => $"Quý {Quarter}";
+    public string ShortLabel => $"Q{Quarter}";
+    public int OrderCount { get; init; }
+    public int SoldQuantity { get; init; }
+    public decimal NetRevenue { get; init; }
+    public decimal CostOfGoodsSold { get; init; }
+    public decimal GrossProfit => NetRevenue - CostOfGoodsSold;
+    public decimal Margin => NetRevenue > 0 ? (GrossProfit / NetRevenue) * 100m : 0m;
 }
 
 public sealed class ReportKpiSummary
@@ -148,6 +164,7 @@ public sealed class ReportCategoryItem
     public decimal Margin => Revenue > 0 ? (GrossProfit / Revenue) * 100m : 0m;
     public decimal Percentage { get; init; }
     public string ColorHex { get; init; } = "#2563eb";
+    public List<ReportQuarterMetric> QuarterlyMetrics { get; init; } = [];
 }
 
 public sealed class ReportProductItem
@@ -167,6 +184,7 @@ public sealed class ReportProductItem
     public decimal TotalCost { get; init; }
     public decimal GrossProfit => NetRevenue - TotalCost;
     public decimal Margin => NetRevenue > 0 ? (GrossProfit / NetRevenue) * 100m : 0m;
+    public List<ReportQuarterMetric> QuarterlyMetrics { get; init; } = [];
 }
 
 public sealed class ReportCustomerItem
@@ -415,19 +433,43 @@ public sealed class ReportService(IBakeryDbContext db)
             AovGrowthPercent = hasComparison ? ComputeGrowthPercent(currentAov, prevAov) : null
         };
 
+        // Quarterly breakdown for the selected ReferenceYear (Q1..Q4)
+        var analyticsYear = request.ReferenceYear > 0 ? request.ReferenceYear : DateTime.Now.Year;
+        var yearStart = new DateTime(analyticsYear, 1, 1);
+        var yearEnd = new DateTime(analyticsYear, 12, 31).AddDays(1).AddTicks(-1);
+        var yearOrdersRaw = await db.Orders
+            .AsNoTracking()
+            .Include(o => o.Customer)
+            .Include(o => o.Employee)
+            .Include(o => o.OrderDetails)
+                .ThenInclude(d => d.Product)
+                    .ThenInclude(p => p.Category)
+            .Where(o => o.Status == OrderStatus.Completed && o.OrderDate >= yearStart && o.OrderDate <= yearEnd)
+            .ToListAsync(ct);
+
+        var yearCompletedOrders = yearOrdersRaw
+            .Select(o => MapOrderItem(o, unitCostMap, []))
+            .ToList();
+
+        var (yearQuarters, productQuarterlyMap, categoryQuarterlyMap, topProductsByQuarter) =
+            BuildAnnualQuarterlyAnalytics(yearCompletedOrders, activeProducts, unitCostMap);
+
         var inventory = BuildInventorySummary(activeProducts, unitCostMap);
         var timeline = BuildTimelineItems(timelineSlots, orderItems, importItems);
         var channels = BuildChannelBreakdown(completedOrders, actualRevenue);
         var payments = BuildPaymentBreakdown(completedOrders, actualRevenue);
-        var categories = BuildCategoryBreakdown(completedOrders, actualRevenue);
-        var products = BuildProductPerformance(activeProducts, completedOrders, unitCostMap);
+        var categories = BuildCategoryBreakdown(completedOrders, actualRevenue, categoryQuarterlyMap);
+        var products = BuildProductPerformance(activeProducts, completedOrders, unitCostMap, productQuarterlyMap);
         var topCustomers = BuildTopCustomers(orders.Where(o => o.Status == OrderStatus.Completed));
 
         return new ReportAnalyticsResult
         {
+            AnalyticsYear = analyticsYear,
             Kpi = kpi,
             Inventory = inventory,
             Timeline = timeline,
+            YearQuarters = yearQuarters,
+            TopProductsByQuarter = topProductsByQuarter,
             Channels = channels,
             Payments = payments,
             Categories = categories,
@@ -897,7 +939,90 @@ public sealed class ReportService(IBakeryDbContext db)
         return result;
     }
 
-    private static List<ReportCategoryItem> BuildCategoryBreakdown(List<ReportOrderItem> completedOrders, decimal totalRevenue)
+    private static (
+        List<ReportQuarterMetric> YearQuarters,
+        Dictionary<int, List<ReportQuarterMetric>> ProductQuarterlyMap,
+        Dictionary<int, List<ReportQuarterMetric>> CategoryQuarterlyMap,
+        Dictionary<int, List<ReportProductItem>> TopProductsByQuarter)
+        BuildAnnualQuarterlyAnalytics(
+            List<ReportOrderItem> yearCompletedOrders,
+            List<Product> activeProducts,
+            Dictionary<int, decimal> unitCostMap)
+    {
+        static int GetQuarter(DateTime dt) => (dt.Month - 1) / 3 + 1;
+
+        var yearQuarters = Enumerable.Range(1, 4).Select(q =>
+        {
+            var qOrders = yearCompletedOrders.Where(o => GetQuarter(o.OrderDate) == q).ToList();
+            return new ReportQuarterMetric
+            {
+                Quarter = q,
+                OrderCount = qOrders.Count,
+                SoldQuantity = qOrders.Sum(o => o.Lines.Sum(l => l.Quantity)),
+                NetRevenue = qOrders.Sum(o => o.FinalAmount),
+                CostOfGoodsSold = qOrders.Sum(o => o.CostOfGoodsSold)
+            };
+        }).ToList();
+
+        var allLinesWithQuarter = yearCompletedOrders
+            .SelectMany(o => o.Lines.Select(l => new { o.OrderID, Quarter = GetQuarter(o.OrderDate), Line = l }))
+            .ToList();
+
+        var productQuarterlyMap = allLinesWithQuarter
+            .GroupBy(x => x.Line.ProductID)
+            .ToDictionary(
+                g => g.Key,
+                g => Enumerable.Range(1, 4).Select(q =>
+                {
+                    var qLines = g.Where(x => x.Quarter == q).ToList();
+                    return new ReportQuarterMetric
+                    {
+                        Quarter = q,
+                        OrderCount = qLines.Select(x => x.OrderID).Distinct().Count(),
+                        SoldQuantity = qLines.Sum(x => x.Line.Quantity),
+                        NetRevenue = qLines.Sum(x => x.Line.AllocatedNetRevenue),
+                        CostOfGoodsSold = qLines.Sum(x => x.Line.LineCost)
+                    };
+                }).ToList());
+
+        var categoryQuarterlyMap = allLinesWithQuarter
+            .GroupBy(x => x.Line.CategoryID)
+            .ToDictionary(
+                g => g.Key,
+                g => Enumerable.Range(1, 4).Select(q =>
+                {
+                    var qLines = g.Where(x => x.Quarter == q).ToList();
+                    return new ReportQuarterMetric
+                    {
+                        Quarter = q,
+                        OrderCount = qLines.Select(x => x.OrderID).Distinct().Count(),
+                        SoldQuantity = qLines.Sum(x => x.Line.Quantity),
+                        NetRevenue = qLines.Sum(x => x.Line.AllocatedNetRevenue),
+                        CostOfGoodsSold = qLines.Sum(x => x.Line.LineCost)
+                    };
+                }).ToList());
+
+        var topProductsByQuarter = new Dictionary<int, List<ReportProductItem>>();
+        for (int q = 1; q <= 4; q++)
+        {
+            var qOrders = yearCompletedOrders.Where(o => GetQuarter(o.OrderDate) == q).ToList();
+            topProductsByQuarter[q] = BuildProductPerformance(activeProducts, qOrders, unitCostMap, productQuarterlyMap)
+                .Where(p => p.SoldQuantity > 0)
+                .OrderByDescending(p => p.NetRevenue)
+                .ThenByDescending(p => p.SoldQuantity)
+                .ToList();
+        }
+
+        return (yearQuarters, productQuarterlyMap, categoryQuarterlyMap, topProductsByQuarter);
+    }
+
+    private static List<ReportQuarterMetric> CreateEmptyQuarters() =>
+        Enumerable.Range(1, 4).Select(q => new ReportQuarterMetric { Quarter = q }).ToList();
+
+    private static List<ReportCategoryItem> BuildCategoryBreakdown(
+        List<ReportOrderItem> completedOrders,
+        decimal totalRevenue,
+        Dictionary<int, List<ReportQuarterMetric>> categoryQuarterlyMap)
     {
         var grouped = completedOrders
             .SelectMany(o => o.Lines)
@@ -923,14 +1048,16 @@ public sealed class ReportService(IBakeryDbContext db)
             Revenue = c.Revenue,
             CostOfGoodsSold = c.Cogs,
             Percentage = totalRevenue > 0 ? c.Revenue / totalRevenue * 100m : 0m,
-            ColorHex = CategoryPalette[idx % CategoryPalette.Length]
+            ColorHex = CategoryPalette[idx % CategoryPalette.Length],
+            QuarterlyMetrics = categoryQuarterlyMap.TryGetValue(c.CategoryID, out var qm) ? qm : CreateEmptyQuarters()
         }).ToList();
     }
 
     private static List<ReportProductItem> BuildProductPerformance(
         List<Product> activeProducts,
         List<ReportOrderItem> completedOrders,
-        Dictionary<int, decimal> unitCostMap)
+        Dictionary<int, decimal> unitCostMap,
+        Dictionary<int, List<ReportQuarterMetric>> productQuarterlyMap)
     {
         var salesByProduct = completedOrders
             .SelectMany(o => o.Lines.Select(l => new { o.OrderID, Line = l }))
@@ -973,7 +1100,8 @@ public sealed class ReportService(IBakeryDbContext db)
                 OrderCount = sale?.OrderCount ?? 0,
                 GrossSalesBeforeVoucher = sale?.GrossSales ?? 0m,
                 NetRevenue = sale?.NetRevenue ?? 0m,
-                TotalCost = sale?.TotalCost ?? 0m
+                TotalCost = sale?.TotalCost ?? 0m,
+                QuarterlyMetrics = productQuarterlyMap.TryGetValue(product.ProductID, out var qm) ? qm : CreateEmptyQuarters()
             });
         }
 
@@ -998,7 +1126,8 @@ public sealed class ReportService(IBakeryDbContext db)
                 OrderCount = sale.OrderCount,
                 GrossSalesBeforeVoucher = sale.GrossSales,
                 NetRevenue = sale.NetRevenue,
-                TotalCost = sale.TotalCost
+                TotalCost = sale.TotalCost,
+                QuarterlyMetrics = productQuarterlyMap.TryGetValue(kv.Key, out var qm) ? qm : CreateEmptyQuarters()
             });
         }
 
