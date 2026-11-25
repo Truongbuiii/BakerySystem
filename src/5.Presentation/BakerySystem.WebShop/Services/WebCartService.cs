@@ -26,6 +26,7 @@ public sealed class WebCartService
     public event Action? OnChange;
 
     public List<WebCartItem> Items { get; } = [];
+    public bool HasRestoredFromStorage { get; set; }
     public string AppliedVoucherCode { get; private set; } = string.Empty;
     public int? AppliedPromotionId { get; private set; }
     public Promotion? AppliedPromotion { get; private set; }

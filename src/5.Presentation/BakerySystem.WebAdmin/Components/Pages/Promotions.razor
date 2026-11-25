@@ -507,7 +507,35 @@
                 <div><dt>Mô tả</dt><dd>@(string.IsNullOrWhiteSpace(selected.Description) ? "Chưa có mô tả" : selected.Description)</dd></div>
                 @if (selected.PromotionInvoice is { } invoice)
                 {
-                    <div><dt>Theo tổng đơn hàng</dt><dd>Đơn từ @invoice.MinOrderAmount.ToString("N0") đ, giảm @invoice.DiscountPercent:N0% (tối đa @invoice.MaxDiscountAmount?.ToString("N0") đ)</dd></div>
+                    <div>
+                        <dt>Theo tổng đơn hàng</dt>
+                        <dd>
+                            @if (invoice.DiscountAmount is > 0)
+                            {
+                                <span>Đơn từ @invoice.MinOrderAmount.ToString("N0") đ, giảm @invoice.DiscountAmount.Value.ToString("N0") đ</span>
+                            }
+                            else
+                            {
+                                <span>Đơn từ @invoice.MinOrderAmount.ToString("N0") đ, giảm @invoice.DiscountPercent.ToString("0.##")%@(invoice.MaxDiscountAmount is > 0 ? $" (tối đa {invoice.MaxDiscountAmount.Value:N0} đ)" : "")</span>
+                            }
+                        </dd>
+                    </div>
+                }
+                @if (selected.PromotionOrderTier is { } tier)
+                {
+                    <div>
+                        <dt>Theo ngưỡng hóa đơn</dt>
+                        <dd>
+                            @if (tier.DiscountAmount is > 0)
+                            {
+                                <span>Đơn từ @tier.MinOrderAmount.ToString("N0") đ, giảm @tier.DiscountAmount.Value.ToString("N0") đ (Cấu hình dữ liệu mẫu)</span>
+                            }
+                            else
+                            {
+                                <span>Đơn từ @tier.MinOrderAmount.ToString("N0") đ, giảm @tier.DiscountPercent.ToString("0.##")%@(tier.MaxDiscountAmount is > 0 ? $" (tối đa {tier.MaxDiscountAmount.Value:N0} đ)" : "") (Cấu hình dữ liệu mẫu)</span>
+                            }
+                        </dd>
+                    </div>
                 }
                 @if (selected.PromotionProducts.Count > 0)
                 {

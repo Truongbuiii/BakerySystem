@@ -254,6 +254,33 @@ else
                         }
                     }
 
+                    <!-- Điều kiện ngưỡng hóa đơn (PromotionOrderTier) -->
+                    @if (promotion.PromotionOrderTier is { } tierRule)
+                    {
+                        <div class="promotion-rule-item">
+                            <div class="promotion-rule-icon" style="background: #eff6ff; color: #2563eb;">
+                                <iconify-icon icon="solar:layers-minimalistic-bold"></iconify-icon>
+                            </div>
+                            <div class="promotion-rule-content">
+                                <div class="promotion-rule-label">Điều kiện theo ngưỡng hóa đơn (Cấu hình CSDL)</div>
+                                <div class="promotion-rule-val text-xs">
+                                    @if (tierRule.DiscountAmount is > 0)
+                                    {
+                                        <span>Đơn từ <strong>@tierRule.MinOrderAmount.ToString("N0") đ</strong> được giảm <strong>@tierRule.DiscountAmount.Value.ToString("N0") đ</strong></span>
+                                    }
+                                    else
+                                    {
+                                        <span>Đơn từ <strong>@tierRule.MinOrderAmount.ToString("N0") đ</strong> được giảm <strong>@tierRule.DiscountPercent:N0%</strong></span>
+                                        @if (tierRule.MaxDiscountAmount is > 0)
+                                        {
+                                            <span> (Giảm tối đa: <strong>@tierRule.MaxDiscountAmount.Value.ToString("N0") đ</strong>)</span>
+                                        }
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    }
+
                     <!-- Điều kiện sản phẩm -->
                     @if (promotion.PromotionProducts.Count > 0)
                     {
@@ -465,6 +492,8 @@ else
             return "Hóa đơn + Món bánh";
         if (promotion.PromotionInvoice is not null)
             return "Theo tổng hóa đơn";
+        if (promotion.PromotionOrderTier is not null)
+            return "Theo ngưỡng hóa đơn";
         if (promotion.PromotionProducts.Count > 0)
             return "Theo món bánh";
         return "Điều kiện chung";
@@ -478,6 +507,12 @@ else
             if (inv.DiscountAmount is > 0)
                 return $"GIẢM {inv.DiscountAmount.Value:N0} đ";
             return $"GIẢM {inv.DiscountPercent:0.##}%";
+        }
+        if (promotion.PromotionOrderTier is { } tier)
+        {
+            if (tier.DiscountAmount is > 0)
+                return $"GIẢM {tier.DiscountAmount.Value:N0} đ";
+            return $"GIẢM {tier.DiscountPercent:0.##}%";
         }
         if (promotion.PromotionProducts.Count > 0)
         {
@@ -505,6 +540,12 @@ else
 
             if (inv.UsageLimit is > 0)
                 parts.Add($"Giới hạn {inv.UsageLimit.Value} lượt");
+        }
+        if (promotion.PromotionOrderTier is { } tier)
+        {
+            parts.Add(tier.MinOrderAmount > 0 ? $"Đơn từ {tier.MinOrderAmount:N0} đ" : "Mọi giá trị đơn");
+            if (tier.DiscountAmount is null && tier.MaxDiscountAmount is > 0)
+                parts.Add($"Giảm tối đa {tier.MaxDiscountAmount.Value:N0} đ");
         }
         if (promotion.PromotionProducts.Count > 0)
         {

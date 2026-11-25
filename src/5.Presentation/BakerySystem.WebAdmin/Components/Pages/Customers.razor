@@ -1,6 +1,7 @@
 @page "/customers"
 @rendermode InteractiveServer
 @attribute [Authorize(Roles = "Admin,Employee")]
+@implements IDisposable
 @using BakerySystem.Application.Features.Customers
 @inject CustomerService CustomerManager
 @inject AuthenticationStateProvider AuthStateProvider
@@ -9,20 +10,36 @@
 
 <PageTitle>Quản lý khách hàng | BakeryAdmin</PageTitle>
 
+@if (!string.IsNullOrEmpty(toastMessage))
+{
+    <div class="cust-toast-container" role="status" aria-live="polite">
+        <div class="cust-toast @(toastIsError ? "is-error" : "")">
+            <span class="cust-toast-icon">
+                <iconify-icon icon="@(toastIsError ? "solar:danger-triangle-bold" : "solar:check-circle-bold")"></iconify-icon>
+            </span>
+            <div class="cust-toast-content">
+                <div class="cust-toast-title">@(toastIsError ? "Không thể thực hiện" : "Cập nhật thành công")</div>
+                <div class="cust-toast-msg">@toastMessage</div>
+            </div>
+            <button type="button" class="cust-toast-close" title="Đóng thông báo" @onclick="DismissToast">×</button>
+        </div>
+    </div>
+}
+
 <div>
     <!-- 1. Page Header & Actions -->
     <div class="bakery-page-header">
         <div style="max-width: 650px;">
-            <div class="flex items-center gap-2 text-xs font-medium text-slate-500 mb-1">
-                <a href="/" class="hover:text-primary transition-colors flex items-center gap-1">
+            <div class="cust-breadcrumb">
+                <a href="/" class="cust-breadcrumb-link">
                     <iconify-icon icon="solar:home-2-linear" class="text-sm"></iconify-icon>
-                    Tổng quan
+                    <span>Tổng quan</span>
                 </a>
                 <span>/</span>
                 <span class="text-slate-800 dark:text-slate-200 font-semibold">Khách hàng</span>
             </div>
             <h2 class="text-xl sm:text-2xl font-bold text-dark dark:text-white mb-1">Quản Lý Tài Khoản Khách Hàng</h2>
-            <p class="text-xs sm:text-sm text-bodytext mb-0">Theo dõi thông tin khách hàng, tài khoản Mobile App, phân loại thành viên và lịch sử đơn hàng tích lũy.</p>
+            <p class="text-xs sm:text-sm text-bodytext mb-0">Theo dõi thông tin khách hàng, tài khoản Online (Web / App) và lịch sử đơn hàng tích lũy.</p>
         </div>
 
         <div class="bakery-page-actions">
@@ -60,7 +77,7 @@
 
         <div class="bakery-kpi-card">
             <div class="bakery-kpi-content">
-                <span class="bakery-kpi-label">Tài khoản Mobile App</span>
+                <span class="bakery-kpi-label">Tài khoản Online (Web / App)</span>
                 <div class="bakery-kpi-val text-blue-600 dark:text-blue-400">@(customers?.Count(c => c.HasAppAccount) ?? 0) Khách</div>
                 <div class="bakery-kpi-subtext">
                     <span class="bakery-badge bakery-badge-success text-[10px] py-0 px-1.5">@(customers?.Count(c => c.HasAppAccount && c.AccountStatus == "Active") ?? 0) Hoạt động</span>
@@ -75,7 +92,7 @@
         <div class="bakery-kpi-card">
             <div class="bakery-kpi-content">
                 <span class="bakery-kpi-label">Khách từng mua tại POS</span>
-                <div class="bakery-kpi-val text-amber-500">@(customers?.Count(c => c.HasPosOrders || !c.HasAppAccount) ?? 0) Khách</div>
+                <div class="bakery-kpi-val text-amber-500">@(customers?.Count(c => c.HasPosOrders) ?? 0) Khách</div>
                 <div class="bakery-kpi-subtext">Có giao dịch tại quầy POS</div>
             </div>
             <div class="bakery-kpi-iconbox bakery-kpi-amber">
@@ -95,36 +112,39 @@
         </div>
     </div>
 
-    <!-- 3. Toolbar bộ lọc tìm kiếm -->
-    <div class="bakery-filter-card">
-        <div class="bakery-filter-toolbar">
-            <div class="bakery-filter-search-box">
-                <iconify-icon icon="solar:magnifer-linear"></iconify-icon>
-                <input class="w-full" 
-                       placeholder="Tìm theo tên khách, số điện thoại, tài khoản App hoặc mã #KH..." 
-                       @bind="searchKeyword" 
+    <!-- 3. Toolbar bộ lọc tìm kiếm (1 hàng gọn gàng) -->
+    <div class="bakery-filter-card cust-filter-card">
+        <div class="cust-filter-bar">
+            <div class="cust-search-wrap">
+                <span class="cust-search-icon">
+                    <iconify-icon icon="solar:magnifer-linear"></iconify-icon>
+                </span>
+                <input class="cust-search-input"
+                       placeholder="Tìm tên khách, SĐT, tài khoản hoặc mã #KH..."
+                       @bind="searchKeyword"
                        @bind:event="oninput" />
                 @if (!string.IsNullOrEmpty(searchKeyword))
                 {
-                    <button type="button" class="text-slate-400 hover:text-slate-600 text-xs px-2" @onclick='() => searchKeyword = ""'>✕</button>
+                    <button type="button" class="cust-search-clear" title="Xóa từ khóa" @onclick='() => searchKeyword = ""'>✕</button>
                 }
             </div>
 
-            <select class="bakery-input" @bind="selectedSourceFilter">
+            <select class="cust-filter-select" @bind="selectedSourceFilter" title="Lọc theo nguồn khách hàng">
                 <option value="all">Tất cả nguồn khách hàng</option>
-                <option value="app">Khách có tài khoản App</option>
-                <option value="pos">Khách từng mua tại quầy POS</option>
-                <option value="guest">Khách chưa có tài khoản App</option>
+                <option value="online_account">Có tài khoản Online (Web / App)</option>
+                <option value="online_buyer">Từng đặt hàng Online</option>
+                <option value="pos">Từng mua tại quầy (POS)</option>
+                <option value="guest">Khách tại quầy (chưa có tài khoản)</option>
             </select>
 
-            <select class="bakery-input" @bind="selectedStatusFilter">
+            <select class="cust-filter-select cust-filter-select-sm" @bind="selectedStatusFilter" title="Lọc theo trạng thái tài khoản">
                 <option value="all">Tất cả trạng thái</option>
                 <option value="active">Đang hoạt động</option>
                 <option value="inactive">Đã khóa tài khoản</option>
             </select>
 
-            <button class="bakery-btn bakery-btn-outline" @onclick="ResetFilters">
-                <iconify-icon icon="solar:restart-linear"></iconify-icon>
+            <button type="button" class="bakery-btn bakery-btn-outline cust-filter-reset" @onclick="ResetFilters">
+                <iconify-icon icon="solar:restart-linear" class="cust-inline-icon"></iconify-icon>
                 <span>Đặt lại</span>
             </button>
         </div>
@@ -220,94 +240,92 @@
             <!-- TRƯỜNG HỢP 1: ĐANG Ở CHẾ ĐỘ FORM THÊM / SỬA (HIỂN THỊ TRỰC TIẾP, KHÔNG POPUP) -->
             @if (isFormOpen)
             {
-                <div class="bakery-detail-header-card mb-4 pb-3 border-b border-slate-100 dark:border-slate-800">
+                <div class="cust-form-header">
                     <div>
-                        <div class="text-[11px] font-bold uppercase tracking-wider text-primary">
-                            @(inputForm.CustomerId == 0 ? "THÊM KHÁCH HÀNG MỚI" : "CHỈNH SỬA THÔNG TIN")
+                        <div class="cust-form-eyebrow">
+                            @(inputForm.CustomerId == 0 ? "Thêm khách hàng mới" : "Chỉnh sửa thông tin")
                         </div>
-                        <h4 class="text-base font-bold text-dark dark:text-white mb-0">
-                            @(inputForm.CustomerId == 0 ? "Nhập thông tin khách" : inputForm.FullName)
+                        <h4 class="cust-form-title">
+                            @(inputForm.CustomerId == 0 ? "Nhập thông tin khách hàng" : inputForm.FullName)
                         </h4>
                     </div>
-                    <button type="button" class="text-slate-400 hover:text-slate-600 text-lg" title="Đóng form" @onclick="CloseForm">✕</button>
+                    <button type="button" class="cust-form-close" title="Đóng form" @onclick="CloseForm">
+                        <iconify-icon icon="solar:close-circle-linear" class="text-lg"></iconify-icon>
+                    </button>
                 </div>
 
-                <div class="grid gap-3 text-xs">
-                    <label>
-                        <span class="font-bold text-slate-700 dark:text-slate-300">Họ và tên khách hàng <strong class="text-rose-500">*</strong></span>
-                        <input class="bakery-input w-full font-semibold" 
-                               placeholder="Ví dụ: Nguyễn Văn An" 
+                <div class="cust-form-body">
+                    <label class="cust-field">
+                        <span class="cust-field-label">Họ và tên khách hàng <strong class="text-rose-500">*</strong></span>
+                        <input class="cust-field-input"
+                               placeholder="Ví dụ: Nguyễn Văn An"
                                @bind="inputForm.FullName" />
                     </label>
 
-                    <label>
-                        <span class="font-bold text-slate-700 dark:text-slate-300">Số điện thoại <strong class="text-rose-500">*</strong></span>
-                        <input class="bakery-input w-full font-semibold" 
-                               type="tel" 
-                               placeholder="Ví dụ: 0912345678" 
+                    <label class="cust-field">
+                        <span class="cust-field-label">Số điện thoại <strong class="text-rose-500">*</strong></span>
+                        <input class="cust-field-input"
+                               type="tel"
+                               placeholder="Ví dụ: 0912345678"
                                @bind="inputForm.Phone" />
-                        <small class="text-[10.5px] text-slate-400">Dùng để tra cứu đơn hàng và đăng nhập trên Mobile App.</small>
+                        <span class="cust-field-hint">Dùng để tra cứu đơn hàng và đăng nhập trên WebShop / Mobile App.</span>
                     </label>
 
-                    <label>
-                        <span class="font-bold text-slate-700 dark:text-slate-300">Địa chỉ giao bánh mặc định</span>
-                        <textarea class="bakery-input w-full text-xs" 
-                                  rows="2" 
-                                  placeholder="Ví dụ: 123 Đường Nguyễn Trãi, Quận 1, TP.HCM..." 
+                    <label class="cust-field">
+                        <span class="cust-field-label">Địa chỉ giao bánh mặc định</span>
+                        <textarea class="cust-field-textarea"
+                                  rows="2"
+                                  placeholder="Ví dụ: 123 Đường Nguyễn Trãi, Quận 1, TP.HCM..."
                                   @bind="inputForm.Address"></textarea>
                     </label>
 
-                    <!-- Khối thiết lập tài khoản Mobile App (Chỉ dành cho Quản trị viên) -->
+                    <!-- Khối thiết lập tài khoản Online (Chỉ dành cho Quản trị viên) -->
                     @if (isAdmin)
                     {
-                        <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 mt-1">
+                        <div class="cust-account-box">
                             @if (inputForm.CustomerId == 0)
                             {
-                                <div class="flex items-center gap-2 mb-2">
-                                    <input type="checkbox" id="chkCreateAccount" class="rounded" @bind="inputForm.CreateAccount" />
-                                    <label for="chkCreateAccount" class="text-xs font-bold text-slate-800 dark:text-slate-200 cursor-pointer m-0">
-                                        Cấp tài khoản đăng nhập Mobile App
-                                    </label>
-                                </div>
+                                <label class="cust-account-toggle" for="chkCreateAccount">
+                                    <input type="checkbox" id="chkCreateAccount" @bind="inputForm.CreateAccount" />
+                                    <span>Cấp tài khoản đăng nhập Online (WebShop / App)</span>
+                                </label>
                             }
 
                             @if (inputForm.CreateAccount || inputForm.CustomerId != 0)
                             {
-                                <div class="grid gap-2.5 pt-1">
-                                    @if (inputForm.CustomerId == 0)
-                                    {
-                                        <label>
-                                            <span class="font-semibold text-slate-700 dark:text-slate-300">Tên đăng nhập (Username)</span>
-                                            <input class="bakery-input w-full" 
-                                                   placeholder="Ví dụ: annguyen2026" 
-                                                   @bind="inputForm.Username" />
-                                        </label>
-                                    }
-
-                                    <label>
-                                        <span class="font-semibold text-slate-700 dark:text-slate-300">
-                                            @(inputForm.CustomerId == 0 ? "Mật khẩu (mặc định: 123456)" : "Mật khẩu mới (để trống nếu giữ nguyên)")
-                                        </span>
-                                        <input class="bakery-input w-full" 
-                                               type="password" 
-                                               placeholder="••••••••" 
-                                               @bind="inputForm.Password" />
+                                @if (inputForm.CustomerId == 0)
+                                {
+                                    <label class="cust-field">
+                                        <span class="cust-field-label">Tên đăng nhập (Username)</span>
+                                        <input class="cust-field-input"
+                                               placeholder="Ví dụ: annguyen2026"
+                                               @bind="inputForm.Username" />
                                     </label>
+                                }
 
-                                    <label>
-                                        <span class="font-semibold text-slate-700 dark:text-slate-300">Trạng thái tài khoản</span>
-                                        <select class="bakery-input w-full" @bind="inputForm.AccountStatus">
-                                            <option value="Active">Đang hoạt động</option>
-                                            <option value="Inactive">Đã khóa tài khoản</option>
-                                        </select>
-                                    </label>
-                                </div>
+                                <label class="cust-field">
+                                    <span class="cust-field-label">
+                                        @(inputForm.CustomerId == 0 ? "Mật khẩu (mặc định: 123456)" : "Mật khẩu mới (để trống nếu giữ nguyên)")
+                                    </span>
+                                    <input class="cust-field-input"
+                                           type="password"
+                                           placeholder="••••••••"
+                                           @bind="inputForm.Password" />
+                                </label>
+
+                                <label class="cust-field">
+                                    <span class="cust-field-label">Trạng thái tài khoản</span>
+                                    <select class="cust-field-select" @bind="inputForm.AccountStatus">
+                                        <option value="Active">Đang hoạt động</option>
+                                        <option value="Inactive">Đã khóa tài khoản</option>
+                                    </select>
+                                </label>
                             }
                         </div>
                     }
                     else
                     {
-                        <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-[11px] text-slate-500 mt-1">
+                        <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-[11px] text-slate-500">
                             Nhân viên chỉ cập nhật thông tin liên hệ. Việc cấp, khóa hoặc đặt lại mật khẩu tài khoản do Quản trị viên thực hiện.
                         </div>
                     }
@@ -320,10 +338,10 @@
                         </div>
                     }
 
-                    <div class="flex justify-end gap-2 mt-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                    <div class="cust-form-footer">
                         <button type="button" class="bakery-btn bakery-btn-secondary" @onclick="CloseForm" disabled="@saving">Hủy</button>
                         <button type="button" class="bakery-btn bakery-btn-primary" @onclick="SaveCustomerAsync" disabled="@saving">
-                            <iconify-icon icon="solar:disk-bold"></iconify-icon>
+                            <iconify-icon icon="solar:check-circle-bold" class="cust-inline-icon"></iconify-icon>
                             <span>@(saving ? "Đang lưu..." : "Lưu thông tin")</span>
                         </button>
                     </div>
@@ -412,8 +430,8 @@
                         {
                             var latest = selectedCustomer.RecentOrders.First();
                             <div class="space-y-1.5 py-1">
-                                <div class="flex items-center justify-between">
-                                    <div class="flex items-center gap-1.5">
+                                <div class="cust-order-top-row">
+                                    <div class="cust-order-code-group">
                                         <span class="font-bold text-primary text-xs">@latest.OrderCode</span>
                                         <span class="text-[10px] px-1.5 py-0.5 rounded font-semibold @GetOrderStatusBadgeClass(latest.Status)">
                                             @GetOrderStatusText(latest.Status)
@@ -427,10 +445,9 @@
                                 </div>
                             </div>
 
-                            <a href="/orders?customer=@selectedCustomer.CustomerId" 
-                               class="mt-2.5 flex items-center justify-center gap-1.5 w-full py-2 px-3 rounded-lg border border-primary/20 bg-primary/5 hover:bg-primary/10 text-xs font-semibold text-primary transition-colors">
+                            <a href="/orders?customer=@selectedCustomer.CustomerId" class="cust-view-orders-link">
                                 <span>Xem toàn bộ @selectedCustomer.TotalOrders đơn hàng tại trang Đơn hàng</span>
-                                <span>→</span>
+                                <iconify-icon icon="solar:arrow-right-linear" class="cust-inline-icon"></iconify-icon>
                             </a>
                         }
                         else
@@ -468,13 +485,6 @@
                         }
                     }
                 </div>
-
-                @if (!string.IsNullOrEmpty(actionMessage))
-                {
-                    <div class="mt-2.5 p-2.5 rounded-lg text-xs bg-emerald-50 text-emerald-700 border border-emerald-200">
-                        @actionMessage
-                    </div>
-                }
             }
             else
             {
@@ -575,7 +585,9 @@
     private bool saving;
     private string? formMessage;
     private bool formSuccess;
-    private string? actionMessage;
+    private string? toastMessage;
+    private bool toastIsError;
+    private CancellationTokenSource? toastCts;
 
     private string searchKeyword = string.Empty;
     private string selectedSourceFilter = "all";
@@ -583,8 +595,9 @@
 
     private IEnumerable<CustomerListItemDto> FilteredCustomers => (customers ?? []).Where(c =>
         (selectedSourceFilter == "all" ||
-            (selectedSourceFilter == "app" && c.HasAppAccount) ||
-            (selectedSourceFilter == "pos" && (c.HasPosOrders || !c.HasAppAccount)) ||
+            (selectedSourceFilter == "online_account" && c.HasAppAccount) ||
+            (selectedSourceFilter == "online_buyer" && c.HasAppOrders) ||
+            (selectedSourceFilter == "pos" && c.HasPosOrders) ||
             (selectedSourceFilter == "guest" && !c.HasAppAccount)) &&
         (selectedStatusFilter == "all" ||
             (selectedStatusFilter == "active" && (c.AccountStatus == "Active" || !c.HasAppAccount)) ||
@@ -623,7 +636,6 @@
     {
         isFormOpen = false;
         formMessage = null;
-        actionMessage = null;
         selectedCustomer = await CustomerManager.GetCustomerDetailAsync(customerId);
     }
 
@@ -636,7 +648,6 @@
             CreateAccount = false
         };
         formMessage = null;
-        actionMessage = null;
         isFormOpen = true;
     }
 
@@ -653,7 +664,6 @@
             CreateAccount = customer.HasAppAccount
         };
         formMessage = null;
-        actionMessage = null;
         isFormOpen = true;
     }
 
@@ -671,7 +681,6 @@
             CreateAccount = true
         };
         formMessage = null;
-        actionMessage = null;
         isFormOpen = true;
     }
 
@@ -687,6 +696,7 @@
         formMessage = null;
         try
         {
+            var isCreating = inputForm.CustomerId == 0;
             if (!isAdmin)
             {
                 inputForm.CreateAccount = false;
@@ -701,16 +711,16 @@
 
             var savedId = await CustomerManager.SaveCustomerAsync(inputForm);
             formSuccess = true;
-            formMessage = inputForm.CustomerId == 0 ? "Thêm khách hàng thành công!" : "Cập nhật thông tin thành công!";
             await LoadCustomersAsync();
             selectedCustomer = await CustomerManager.GetCustomerDetailAsync(savedId);
             isFormOpen = false;
-            actionMessage = "Đã lưu thông tin khách hàng.";
+            ShowToast(isCreating ? "Đã thêm khách hàng mới thành công." : "Đã cập nhật thông tin khách hàng thành công.");
         }
         catch (Exception ex)
         {
             formSuccess = false;
             formMessage = ex.Message;
+            ShowToast(ex.Message, isError: true);
         }
         finally
         {
@@ -723,14 +733,60 @@
         if (!isAdmin) return;
         try
         {
+            var wasActive = selectedCustomer?.AccountStatus == "Active";
             await CustomerManager.ToggleAccountStatusAsync(customerId);
-            actionMessage = "Đã cập nhật trạng thái tài khoản khách hàng thành công.";
             await LoadCustomersAsync();
+            ShowToast(wasActive
+                ? "Đã khóa tài khoản khách hàng thành công."
+                : "Đã mở khóa tài khoản khách hàng thành công.");
         }
         catch (Exception ex)
         {
-            actionMessage = $"Lỗi: {ex.Message}";
+            ShowToast(ex.Message, isError: true);
         }
+    }
+
+    private void ShowToast(string message, bool isError = false)
+    {
+        toastCts?.Cancel();
+        toastCts?.Dispose();
+        toastCts = new CancellationTokenSource();
+        var token = toastCts.Token;
+
+        toastMessage = message;
+        toastIsError = isError;
+        StateHasChanged();
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(3500, token);
+                await InvokeAsync(() =>
+                {
+                    if (!token.IsCancellationRequested)
+                    {
+                        toastMessage = null;
+                        StateHasChanged();
+                    }
+                });
+            }
+            catch (TaskCanceledException)
+            {
+            }
+        }, token);
+    }
+
+    private void DismissToast()
+    {
+        toastCts?.Cancel();
+        toastMessage = null;
+    }
+
+    public void Dispose()
+    {
+        toastCts?.Cancel();
+        toastCts?.Dispose();
     }
 
     private void ResetFilters()

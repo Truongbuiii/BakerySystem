@@ -37,12 +37,14 @@
         window.bakeryShopCart = window.bakeryShopCart || {
             save: function (payload) {
                 try {
-                    sessionStorage.setItem('bakeryShopCart', JSON.stringify(payload || { items: [], voucherCode: '' }));
+                    const serialized = JSON.stringify(payload || { items: [], voucherCode: '' });
+                    localStorage.setItem('bakeryShopCart', serialized);
+                    sessionStorage.removeItem('bakeryShopCart');
                 } catch (_) {}
             },
             load: function () {
                 try {
-                    const raw = sessionStorage.getItem('bakeryShopCart');
+                    const raw = localStorage.getItem('bakeryShopCart') || sessionStorage.getItem('bakeryShopCart');
                     return raw ? JSON.parse(raw) : null;
                 } catch (_) {
                     return null;
@@ -50,6 +52,7 @@
             },
             clear: function () {
                 try {
+                    localStorage.removeItem('bakeryShopCart');
                     sessionStorage.removeItem('bakeryShopCart');
                 } catch (_) {}
             }

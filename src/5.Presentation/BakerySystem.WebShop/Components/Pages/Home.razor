@@ -817,8 +817,6 @@ else
     private Order? justPlacedOrder;
     private string? toastMessage;
     private bool isDisposed;
-    private bool isRestoringCart;
-    private bool hasRestoredCart;
     private readonly CancellationTokenSource pollCts = new();
 
     private IEnumerable<Product> FilteredProducts
@@ -913,88 +911,13 @@ else
         ShowToast("Đã cập nhật thực đơn mới nhất!");
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (!firstRender || hasRestoredCart)
-            return;
-
-        hasRestoredCart = true;
-        if (CartService.Items.Any())
-            return;
-
-        try
-        {
-            var saved = await JS.InvokeAsync<SavedCartPayload?>("bakeryShopCart.load");
-            if (saved?.Items is not { Count: > 0 } || isDisposed)
-                return;
-
-            isRestoringCart = true;
-            var productsById = products.ToDictionary(p => p.ProductID);
-            var restoredAny = false;
-            foreach (var entry in saved.Items)
-            {
-                if (entry.Quantity > 0 && productsById.TryGetValue(entry.ProductID, out var liveProd) && liveProd.Quantity > 0)
-                {
-                    CartService.AddItem(liveProd, Math.Min(entry.Quantity, liveProd.Quantity));
-                    restoredAny = true;
-                }
-            }
-
-            if (restoredAny && !string.IsNullOrWhiteSpace(saved.VoucherCode))
-            {
-                await CartService.ApplyVoucherAsync(saved.VoucherCode, CustomerOrderService);
-            }
-
-            isRestoringCart = false;
-            if (restoredAny)
-                StateHasChanged();
-        }
-        catch
-        {
-            isRestoringCart = false;
-        }
-    }
-
     private void HandleStateChanged()
     {
-        _ = InvokeAsync(async () =>
+        _ = InvokeAsync(() =>
         {
             if (isDisposed) return;
-            if (hasRestoredCart && !isRestoringCart)
-            {
-                await PersistCartAsync();
-            }
             StateHasChanged();
         });
-    }
-
-    private async Task PersistCartAsync()
-    {
-        try
-        {
-            var payload = new SavedCartPayload
-            {
-                Items = CartService.Items.Select(i => new SavedCartLine { ProductID = i.ProductID, Quantity = i.Quantity }).ToList(),
-                VoucherCode = CartService.AppliedVoucherCode ?? string.Empty
-            };
-            await JS.InvokeVoidAsync("bakeryShopCart.save", payload);
-        }
-        catch
-        {
-            // Ignore transient JS interop disconnects during navigation/logout
-        }
-    }
-
-    private sealed class SavedCartPayload
-    {
-        public List<SavedCartLine> Items { get; set; } = [];
-        public string? VoucherCode { get; set; }
-    }
-
-    private sealed class SavedCartLine
-    {
-        public int ProductID { get; set; }
-        public int Quantity { get; set; }
     }
 
     private void HandleExternalOrderChanged()
