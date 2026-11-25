@@ -233,15 +233,16 @@
         }
         else
         {
-            <!-- Bảng gọn 4 cột cho Desktop (không bao giờ tràn ngang) -->
+            <!-- Bảng 5 cột tối ưu cho vùng 2/3 màn hình (Mã - Ngày - Chi tiết đơn - Tổng tiền - Trạng thái) -->
             <div class="bakery-table-responsive">
                 <table class="orders-compact-table">
                     <thead>
                         <tr>
-                            <th style="width: 100px;">Mã đơn</th>
-                            <th>Khách hàng</th>
-                            <th class="text-right" style="width: 98px;">Tổng tiền</th>
-                            <th class="text-right" style="width: 128px;">Trạng thái</th>
+                            <th style="width: 106px;">Mã đơn</th>
+                            <th style="width: 112px;">Ngày đặt</th>
+                            <th>Chi tiết đơn</th>
+                            <th class="text-right" style="width: 120px;">Tổng tiền</th>
+                            <th class="text-right" style="width: 132px;">Trạng thái</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -250,41 +251,62 @@
                             var isSelected = selectedOrder?.OrderID == order.OrderID;
                             var isOnline = IsOnlineDelivery(order);
                             var itemCount = order.OrderDetails?.Sum(d => d.Quantity) ?? 0;
+                            var itemSummary = string.Join(", ", (order.OrderDetails ?? Enumerable.Empty<OrderDetail>())
+                                .Where(d => d.Product != null)
+                                .Select(d => $"{d.Product!.ProductName} ×{d.Quantity}"));
+                            if (string.IsNullOrWhiteSpace(itemSummary))
+                            {
+                                itemSummary = $"{itemCount} sản phẩm";
+                            }
 
                             <tr class="bakery-row-clickable @(isSelected ? "bakery-row-selected" : "")"
                                 @onclick="() => SelectOrder(order)">
-                                <!-- Cột 1: Mã đơn & Thời gian -->
+                                <!-- Cột 1: Mã đơn & Nguồn -->
                                 <td>
                                     <span class="bakery-code-badge">#HD-@order.OrderID.ToString("D4")</span>
-                                    <div class="text-[11px] font-mono text-slate-400 mt-1">
-                                        @order.OrderDate.ToString("dd/MM HH:mm")
-                                    </div>
-                                </td>
-
-                                <!-- Cột 2: Khách hàng & Nguồn -->
-                                <td>
-                                    <div class="orders-customer-name" title="@GetReceiverDisplayName(order)">
-                                        @GetReceiverDisplayName(order)
-                                    </div>
-                                    <div class="flex items-center flex-wrap gap-1.5 mt-1">
+                                    <div class="mt-1">
                                         <span class="orders-row-source-pill @(isOnline ? "is-app" : "is-pos")">
                                             @(isOnline ? "Online" : "Tại quầy")
                                         </span>
-                                        <span class="text-[11px] text-slate-500">@itemCount món</span>
                                     </div>
                                 </td>
 
-                                <!-- Cột 3: Tổng tiền & Thanh toán -->
+                                <!-- Cột 2: Ngày & Giờ đặt -->
+                                <td>
+                                    <div class="orders-date-main">
+                                        @order.OrderDate.ToString("dd/MM/yyyy")
+                                    </div>
+                                    <div class="orders-date-time">
+                                        @order.OrderDate.ToString("HH:mm:ss")
+                                    </div>
+                                </td>
+
+                                <!-- Cột 3: Tóm tắt món bánh & Thanh toán (không hiển thị tên khách) -->
+                                <td>
+                                    <div class="orders-items-summary" title="@itemSummary">
+                                        @itemSummary
+                                    </div>
+                                    <div class="orders-item-submeta">
+                                        <span class="text-[11px] text-slate-500">@itemCount món</span>
+                                        <span class="orders-payment-method-pill">@order.PaymentMethod</span>
+                                        @if (order.DiscountAmount > 0)
+                                        {
+                                            <span class="orders-discount-pill">-@($"{order.DiscountAmount:N0} đ")</span>
+                                        }
+                                    </div>
+                                </td>
+
+                                <!-- Cột 4: Tổng tiền & Thanh toán -->
                                 <td class="text-right">
                                     <div class="font-bold text-xs text-slate-900 dark:text-white tabular-nums whitespace-nowrap">
                                         @($"{order.FinalAmount:N0} đ")
                                     </div>
                                     <div class="text-[10.5px] font-semibold mt-1 @(order.PaymentStatus == PaymentStatus.Paid ? "text-emerald-600" : "text-amber-600")">
-                                        @(order.PaymentStatus == PaymentStatus.Paid ? "Đã trả" : "Chưa trả")
+                                        @(order.PaymentStatus == PaymentStatus.Paid ? "Đã thanh toán" : "Chưa thanh toán")
                                     </div>
                                 </td>
 
-                                <!-- Cột 4: Trạng thái & Xử lý nhanh -->
+                                <!-- Cột 5: Trạng thái & Xử lý nhanh -->
                                 <td class="text-right">
                                     <div class="orders-status-stack">
                                         <span class="bakery-badge @GetStatusBadgeClass(order.Status)" style="font-size: 0.65rem; padding: 2px 8px; white-space: nowrap;">
@@ -325,7 +347,8 @@
                 @foreach (var order in PagedOrders)
                 {
                     var isSelected = selectedOrder?.OrderID == order.OrderID;
-                    var phone = GetReceiverPhone(order);
+                    var isOnline = IsOnlineDelivery(order);
+                    var itemCount = order.OrderDetails?.Sum(d => d.Quantity) ?? 0;
 
                     <article class="order-mobile-card @(isSelected ? "bakery-order-selected-row" : "")"
                              @onclick="() => SelectOrder(order)">
@@ -335,23 +358,19 @@
                         </div>
 
                         <div class="order-mobile-main">
-                            <div class="order-mobile-customer">@GetReceiverDisplayName(order)</div>
+                            <div class="text-xs font-semibold text-slate-600 dark:text-slate-300">
+                                @order.OrderDate.ToString("dd/MM/yyyy HH:mm")
+                            </div>
                             <div class="order-mobile-amount">@($"{order.FinalAmount:N0} đ")</div>
                         </div>
 
-                        @if (!string.IsNullOrWhiteSpace(phone))
-                        {
-                            <div class="order-mobile-phone">
-                                <iconify-icon icon="solar:phone-bold"></iconify-icon>
-                                <span>@phone</span>
-                            </div>
-                        }
-
                         <div class="order-mobile-meta">
-                            <span><iconify-icon icon="solar:calendar-linear"></iconify-icon> @order.OrderDate.ToString("dd/MM HH:mm")</span>
-                            <span><iconify-icon icon="solar:bag-5-linear"></iconify-icon> @(order.OrderDetails?.Sum(d => d.Quantity) ?? 0) món</span>
+                            <span class="orders-row-source-pill @(isOnline ? "is-app" : "is-pos")">
+                                @(isOnline ? "Online" : "Tại quầy")
+                            </span>
+                            <span><iconify-icon icon="solar:bag-5-linear"></iconify-icon> @itemCount món</span>
                             <span class="bakery-badge @(order.PaymentStatus == PaymentStatus.Paid ? "bakery-badge-success" : "bakery-badge-warning") text-[10px]">
-                                @(order.PaymentStatus == PaymentStatus.Paid ? "Đã trả" : "Chưa trả")
+                                @(order.PaymentStatus == PaymentStatus.Paid ? "Đã thanh toán" : "Chưa thanh toán")
                             </span>
                         </div>
 
@@ -473,38 +492,7 @@
                     </div>
                 </div>
 
-                <!-- 2. Tiến trình 4 bước cho Đơn Online (nếu không bị hủy) -->
-                @if (isShipping && selectedOrder.Status != OrderStatus.Cancelled)
-                {
-                    <div class="order-flow-stepper">
-                        <div class="order-flow-step @GetFlowStepClass(selectedOrder.Status, 1)">
-                            <div class="order-flow-dot">
-                                <iconify-icon icon="solar:bag-check-bold"></iconify-icon>
-                            </div>
-                            <span class="order-flow-label">1. Chờ duyệt</span>
-                        </div>
-                        <div class="order-flow-step @GetFlowStepClass(selectedOrder.Status, 2)">
-                            <div class="order-flow-dot">
-                                <iconify-icon icon="solar:check-circle-bold"></iconify-icon>
-                            </div>
-                            <span class="order-flow-label">2. Đã duyệt</span>
-                        </div>
-                        <div class="order-flow-step @GetFlowStepClass(selectedOrder.Status, 3)">
-                            <div class="order-flow-dot">
-                                <iconify-icon icon="solar:delivery-bold"></iconify-icon>
-                            </div>
-                            <span class="order-flow-label">3. Giao hàng</span>
-                        </div>
-                        <div class="order-flow-step @GetFlowStepClass(selectedOrder.Status, 4)">
-                            <div class="order-flow-dot">
-                                <iconify-icon icon="solar:verified-check-bold"></iconify-icon>
-                            </div>
-                            <span class="order-flow-label">4. Khách xác nhận</span>
-                        </div>
-                    </div>
-                }
-
-                <!-- 3. Thanh Thao Tác Ngữ Cảnh (Duyệt -> Giao hàng -> Chờ khách bấm Đã nhận đơn) -->
+                <!-- 2. Thanh Thao Tác Ngữ Cảnh (Duyệt -> Giao hàng -> Chờ khách bấm Đã nhận đơn) -->
                 @if (selectedOrder.Status == OrderStatus.Pending)
                 {
                     <div class="order-action-panel is-pending">
@@ -550,8 +538,7 @@
                         <div style="display: flex; align-items: center; gap: 0.5rem;">
                             <iconify-icon icon="solar:delivery-bold" style="font-size: 1.15rem; color: #0284c7; flex-shrink: 0;"></iconify-icon>
                             <span>
-                                Đã chuyển sang trạng thái <strong>Giao hàng</strong>. Khi khách hàng bấm nút
-                                <strong>"Xác nhận đã nhận bánh"</strong> trên WebShop hoặc ứng dụng Mobile, đơn sẽ tự động <strong>Hoàn tất</strong>.
+                                Đang <strong>Giao hàng</strong> · Chờ khách bấm <strong>"Đã nhận bánh"</strong> để hoàn tất.
                             </span>
                         </div>
                     </div>
@@ -575,7 +562,112 @@
                     </div>
                 }
 
-                <!-- 4. Hai khối Thông tin Khách đặt & Nhận bánh -->
+                <!-- 3. Bảng chi tiết món bánh (Ưu tiên hiển thị trên cùng) -->
+                <div class="order-doc-items-wrap">
+                    <div class="order-doc-items-head">
+                        <span style="display: inline-flex; align-items: center; gap: 0.4rem;">
+                            <iconify-icon icon="solar:bag-5-bold" style="color: #2563eb; font-size: 0.9rem;"></iconify-icon>
+                            <span>Chi tiết món bánh (@totalQuantity sản phẩm)</span>
+                        </span>
+                    </div>
+
+                    <div class="order-doc-items-scroll">
+                        <table class="order-doc-table">
+                            <thead>
+                                <tr>
+                                    <th>Món bánh</th>
+                                    <th class="order-col-qty">SL</th>
+                                    <th class="order-col-total">Thành tiền</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (selectedOrder.OrderDetails != null && selectedOrder.OrderDetails.Any())
+                                {
+                                    @foreach (var detail in selectedOrder.OrderDetails)
+                                    {
+                                        var prodImage = string.IsNullOrWhiteSpace(detail.Product?.ImageURL)
+                                            ? "/assets/images/products/default-bakery.svg"
+                                            : detail.Product.ImageURL;
+                                        <tr>
+                                            <td>
+                                                <div class="order-item-cell">
+                                                    <img src="@prodImage"
+                                                         alt="@detail.Product?.ProductName"
+                                                         class="order-item-thumb"
+                                                         onerror="this.src='/assets/images/products/default-bakery.svg'" />
+                                                    <div class="order-item-meta">
+                                                        <div class="order-item-name">@detail.Product?.ProductName</div>
+                                                        <div class="order-item-cat">
+                                                            @(detail.Product?.Category?.CategoryName ?? "-") · <span class="whitespace-nowrap">@($"{detail.UnitPrice:N0} đ")</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td class="order-col-qty">
+                                                <span class="order-item-qty-badge">@detail.Quantity</span>
+                                            </td>
+                                            <td class="order-col-total" style="font-weight: 700; color: #0f172a;">
+                                                @($"{detail.SubTotal:N0} đ")
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                                else
+                                {
+                                    <tr>
+                                        <td colspan="3" style="text-align: center; padding: 1.25rem; color: #94a3b8;">Không có chi tiết món bánh.</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 4. Tổng kết tiền (Hiển thị ngay dưới sản phẩm) -->
+                <div class="order-doc-totals">
+                    <div class="order-doc-total-row">
+                        <span>Tổng tiền hàng:</span>
+                        <strong class="tabular-nums">@($"{selectedOrder.TotalAmount:N0} đ")</strong>
+                    </div>
+                    @if (selectedOrder.DiscountAmount > 0)
+                    {
+                        <div class="order-doc-total-row text-emerald-600 font-semibold">
+                            <span>Ưu đãi / Giảm giá:</span>
+                            <span class="tabular-nums">-@($"{selectedOrder.DiscountAmount:N0} đ")</span>
+                        </div>
+                    }
+                    <div class="order-doc-total-row">
+                        <span>Phí giao hàng:</span>
+                        <span class="text-emerald-600 font-semibold">Miễn phí (Freeship)</span>
+                    </div>
+                    <div class="order-doc-total-final">
+                        <span>Khách cần thanh toán:</span>
+                        <strong>@($"{selectedOrder.FinalAmount:N0} đ")</strong>
+                    </div>
+                    <div class="order-doc-payment-inline">
+                        <span style="display: inline-flex; align-items: center; gap: 0.35rem; color: #64748b;">
+                            <iconify-icon icon="solar:wallet-money-bold" style="color: #059669; font-size: 0.95rem;"></iconify-icon>
+                            <span>Thanh toán: <strong style="color: #0f172a;">@selectedOrder.PaymentMethod</strong></span>
+                        </span>
+                        <span class="bakery-badge @(isPaid ? "bakery-badge-success" : "bakery-badge-warning")" style="font-size: 0.65rem; padding: 2px 8px;">
+                            @(isPaid ? "✓ Đã thanh toán" : "⚠ Chưa thanh toán (COD)")
+                        </span>
+                    </div>
+                </div>
+
+                <!-- 5. Ghi chú đơn hàng (nếu có) -->
+                @if (!string.IsNullOrWhiteSpace(selectedOrder.Note))
+                {
+                    <div class="order-note-box">
+                        <iconify-icon icon="solar:notes-bold" style="color: #d97706; font-size: 1rem; flex-shrink: 0; margin-top: 2px;"></iconify-icon>
+                        <div>
+                            <strong style="display: block; text-transform: uppercase; font-size: 0.68rem;">Ghi chú đơn hàng:</strong>
+                            <span>@selectedOrder.Note</span>
+                        </div>
+                    </div>
+                }
+
+                <!-- 6. Thông tin Người đặt & Nhận bánh (đặt phía dưới) -->
                 <div class="order-info-2col">
                     <div class="order-info-box">
                         <div class="order-info-box-head">
@@ -638,122 +730,45 @@
                     </div>
                 </div>
 
-                <!-- 5. Thanh toán & Nguồn lập -->
+                <!-- 7. Nguồn xử lý & Tiến trình 4 bước cho Đơn Online -->
                 <div class="order-meta-strip">
-                    <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 0.45rem;">
-                        <iconify-icon icon="solar:wallet-money-bold" style="color: #059669; font-size: 1rem;"></iconify-icon>
-                        <span style="color: #64748b;">Thanh toán:</span>
-                        <strong>@selectedOrder.PaymentMethod</strong>
-                        <span class="bakery-badge @(isPaid ? "bakery-badge-success" : "bakery-badge-warning")" style="font-size: 0.65rem; padding: 2px 8px;">
-                            @(isPaid ? "✓ Đã thanh toán" : "⚠ Chưa thanh toán (COD)")
-                        </span>
-                    </div>
                     <div style="color: #64748b;">
                         Xử lý: <strong style="color: #334155;">@(selectedOrder.Employee?.FullName ?? "Khách đặt Online")</strong>
                     </div>
+                    <div style="color: #64748b;">
+                        Kênh: <strong style="color: #334155;">@(isShipping ? "Đặt Online" : "Tại quầy POS")</strong>
+                    </div>
                 </div>
 
-                <!-- 6. Ghi chú -->
-                @if (!string.IsNullOrWhiteSpace(selectedOrder.Note))
+                @if (isShipping && selectedOrder.Status != OrderStatus.Cancelled)
                 {
-                    <div class="order-note-box">
-                        <iconify-icon icon="solar:notes-bold" style="color: #d97706; font-size: 1rem; flex-shrink: 0; margin-top: 2px;"></iconify-icon>
-                        <div>
-                            <strong style="display: block; text-transform: uppercase; font-size: 0.68rem;">Ghi chú đơn hàng:</strong>
-                            <span>@selectedOrder.Note</span>
+                    <div class="order-flow-stepper">
+                        <div class="order-flow-step @GetFlowStepClass(selectedOrder.Status, 1)">
+                            <div class="order-flow-dot">
+                                <iconify-icon icon="solar:bag-check-bold"></iconify-icon>
+                            </div>
+                            <span class="order-flow-label">1. Chờ duyệt</span>
+                        </div>
+                        <div class="order-flow-step @GetFlowStepClass(selectedOrder.Status, 2)">
+                            <div class="order-flow-dot">
+                                <iconify-icon icon="solar:check-circle-bold"></iconify-icon>
+                            </div>
+                            <span class="order-flow-label">2. Đã duyệt</span>
+                        </div>
+                        <div class="order-flow-step @GetFlowStepClass(selectedOrder.Status, 3)">
+                            <div class="order-flow-dot">
+                                <iconify-icon icon="solar:delivery-bold"></iconify-icon>
+                            </div>
+                            <span class="order-flow-label">3. Giao hàng</span>
+                        </div>
+                        <div class="order-flow-step @GetFlowStepClass(selectedOrder.Status, 4)">
+                            <div class="order-flow-dot">
+                                <iconify-icon icon="solar:verified-check-bold"></iconify-icon>
+                            </div>
+                            <span class="order-flow-label">4. Khách xác nhận</span>
                         </div>
                     </div>
                 }
-
-                <!-- 7. Bảng chi tiết món bánh -->
-                <div class="order-doc-items-wrap">
-                    <div class="order-doc-items-head">
-                        <span style="display: inline-flex; align-items: center; gap: 0.4rem;">
-                            <iconify-icon icon="solar:bag-5-bold" style="color: #2563eb; font-size: 0.9rem;"></iconify-icon>
-                            <span>Chi tiết món bánh (@totalQuantity sản phẩm)</span>
-                        </span>
-                    </div>
-
-                    <div class="order-doc-items-scroll">
-                        <table class="order-doc-table">
-                            <thead>
-                                <tr>
-                                    <th class="order-col-stt">#</th>
-                                    <th>Món bánh</th>
-                                    <th class="order-col-qty">SL</th>
-                                    <th class="order-col-price">Đơn giá</th>
-                                    <th class="order-col-total">Thành tiền</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @if (selectedOrder.OrderDetails != null && selectedOrder.OrderDetails.Any())
-                                {
-                                    int idx = 1;
-                                    @foreach (var detail in selectedOrder.OrderDetails)
-                                    {
-                                        var prodImage = string.IsNullOrWhiteSpace(detail.Product?.ImageURL)
-                                            ? "/assets/images/products/default-bakery.svg"
-                                            : detail.Product.ImageURL;
-                                        <tr>
-                                            <td class="order-col-stt" style="color: #94a3b8; font-family: ui-monospace, monospace;">@idx</td>
-                                            <td>
-                                                <div class="order-item-cell">
-                                                    <img src="@prodImage"
-                                                         alt="@detail.Product?.ProductName"
-                                                         class="order-item-thumb"
-                                                         onerror="this.src='/assets/images/products/default-bakery.svg'" />
-                                                    <div class="order-item-meta">
-                                                        <div class="order-item-name">@detail.Product?.ProductName</div>
-                                                        <div class="order-item-cat">@(detail.Product?.Category?.CategoryName ?? "-")</div>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td class="order-col-qty">
-                                                <span class="order-item-qty-badge">@detail.Quantity</span>
-                                            </td>
-                                            <td class="order-col-price" style="font-weight: 600; color: #334155;">
-                                                @($"{detail.UnitPrice:N0} đ")
-                                            </td>
-                                            <td class="order-col-total" style="font-weight: 700; color: #0f172a;">
-                                                @($"{detail.SubTotal:N0} đ")
-                                            </td>
-                                        </tr>
-                                        idx++;
-                                    }
-                                }
-                                else
-                                {
-                                    <tr>
-                                        <td colspan="5" style="text-align: center; padding: 1.25rem; color: #94a3b8;">Không có chi tiết món bánh.</td>
-                                    </tr>
-                                }
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <!-- 8. Tổng kết tiền -->
-                <div class="order-doc-totals">
-                    <div class="order-doc-total-row">
-                        <span>Tổng tiền hàng:</span>
-                        <strong class="tabular-nums">@($"{selectedOrder.TotalAmount:N0} đ")</strong>
-                    </div>
-                    @if (selectedOrder.DiscountAmount > 0)
-                    {
-                        <div class="order-doc-total-row text-emerald-600 font-semibold">
-                            <span>Ưu đãi / Giảm giá:</span>
-                            <span class="tabular-nums">-@($"{selectedOrder.DiscountAmount:N0} đ")</span>
-                        </div>
-                    }
-                    <div class="order-doc-total-row">
-                        <span>Phí giao hàng:</span>
-                        <span class="text-emerald-600 font-semibold">Miễn phí (Freeship)</span>
-                    </div>
-                    <div class="order-doc-total-final">
-                        <span>Khách cần thanh toán:</span>
-                        <strong>@($"{selectedOrder.FinalAmount:N0} đ")</strong>
-                    </div>
-                </div>
 
                 <!-- 9. Footer In hóa đơn -->
                 <div class="order-doc-footer">

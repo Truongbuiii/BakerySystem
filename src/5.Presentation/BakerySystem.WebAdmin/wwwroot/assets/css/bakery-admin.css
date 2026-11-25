@@ -4311,14 +4311,24 @@ html.dark .bakery-profile-logout:hover { background: rgba(127, 29, 29, .22); }
 
 @media (min-width: 1024px) {
     .receipt-management-layout {
-        grid-template-columns: 380px minmax(0, 1fr);
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     }
 }
 
-@media (min-width: 1440px) {
-    .receipt-management-layout {
-        grid-template-columns: 410px minmax(0, 1fr);
-    }
+.receipt-management-layout #import-receipts-management-table th,
+.receipt-management-layout #import-receipts-management-table td {
+    padding: 0.85rem 0.65rem !important;
+    white-space: nowrap;
+}
+
+.receipt-management-layout #import-receipts-management-table th:first-child,
+.receipt-management-layout #import-receipts-management-table td:first-child {
+    padding-left: 1rem !important;
+}
+
+.receipt-management-layout #import-receipts-management-table th:last-child,
+.receipt-management-layout #import-receipts-management-table td:last-child {
+    padding-right: 1rem !important;
 }
 
 .bakery-split-container {
@@ -4347,6 +4357,8 @@ html.dark .bakery-profile-logout:hover { background: rgba(127, 29, 29, .22); }
 }
 
 .bakery-split-detail {
+    min-width: 0;
+    width: 100%;
     position: sticky;
     top: 72px;
     max-height: calc(100vh - 88px);
